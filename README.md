@@ -97,4 +97,4 @@ AsiaFlex is designed for financial inclusion:
 •	Cross-Border Transfers: Enable low-cost remittances and peer-to-peer payments.
 •	Access to Asian Economic Growth: Participate indirectly in Asia’s dynamic markets without needing investment accounts or ETFs.
 •	Digital Payments: Use AsiaFlex as a medium of exchange in e-commerce, microtransactions, or local business ecosystems.
-<img width="468" height="641" alt="image" src="https://github.com/user-attachments/assets/aad36bb8-bd2c-4498-9e59-bb5d4d46052c" />
+
