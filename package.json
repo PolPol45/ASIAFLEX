@@ -1,6 +1,6 @@
 {
   "name": "asiaflex",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "This project demonstrates a basic Hardhat use case. It comes with a sample contract, a test for that contract, and a Hardhat Ignition module that deploys that contract.",
   "main": "hardhat.config.js",
   "directories": {
