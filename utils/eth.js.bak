@@ -1,0 +1,51 @@
+// Compatibilità ethers v5/v6 - helper minimo per test locali
+// Esporta: getProvider(rpcUrl), getWallet(privateKey, rpcUrl), estimateGas(tx, rpcUrl)
+// Alias: walletFromKey, walletFromPrivateKey
+let ethersPkg;
+try {
+  ethersPkg = require('ethers');
+} catch (err) {
+  throw new Error('ethers non è installato. Esegui: npm install ethers@5 (o ethers@6)');
+}
+
+// rilevamento versione compatibile
+let version = '';
+try {
+  version = String(ethersPkg.version || ethersPkg?.ethers?.version || '');
+} catch (_) {
+  version = '';
+}
+const isV6 = version.startsWith('6') || (version === '' && !!ethersPkg.JsonRpcProvider && !ethersPkg.providers);
+
+function getProvider(rpcUrl = 'http://127.0.0.1:8545') {
+  if (isV6) {
+    return new ethersPkg.JsonRpcProvider(rpcUrl);
+  } else {
+    return new ethersPkg.providers.JsonRpcProvider(rpcUrl);
+  }
+}
+
+function getWallet(privateKey = '', rpcUrl) {
+  if (!privateKey) {
+    throw new Error('PRIVATE_KEY non fornita a getWallet');
+  }
+  const provider = rpcUrl ? getProvider(rpcUrl) : undefined;
+  return new ethersPkg.Wallet(privateKey, provider);
+}
+
+const walletFromKey = getWallet;
+const walletFromPrivateKey = getWallet;
+
+async function estimateGas(tx = {}, rpcUrl) {
+  const provider = rpcUrl ? getProvider(rpcUrl) : getProvider();
+  return provider.estimateGas(tx);
+}
+
+module.exports = {
+  getProvider,
+  getWallet,
+  walletFromKey,
+  walletFromPrivateKey,
+  estimateGas,
+  _meta: { ethersVersion: version || 'unknown', isV6 }
+};
