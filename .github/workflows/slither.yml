@@ -19,22 +19,17 @@ jobs:
         run: |
           set -e
           sudo apt-get update
-          sudo apt-get install -y software-properties-common wget curl build-essential clang pkg-config python3-dev libssl-dev
+          sudo apt-get install -y software-properties-common wget curl build-essential clang pkg-config python3-dev libssl-dev || true
           # Try installing native solc via PPA (may not always provide the desired version)
           sudo add-apt-repository ppa:ethereum/ethereum -y || true
-          sudo apt-get update
+          sudo apt-get update || true
           sudo apt-get install -y solc || true
           # Fallback: use py-solc-x and install the desired solc version if missing
           python3 -m pip install --upgrade pip
           pip3 install py-solc-x
-          cat > ensure_solc.py <<'PY'
-from solcx import get_installed_solc_versions, install_solc
-desired = "0.8.19"
-if desired not in [str(v) for v in get_installed_solc_versions()]:
-    install_solc(desired)
-print("solc versions:", get_installed_solc_versions())
-PY
-          python3 ensure_solc.py
+          python3 -c "from solcx import get_installed_solc_versions, install_solc; desired='0.8.19'; \
+if desired not in [str(v) for v in get_installed_solc_versions()]: install_solc(desired); \
+print('solc versions:', get_installed_solc_versions())"
 
       - name: Install Slither (pip)
         run: |
@@ -43,7 +38,7 @@ PY
 
       - name: Run slither
         run: |
-          # Adatta il path se i tuoi contratti non si trovano in contracts/
+          # Adatta il path se i tuoi contratti non sono in contracts/
           slither contracts/ --json slither-report.json || true
 
       - name: Upload slither report
