@@ -27,9 +27,9 @@ jobs:
           # Fallback: use py-solc-x and install the desired solc version if missing
           python3 -m pip install --upgrade pip
           pip3 install py-solc-x
-          python3 -c "from solcx import get_installed_solc_versions, install_solc; desired='0.8.19'; \
-if desired not in [str(v) for v in get_installed_solc_versions()]: install_solc(desired); \
-print('solc versions:', get_installed_solc_versions())"
+          # Create a small Python file safely (no heredoc terminator issues) and run it
+          printf '%s\n' "from solcx import get_installed_solc_versions, install_solc" "desired='0.8.19'" "if desired not in [str(v) for v in get_installed_solc_versions()]: install_solc(desired)" "print('solc versions:', get_installed_solc_versions())" > ensure_solc.py
+          python3 ensure_solc.py
 
       - name: Install Slither (pip)
         run: |
