@@ -38,7 +38,7 @@ print('solc versions:', get_installed_solc_versions())"
 
       - name: Run slither
         run: |
-          # Adatta il path se i tuoi contratti non sono in contracts/
+          # Adatta il path se i tuoi contratti non si trovano in contracts/
           slither contracts/ --json slither-report.json || true
 
       - name: Upload slither report
