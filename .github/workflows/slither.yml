@@ -20,21 +20,16 @@ jobs:
           set -e
           sudo apt-get update
           sudo apt-get install -y software-properties-common wget curl build-essential clang pkg-config python3-dev libssl-dev
-          # Add Ethereum PPA and install solc (native compiler). Adjust if you need a specific version.
+          # Add Ethereum PPA and try to install native solc (may not always be available)
           sudo add-apt-repository ppa:ethereum/ethereum -y || true
           sudo apt-get update
           sudo apt-get install -y solc || true
-          # If the native solc wasn't available from apt, install a specific solc via py-solc-x as fallback
+          # Install py-solc-x as fallback and ensure desired version is present
           python3 -m pip install --upgrade pip
           pip3 install py-solc-x
-          python3 - <<'PY'
-from solcx import get_installed_solc_versions, install_solc
-# change the version below to match your contracts' pragma if needed
-desired = "0.8.19"
-if desired not in [str(v) for v in get_installed_solc_versions()]:
-    install_solc(desired)
-print("solc versions:", get_installed_solc_versions())
-PY
+          python3 -c "from solcx import get_installed_solc_versions, install_solc; desired='0.8.19'; \
+if desired not in [str(v) for v in get_installed_solc_versions()]: install_solc(desired); \
+print('solc versions:', get_installed_solc_versions())"
 
       - name: Install Slither (pip)
         run: |
