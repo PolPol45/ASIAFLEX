@@ -34,7 +34,7 @@
     "hardhat": "^2.26.0",
     "hardhat-gas-reporter": "^2.3.0",
     "install": "^0.13.0",
-    "npm": "^11.5.2",
+    "npm": "^11.6.0",
     "solidity-coverage": "^0.8.16",
     "ts-node": "^10.9.2",
     "typechain": "^8.3.2",
