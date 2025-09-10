@@ -85,14 +85,14 @@ export const testConfig = {
     mediumAmount: "1000",
     largeAmount: "10000",
     maxAmount: "50000",
-    
+
     navIncrease: {
       small: "105", // 5%
       medium: "110", // 10%
       large: "120", // 20%
       extreme: "200", // 100%
     },
-    
+
     navDecrease: {
       small: "95", // 5%
       medium: "90", // 10%

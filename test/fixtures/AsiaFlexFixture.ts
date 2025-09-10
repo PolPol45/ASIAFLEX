@@ -154,12 +154,7 @@ async function setupRoles(
   await treasury.grantRole(TREASURY_MANAGER_ROLE, roleHolders.treasuryManager.address);
 }
 
-export async function createMintRequest(
-  to: string,
-  amount: bigint,
-  reserveHash?: string,
-  timestamp?: number
-) {
+export async function createMintRequest(to: string, amount: bigint, reserveHash?: string, timestamp?: number) {
   return {
     to,
     amount,
@@ -168,12 +163,7 @@ export async function createMintRequest(
   };
 }
 
-export async function createRedeemRequest(
-  from: string,
-  amount: bigint,
-  reserveHash?: string,
-  timestamp?: number
-) {
+export async function createRedeemRequest(from: string, amount: bigint, reserveHash?: string, timestamp?: number) {
   return {
     from,
     amount,
@@ -182,11 +172,7 @@ export async function createRedeemRequest(
   };
 }
 
-export async function signMintRequest(
-  request: any,
-  signer: SignerWithAddress,
-  treasuryAddress: string
-) {
+export async function signMintRequest(request: any, signer: SignerWithAddress, treasuryAddress: string) {
   const domain = {
     name: "TreasuryController",
     version: "1",
@@ -206,11 +192,7 @@ export async function signMintRequest(
   return await signer.signTypedData(domain, types, request);
 }
 
-export async function signRedeemRequest(
-  request: any,
-  signer: SignerWithAddress,
-  treasuryAddress: string
-) {
+export async function signRedeemRequest(request: any, signer: SignerWithAddress, treasuryAddress: string) {
   const domain = {
     name: "TreasuryController",
     version: "1",

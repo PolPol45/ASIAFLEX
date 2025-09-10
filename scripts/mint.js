@@ -78,7 +78,9 @@ async function promptYesNo(question) {
   const args = process.argv.slice(2);
   if (args.includes("--yes") || args.includes("-y") || args.includes("yes")) return true;
   const ans = await prompt(question);
-  const a = String(ans || "").trim().toLowerCase();
+  const a = String(ans || "")
+    .trim()
+    .toLowerCase();
   return a === "y" || a === "yes";
 }
 
@@ -101,7 +103,8 @@ async function main() {
       return;
     }
 
-    const tokenAddress = process.env.ASIAFLEX_TOKEN_ADDRESS || process.env.CONTRACT_ADDRESS || process.env.ASIAFLEX_TOKEN_ADDR;
+    const tokenAddress =
+      process.env.ASIAFLEX_TOKEN_ADDRESS || process.env.CONTRACT_ADDRESS || process.env.ASIAFLEX_TOKEN_ADDR;
     if (!tokenAddress) throw new Error("ASIAFLEX_TOKEN_ADDRESS or CONTRACT_ADDRESS not set in .env");
 
     const rpc = process.env.SEPOLIA_RPC_URL || process.env.RPC_URL;
@@ -215,7 +218,9 @@ async function main() {
         reserves: reserves ? ethers.formatUnits(reserves, 18) : "n/a",
       });
 
-      if (flags && flags.dryRun) { /* noop; handled below */ }
+      if (flags && flags.dryRun) {
+        /* noop; handled below */
+      }
 
       if (flags && flags.dryRun) {
         console.log("Dry-run, nessuna tx inviata.");
@@ -230,10 +235,14 @@ async function main() {
         if (!wallet) throw new Error("PRIVATE_KEY richiesta in .env per inviare transazioni");
         // Check reserves
         if (reserves && BigInt(reserves) < BigInt(amountToMint)) {
-          throw new Error(`Non abbastanza riserve. Disponibili: ${ethers.formatUnits(reserves, 18)} AFX, richieste: ${ethers.formatUnits(amountToMint, 18)} AFX`);
+          throw new Error(
+            `Non abbastanza riserve. Disponibili: ${ethers.formatUnits(reserves, 18)} AFX, richieste: ${ethers.formatUnits(amountToMint, 18)} AFX`
+          );
         }
 
-        const confirm = await promptYesNo(`Procedo a mintare ${ethers.formatUnits(amountToMint, 18)} AFX per ${usdInput} USD a ${to}? [y/N]: `);
+        const confirm = await promptYesNo(
+          `Procedo a mintare ${ethers.formatUnits(amountToMint, 18)} AFX per ${usdInput} USD a ${to}? [y/N]: `
+        );
         if (!confirm) {
           console.log("Operazione annullata dall'utente.");
           return;
@@ -273,7 +282,9 @@ async function main() {
 
     if (!wallet) throw new Error("PRIVATE_KEY richiesta in .env per inviare transazioni");
     if (reserves && BigInt(reserves) < BigInt(amountScaled)) {
-      throw new Error(`Non abbastanza riserve. Disponibili: ${ethers.formatUnits(reserves, 18)} AFX, richiesti: ${ethers.formatUnits(amountScaled, 18)} AFX`);
+      throw new Error(
+        `Non abbastanza riserve. Disponibili: ${ethers.formatUnits(reserves, 18)} AFX, richiesti: ${ethers.formatUnits(amountScaled, 18)} AFX`
+      );
     }
 
     const confirmMint = await promptYesNo(`Procedo a mintare ${String(amountInput)} AFX a ${to}? [y/N]: `);

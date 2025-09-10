@@ -85,28 +85,32 @@ describe("AsiaFlexToken", function () {
     });
 
     it("Should revert when non-treasury tries to mint", async function () {
-      await expect(token.connect(user1).mint(user1.address, mintAmount, attestationHash))
-        .to.be.revertedWithCustomError(token, "AccessControlUnauthorizedAccount");
+      await expect(token.connect(user1).mint(user1.address, mintAmount, attestationHash)).to.be.revertedWithCustomError(
+        token,
+        "AccessControlUnauthorizedAccount"
+      );
     });
 
     it("Should revert when minting exceeds supply cap", async function () {
       const largeAmount = INITIAL_SUPPLY_CAP + 1n;
-      await expect(token.connect(treasury).mint(user1.address, largeAmount, attestationHash))
-        .to.be.revertedWithCustomError(token, "InsufficientReserves");
+      await expect(
+        token.connect(treasury).mint(user1.address, largeAmount, attestationHash)
+      ).to.be.revertedWithCustomError(token, "InsufficientReserves");
     });
 
     it("Should revert when minting exceeds daily cap", async function () {
       const largeAmount = INITIAL_MAX_DAILY_MINT + 1n;
-      await expect(token.connect(treasury).mint(user1.address, largeAmount, attestationHash))
-        .to.be.revertedWithCustomError(token, "DailyCapsExceeded");
+      await expect(
+        token.connect(treasury).mint(user1.address, largeAmount, attestationHash)
+      ).to.be.revertedWithCustomError(token, "DailyCapsExceeded");
     });
 
     it("Should track daily mint amounts correctly", async function () {
       const halfDaily = INITIAL_MAX_DAILY_MINT / 2n;
-      
+
       await token.connect(treasury).mint(user1.address, halfDaily, attestationHash);
       expect(await token.getRemainingDailyMint()).to.equal(halfDaily);
-      
+
       await token.connect(treasury).mint(user2.address, halfDaily, attestationHash);
       expect(await token.getRemainingDailyMint()).to.equal(0);
     });
@@ -124,16 +128,18 @@ describe("AsiaFlexToken", function () {
 
     it("Should revert when minting to blacklisted address", async function () {
       await token.connect(blacklistManager).setBlacklisted(user1.address, true);
-      
-      await expect(token.connect(treasury).mint(user1.address, mintAmount, attestationHash))
-        .to.be.revertedWithCustomError(token, "AccountBlacklisted");
+
+      await expect(
+        token.connect(treasury).mint(user1.address, mintAmount, attestationHash)
+      ).to.be.revertedWithCustomError(token, "AccountBlacklisted");
     });
 
     it("Should revert when contract is paused", async function () {
       await token.connect(pauser).pause();
-      
-      await expect(token.connect(treasury).mint(user1.address, mintAmount, attestationHash))
-        .to.be.revertedWithCustomError(token, "EnforcedPause");
+
+      await expect(
+        token.connect(treasury).mint(user1.address, mintAmount, attestationHash)
+      ).to.be.revertedWithCustomError(token, "EnforcedPause");
     });
 
     it("Should support legacy mint function", async function () {
@@ -162,21 +168,25 @@ describe("AsiaFlexToken", function () {
     });
 
     it("Should revert when non-treasury tries to burn", async function () {
-      await expect(token.connect(user1).burn(user1.address, burnAmount, attestationHash))
-        .to.be.revertedWithCustomError(token, "AccessControlUnauthorizedAccount");
+      await expect(token.connect(user1).burn(user1.address, burnAmount, attestationHash)).to.be.revertedWithCustomError(
+        token,
+        "AccessControlUnauthorizedAccount"
+      );
     });
 
     it("Should revert when burning more than balance", async function () {
       const largeAmount = mintAmount + 1n;
-      await expect(token.connect(treasury).burn(user1.address, largeAmount, attestationHash))
-        .to.be.revertedWithCustomError(token, "ERC20InsufficientBalance");
+      await expect(
+        token.connect(treasury).burn(user1.address, largeAmount, attestationHash)
+      ).to.be.revertedWithCustomError(token, "ERC20InsufficientBalance");
     });
 
     it("Should revert when burning from blacklisted address", async function () {
       await token.connect(blacklistManager).setBlacklisted(user1.address, true);
-      
-      await expect(token.connect(treasury).burn(user1.address, burnAmount, attestationHash))
-        .to.be.revertedWithCustomError(token, "AccountBlacklisted");
+
+      await expect(
+        token.connect(treasury).burn(user1.address, burnAmount, attestationHash)
+      ).to.be.revertedWithCustomError(token, "AccountBlacklisted");
     });
 
     it("Should support legacy burnFrom function", async function () {
@@ -189,7 +199,7 @@ describe("AsiaFlexToken", function () {
   describe("Circuit Breakers", function () {
     it("Should allow caps manager to update daily mint cap", async function () {
       const newCap = ethers.parseEther("20000");
-      
+
       await expect(token.connect(capsManager).setMaxDailyMint(newCap))
         .to.emit(token, "DailyCapUpdated")
         .withArgs(INITIAL_MAX_DAILY_MINT, newCap);
@@ -199,7 +209,7 @@ describe("AsiaFlexToken", function () {
 
     it("Should allow caps manager to update daily net inflows cap", async function () {
       const newCap = ethers.parseEther("100000");
-      
+
       await expect(token.connect(capsManager).setMaxDailyNetInflows(newCap))
         .to.emit(token, "DailyNetInflowCapUpdated")
         .withArgs(INITIAL_MAX_DAILY_NET_INFLOWS, newCap);
@@ -209,7 +219,7 @@ describe("AsiaFlexToken", function () {
 
     it("Should allow caps manager to update supply cap", async function () {
       const newCap = ethers.parseEther("2000000");
-      
+
       await token.connect(capsManager).setSupplyCap(newCap);
       expect(await token.supplyCap()).to.equal(newCap);
     });
@@ -217,17 +227,18 @@ describe("AsiaFlexToken", function () {
     it("Should revert when setting supply cap below current supply", async function () {
       const mintAmount = ethers.parseEther("1000");
       await token.connect(treasury).mint(user1.address, mintAmount, ethers.ZeroHash);
-      
+
       const lowCap = mintAmount - 1n;
-      await expect(token.connect(capsManager).setSupplyCap(lowCap))
-        .to.be.revertedWith("Cap below current supply");
+      await expect(token.connect(capsManager).setSupplyCap(lowCap)).to.be.revertedWith("Cap below current supply");
     });
 
     it("Should revert when non-caps manager tries to update caps", async function () {
       const newCap = ethers.parseEther("20000");
-      
-      await expect(token.connect(user1).setMaxDailyMint(newCap))
-        .to.be.revertedWithCustomError(token, "AccessControlUnauthorizedAccount");
+
+      await expect(token.connect(user1).setMaxDailyMint(newCap)).to.be.revertedWithCustomError(
+        token,
+        "AccessControlUnauthorizedAccount"
+      );
     });
   });
 
@@ -242,7 +253,7 @@ describe("AsiaFlexToken", function () {
 
     it("Should allow blacklist manager to remove from blacklist", async function () {
       await token.connect(blacklistManager).setBlacklisted(user1.address, true);
-      
+
       await expect(token.connect(blacklistManager).setBlacklisted(user1.address, false))
         .to.emit(token, "BlacklistUpdated")
         .withArgs(user1.address, false);
@@ -253,44 +264,44 @@ describe("AsiaFlexToken", function () {
     it("Should revert transfers from blacklisted addresses", async function () {
       const mintAmount = ethers.parseEther("1000");
       await token.connect(treasury).mint(user1.address, mintAmount, ethers.ZeroHash);
-      
+
       await token.connect(blacklistManager).setBlacklisted(user1.address, true);
-      
-      await expect(token.connect(user1).transfer(user2.address, ethers.parseEther("100")))
-        .to.be.revertedWithCustomError(token, "AccountBlacklisted");
+
+      await expect(
+        token.connect(user1).transfer(user2.address, ethers.parseEther("100"))
+      ).to.be.revertedWithCustomError(token, "AccountBlacklisted");
     });
 
     it("Should revert transfers to blacklisted addresses", async function () {
       const mintAmount = ethers.parseEther("1000");
       await token.connect(treasury).mint(user1.address, mintAmount, ethers.ZeroHash);
-      
+
       await token.connect(blacklistManager).setBlacklisted(user2.address, true);
-      
-      await expect(token.connect(user1).transfer(user2.address, ethers.parseEther("100")))
-        .to.be.revertedWithCustomError(token, "AccountBlacklisted");
+
+      await expect(
+        token.connect(user1).transfer(user2.address, ethers.parseEther("100"))
+      ).to.be.revertedWithCustomError(token, "AccountBlacklisted");
     });
 
     it("Should revert when non-blacklist manager tries to update blacklist", async function () {
-      await expect(token.connect(user1).setBlacklisted(user2.address, true))
-        .to.be.revertedWithCustomError(token, "AccessControlUnauthorizedAccount");
+      await expect(token.connect(user1).setBlacklisted(user2.address, true)).to.be.revertedWithCustomError(
+        token,
+        "AccessControlUnauthorizedAccount"
+      );
     });
   });
 
   describe("Pause", function () {
     it("Should allow pauser to pause contract", async function () {
-      await expect(token.connect(pauser).pause())
-        .to.emit(token, "Paused")
-        .withArgs(pauser.address);
+      await expect(token.connect(pauser).pause()).to.emit(token, "Paused").withArgs(pauser.address);
 
       expect(await token.paused()).to.be.true;
     });
 
     it("Should allow pauser to unpause contract", async function () {
       await token.connect(pauser).pause();
-      
-      await expect(token.connect(pauser).unpause())
-        .to.emit(token, "Unpaused")
-        .withArgs(pauser.address);
+
+      await expect(token.connect(pauser).unpause()).to.emit(token, "Unpaused").withArgs(pauser.address);
 
       expect(await token.paused()).to.be.false;
     });
@@ -298,16 +309,19 @@ describe("AsiaFlexToken", function () {
     it("Should revert transfers when paused", async function () {
       const mintAmount = ethers.parseEther("1000");
       await token.connect(treasury).mint(user1.address, mintAmount, ethers.ZeroHash);
-      
+
       await token.connect(pauser).pause();
-      
-      await expect(token.connect(user1).transfer(user2.address, ethers.parseEther("100")))
-        .to.be.revertedWithCustomError(token, "EnforcedPause");
+
+      await expect(
+        token.connect(user1).transfer(user2.address, ethers.parseEther("100"))
+      ).to.be.revertedWithCustomError(token, "EnforcedPause");
     });
 
     it("Should revert when non-pauser tries to pause", async function () {
-      await expect(token.connect(user1).pause())
-        .to.be.revertedWithCustomError(token, "AccessControlUnauthorizedAccount");
+      await expect(token.connect(user1).pause()).to.be.revertedWithCustomError(
+        token,
+        "AccessControlUnauthorizedAccount"
+      );
     });
   });
 
@@ -330,14 +344,14 @@ describe("AsiaFlexToken", function () {
   describe("Legacy Compatibility", function () {
     it("Should support legacy reserves functions", async function () {
       const reserveAmount = ethers.parseEther("100000");
-      
+
       await token.connect(treasury).setReserves(reserveAmount);
       expect(await token.reserves()).to.equal(reserveAmount);
     });
 
     it("Should support legacy price functions", async function () {
       const price = ethers.parseEther("105.50"); // $105.50
-      
+
       await token.connect(treasury).setPrice(price);
       expect(await token.getPrice()).to.equal(price);
     });
@@ -346,9 +360,9 @@ describe("AsiaFlexToken", function () {
       const price = ethers.parseEther("100"); // $100 per token
       const usdAmount = ethers.parseEther("1000"); // $1000
       const expectedTokens = ethers.parseEther("10"); // 10 tokens
-      
+
       await token.connect(treasury).setPrice(price);
-      
+
       await expect(token.connect(treasury).mintByUSD(user1.address, usdAmount))
         .to.emit(token, "Mint")
         .withArgs(user1.address, expectedTokens, ethers.ZeroHash);
@@ -359,15 +373,15 @@ describe("AsiaFlexToken", function () {
     it("Should support legacy redeem request/process flow", async function () {
       const mintAmount = ethers.parseEther("1000");
       const redeemAmount = ethers.parseEther("500");
-      
+
       await token.connect(treasury).mint(user1.address, mintAmount, ethers.ZeroHash);
-      
+
       await expect(token.connect(user1).redeemRequest(redeemAmount))
         .to.emit(token, "RedeemRequested")
         .withArgs(user1.address, redeemAmount);
 
       expect(await token.pendingRedeems(user1.address)).to.equal(redeemAmount);
-      
+
       const currentBlock = await ethers.provider.getBlockNumber();
       await expect(token.connect(treasury).processRedeem(user1.address, currentBlock))
         .to.emit(token, "RedeemProcessed")

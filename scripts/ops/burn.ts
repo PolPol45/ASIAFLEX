@@ -33,19 +33,21 @@ async function saveOperation(network: string, operation: any) {
 async function burn(params: BurnParams) {
   const network = await ethers.provider.getNetwork();
   const [signer] = await ethers.getSigners();
-  
+
   console.log(`🔥 Executing burn operation on ${network.name}`);
   console.log(`👤 Signer: ${signer.address}`);
   console.log(`🎯 From: ${params.from}`);
   console.log(`💰 Amount: ${ethers.formatEther(params.amount)} AFX`);
-  console.log(`🔐 Attestation Hash: ${params.attestationHash || "0x0000000000000000000000000000000000000000000000000000000000000000"}`);
+  console.log(
+    `🔐 Attestation Hash: ${params.attestationHash || "0x0000000000000000000000000000000000000000000000000000000000000000"}`
+  );
 
   const deployment = await loadDeployment(network.name);
-  const token = await ethers.getContractAt("AsiaFlexToken", deployment.addresses.AsiaFlexToken) as AsiaFlexToken;
+  const token = (await ethers.getContractAt("AsiaFlexToken", deployment.addresses.AsiaFlexToken)) as AsiaFlexToken;
 
   // Pre-flight checks
   console.log("\n🔍 Pre-flight checks:");
-  
+
   // Check signer has TREASURY_ROLE
   const TREASURY_ROLE = await token.TREASURY_ROLE();
   const hasTreasuryRole = await token.hasRole(TREASURY_ROLE, signer.address);
@@ -94,14 +96,14 @@ async function burn(params: BurnParams) {
   // Execute burn
   console.log("\n🚀 Executing burn...");
   const attestationHash = params.attestationHash || ethers.ZeroHash;
-  
+
   try {
     const tx = await token.burn(params.from, params.amount, attestationHash);
     console.log(`📤 Transaction sent: ${tx.hash}`);
-    
+
     const receipt = await tx.wait();
     console.log(`✅ Transaction confirmed in block ${receipt?.blockNumber}`);
-    
+
     // Log new balances
     const newBalance = await token.balanceOf(params.from);
     const newTotalSupply = await token.totalSupply();
@@ -127,7 +129,6 @@ async function burn(params: BurnParams) {
     };
 
     await saveOperation(network.name, operation);
-    
   } catch (error) {
     console.error("❌ Burn failed:", error);
     throw error;
@@ -137,7 +138,7 @@ async function burn(params: BurnParams) {
 // CLI interface
 async function main() {
   const args = process.argv.slice(2);
-  
+
   if (args.length < 2) {
     console.log("Usage: npx hardhat run scripts/ops/burn.ts -- <from> <amount> [attestationHash] [--dry-run]");
     console.log("Example: npx hardhat run scripts/ops/burn.ts -- 0x123...abc 1000 0x456...def --dry-run");
