@@ -6,4 +6,6 @@ typechain-types
 coverage
 dist
 out
-playground/out
+playground
+scripts
+utils
