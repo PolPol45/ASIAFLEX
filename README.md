@@ -1,100 +1,312 @@
-AsiaFlex is a stable digital token backed by the iShares MSCI All Country Asia ex Japan ETF (AAXJ), a globally recognized, diversified financial instrument that tracks the performance of large and mid-cap companies across Asian markets, excluding Japan.
-The primary objectives of AsiaFlex are to offer users in high-inflation, low-income regions:
-•	a stable store of value protected from local currency volatility,
-•	indirect access to the growth potential of Asia’s leading economies, and
-•	low-cost, cross-border digital liquidity that is simple to use and widely accessible.
- 
-Mission Statement
-Our mission is to democratize access to an inflation-resistant, globally relevant financial asset—anchored in the strength, diversity, and dynamism of Asia’s economies as represented by AAXJ—for underserved populations in emerging markets.
-AsiaFlex is more than a token:
-it is a financial bridge connecting those most affected by inflation and currency instability to the economic opportunities of one of the world’s fastest-growing regions.
- 
-2. Product Overview
-AsiaFlex is a blockchain-based stable token designed to provide emerging market users with access to a diversified, inflation-resistant financial asset. Its value is directly anchored to the iShares MSCI All Country Asia ex Japan ETF (AAXJ), which covers a broad mix of large and mid-cap companies across Asia—including China, India, South Korea, Taiwan, and Hong Kong.
-Unlike traditional stablecoins pegged to a single fiat currency (such as USD or EUR), AsiaFlex delivers multi-market exposure through a single, internationally benchmarked ETF, allowing users to:
-•	hedge against local currency devaluation,
-•	indirectly participate in Asia’s long-term economic growth, and
-•	transact and save in a digital asset that mirrors real-world economic fundamentals.
-By leveraging the robust composition of AAXJ, AsiaFlex eliminates the need for complex custom baskets or user allocations, offering a simple, transparent, and effective solution for financial resilience.
-3. Technical Architecture
-AsiaFlex adopts a technical architecture modeled combining centralized control with blockchain transparency to provide a secure and fully collateralized digital asset.
-At its core, AsiaFlex is an ERC-20 token (with possible multi-chain deployment, e.g., BSC, Polygon) issued and redeemed under the authority of AXION Ltd., the central entity managing collateral reserves, minting, and burning.
- 
-Core Components
-1. Smart Contract Layer (ERC-20 Standard)
-•	Mint Function: AXION Ltd. can mint new AsiaFlex tokens when sufficient collateral is received 
-•	Burn Function: AsiaFlex Ltd. can burn tokens upon user redemption requests.
-•	Basic ERC-20 Functions: Transfer, approve, allowance, balanceOf, totalSupply.
-•	Administrative Controls: Only authorized treasury wallets (multi-signature, controlled by AXION Ltd.) can call mint and burn functions.
-This is intentionally a centralized design to ensure regulatory compliance, security, and operational simplicity.
- 
-2. Price Feed Integration
-AsiaFlex is pegged 1:1 to the NAV of the iShares MSCI All Country Asia ex Japan ETF (AAXJ).
-•	AsiaFlex Ltd. uses institutional data sources (Bloomberg, Refinitiv, MSCI) to monitor AAXJ NAV in real time.
-•	The current NAV is manually or semi-automatically updated into the system as part of minting and redemption operations.
-•	Optionally, blockchain oracles (e.g., Chainlink) can be integrated to publish price data on-chain for transparency, but core mint/burn operations rely on the central entity.
- 
-3. Collateral Management
-AsiaFlex is fully backed by fiat or stablecoin reserves:
-•	Deposited assets are held in centralized custody accounts (banks, custodians, or major crypto custodians like Fireblocks).
-•	Backing ratio is at least 1:1 relative to the outstanding AsiaFlex token supply, calculated at current AAXJ NAV.
-AsiaFlex will publish attestations of reserves (via independent auditors) at regular intervals, following a model similar to Tether’s transparency reports.
- 
-4. Minting and Redemption Process
-•	Minting:
-Authorized clients (exchanges, fintech partners, or qualified users) deposit collateral (USDC, USDT) to AsiaFlex Ltd., which mints new AsiaFlex tokens at the current AAXJ NAV rate.
-•	Redemption:
-Authorized clients return AsiaFlex tokens, which are burned, and receive equivalent collateral in return.
-This model avoids public smart contract minting and burning, limiting these functions to the central treasury, just like Tether.
- 
-5. Public Interface
-•	Users access AsiaFlex primarily through:
-o	Partner exchanges (CEX/DEX),
-o	Digital wallets,
-o	Fintech integrations.
-They can trade, hold, and use AsiaFlex like any other token, but minting/redemption rights are limited to authorized entities, maintaining system integrity.
- 
-6. Security and Audit Measures
-•	Smart contracts will be externally audited before deployment.
-•	Custodial assets will be secured with trusted banking partners and/or regulated custodians.
-•	AsiaFlex Ltd. will publish regular, public reports on token supply, re
-4. Key Features
-AsiaFlex is designed as a centralized, fully collateralized digital token, providing users in emerging markets with a simple, stable, and transparent financial tool. Its design leverages a secure blockchain architecture, a globally recognized financial benchmark (AAXJ), and best practices from the most established stablecoin models.
- 
-1. AAXJ-Pegged Stability
-AsiaFlex is pegged to the Net Asset Value (NAV) of the iShares MSCI All Country Asia ex Japan ETF (AAXJ), providing exposure to a diversified basket of major Asian economies including China, India, South Korea, Taiwan, and Hong Kong.
-By anchoring its value to this ETF, AsiaFlex offers:
-•	A diversified alternative to USD-pegged stablecoins,
-•	Protection against local currency devaluation,
-•	Indirect access to the economic performance of Asia’s most dynamic markets.
-2. Fully Collateralized Reserves
-Every AsiaFlex token in circulation is backed 1:1 by fiat-backed stablecoins (e.g., USDC, USDT) or fiat reserves held by regulated custodians.
-•	Users deposit stable collateral,
-•	AsiaFlex Ltd. mints tokens equivalent to the current AAXJ NAV,
-•	Users can redeem AsiaFlex for stablecoins, and the tokens are burned.
-Regular reserve attestations will be published, ensuring transparency and user trust.
-3. Centralized Minting and Redemption (Tether-Style Model)
-AsiaFlex adopts a permissioned mint/burn system:
-•	Only the central treasury (AsiaFlex Ltd.) can execute minting and redemption operations.
-•	Retail users access AsiaFlex through authorized exchange partners, wallets, or fintech channels.
-This model allows:
-•	Compliance with local regulations,
-•	Risk management and emergency controls,
-•	Simpler integration with institutional partners.
-4. Blockchain Transparency
-Although the mint/burn is centralized, the AsiaFlex token operates fully on public blockchains (Ethereum, Binance Smart Chain, or others).
-•	All token transfers, balances, and total supply are publicly visible.
-•	Oracles may be integrated to publish AAXJ price data on-chain.
-•	Smart contracts will be externally audited, ensuring security and credibility.
-5. Accessibility and Low Entry Barriers
-AsiaFlex is designed for financial inclusion:
-•	Low minimum transaction amounts,
-•	Simple access via mobile wallets and partner fintechs,
-•	Optional local currency on/off ramps through authorized partners,
-•	Multi-language platform interfaces to reach diverse user bases.
-6. Use Cases
-•	Savings Protection: Safeguard against local currency depreciation by holding a stable, Asia-linked asset.
-•	Cross-Border Transfers: Enable low-cost remittances and peer-to-peer payments.
-•	Access to Asian Economic Growth: Participate indirectly in Asia’s dynamic markets without needing investment accounts or ETFs.
-•	Digital Payments: Use AsiaFlex as a medium of exchange in e-commerce, microtransactions, or local business ecosystems.
+# AsiaFlex Token - Enterprise DeFi Infrastructure
 
+[![CI/CD Pipeline](https://github.com/PolPol45/ASIAFLEX/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/PolPol45/ASIAFLEX/actions/workflows/ci-cd.yml)
+[![Coverage Status](https://codecov.io/gh/PolPol45/ASIAFLEX/branch/main/graph/badge.svg)](https://codecov.io/gh/PolPol45/ASIAFLEX)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+AsiaFlex Token (AFX) is an enterprise-grade ERC20 token with comprehensive treasury controls, oracle integration, and institutional-level security features. Built following IndexCoop standards with enhanced proof-of-reserves functionality.
+
+## 🏗️ Architecture
+
+### Core Contracts
+
+#### AsiaFlexToken.sol
+Enterprise-grade ERC20 token with:
+- **AccessControl**: Role-based permissions (TREASURY_ROLE, PAUSER_ROLE, etc.)
+- **Pausable**: Emergency pause functionality
+- **EIP712 Permits**: Gasless approvals with signed messages
+- **Circuit Breakers**: Daily mint caps and net inflow limits
+- **Blacklist**: Optional KYC/compliance features
+- **Legacy Compatibility**: Maintains existing API surface
+
+#### NAVOracleAdapter.sol
+Robust oracle system with:
+- **Staleness Protection**: Configurable data freshness thresholds
+- **Deviation Guards**: Maximum price movement protections
+- **Emergency Override**: Force updates for exceptional circumstances
+- **Access Control**: Separate updater and manager roles
+
+#### TreasuryController.sol
+Attestation-based treasury operations:
+- **EIP712 Signatures**: Cryptographically signed mint/redeem requests
+- **Replay Protection**: Prevents duplicate transaction execution
+- **Reserve Attestations**: Links operations to off-chain reserve proofs
+- **Expiration Controls**: Time-bounded request validity
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+- Node.js 18+ and npm
+- Git
+
+### Installation
+
+```bash
+git clone https://github.com/PolPol45/ASIAFLEX.git
+cd ASIAFLEX
+npm install
+```
+
+### Build & Test
+
+```bash
+# Compile contracts
+npm run build
+
+# Run tests
+npm test
+
+# Generate coverage report
+npm run coverage
+
+# Run linting
+npm run lint
+```
+
+## 📋 Commands Reference
+
+### Development Commands
+
+```bash
+# Compilation
+npm run build                    # Compile contracts + TypeScript
+npm run typecheck               # TypeScript type checking
+
+# Testing
+npm test                        # Run all tests
+npm run test:fork              # Run with mainnet fork
+npm run coverage               # Generate coverage report
+npm run gas-snapshot           # Generate gas usage report
+
+# Code Quality
+npm run lint                   # Lint Solidity + TypeScript
+npm run lint:fix              # Auto-fix linting issues
+npm run clean                  # Clean build artifacts
+```
+
+### Deployment
+
+```bash
+# Deploy to network
+npm run deploy                 # Deploy using hardhat.config.ts network
+npx hardhat run scripts/deploy/00_deploy_asiaflex.ts --network sepolia
+
+# Verify contracts
+npm run verify
+npx hardhat verify --network sepolia <CONTRACT_ADDRESS> <CONSTRUCTOR_ARGS>
+```
+
+### Operational Scripts
+
+```bash
+# Mint tokens
+npx hardhat run scripts/ops/mint.ts -- <to> <amount> [attestationHash] [--dry-run]
+
+# Burn tokens  
+npx hardhat run scripts/ops/burn.ts -- <from> <amount> [attestationHash] [--dry-run]
+
+# Pause/unpause
+npx hardhat run scripts/ops/pause.ts -- <pause|unpause> [--dry-run]
+
+# Update caps
+npx hardhat run scripts/ops/setCaps.ts -- --supply-cap <amount> [--dry-run]
+```
+
+### Hardhat Tasks
+
+```bash
+# System status
+npx hardhat status                    # Full system overview
+npx hardhat status --contract token  # Specific contract status
+
+# Role management
+npx hardhat roles                     # Show all roles
+npx hardhat roles --account 0x123... # Check specific account
+
+# Oracle management
+npx hardhat nav:update --nav 105.50  # Update NAV
+npx hardhat nav:update --nav 95.00 --force  # Emergency update
+```
+
+## 🔧 Configuration
+
+### Environment Variables
+
+Create `.env` file:
+
+```bash
+# RPC URLs
+MAINNET_RPC_URL=https://mainnet.infura.io/v3/YOUR_KEY
+SEPOLIA_RPC_URL=https://sepolia.infura.io/v3/YOUR_KEY
+POLYGON_RPC_URL=https://polygon-rpc.com
+
+# Private Keys (for deployment)
+PRIVATE_KEY=0x...
+
+# API Keys
+ETHERSCAN_API_KEY=YOUR_ETHERSCAN_KEY
+POLYGONSCAN_API_KEY=YOUR_POLYGONSCAN_KEY
+COINMARKETCAP_API_KEY=YOUR_CMC_KEY
+
+# Contract Addresses (after deployment)
+ASIAFLEX_TOKEN_ADDRESS=0x...
+NAV_ORACLE_ADDRESS=0x...
+TREASURY_CONTROLLER_ADDRESS=0x...
+```
+
+## 🛡️ Security Features
+
+### Circuit Breakers
+
+- **Daily Mint Cap**: Limits token creation per 24-hour period
+- **Daily Net Inflow Cap**: Controls overall token supply expansion
+- **Supply Cap**: Hard ceiling on total token supply
+- **Automatic Reset**: Daily limits reset every 24 hours
+
+### Access Control
+
+- **TREASURY_ROLE**: Can mint/burn tokens through attestations
+- **PAUSER_ROLE**: Can pause/unpause token operations
+- **CAPS_MANAGER_ROLE**: Can modify supply and daily caps
+- **BLACKLIST_MANAGER_ROLE**: Can blacklist addresses for compliance
+- **ORACLE_UPDATER_ROLE**: Can update NAV within deviation limits
+- **ORACLE_MANAGER_ROLE**: Can force NAV updates and change thresholds
+
+### Oracle Protection
+
+- **Staleness Checks**: Prevents use of outdated price data
+- **Deviation Limits**: Protects against extreme price movements
+- **Force Update**: Emergency override with elevated privileges
+- **Signature Verification**: All updates cryptographically signed
+
+### Treasury Security
+
+- **EIP712 Signatures**: Industry-standard signed message format
+- **Replay Protection**: Prevents transaction duplication
+- **Request Expiration**: Time-bounded operation validity
+- **Reserve Attestation**: Links operations to off-chain proof
+
+## 📊 Testing & Coverage
+
+### Test Structure
+
+```
+test/
+├── unit/                      # Contract unit tests
+│   ├── AsiaFlexToken.test.ts
+│   ├── NAVOracleAdapter.test.ts
+│   └── TreasuryController.test.ts
+├── integration/               # System integration tests
+│   └── SystemIntegration.test.ts
+└── fixtures/                  # Reusable test helpers
+    └── AsiaFlexFixture.ts
+```
+
+### Coverage Target
+
+Maintaining ≥95% coverage across:
+- Statement coverage
+- Branch coverage  
+- Function coverage
+- Line coverage
+
+### Fork Testing
+
+Run integration tests against mainnet fork:
+
+```bash
+FORK_TESTING=true MAINNET_RPC_URL=<url> npm run test:fork
+```
+
+## 🚀 Deployment Guide
+
+### 1. Testnet Deployment
+
+```bash
+# Deploy to Sepolia
+npx hardhat run scripts/deploy/00_deploy_asiaflex.ts --network sepolia
+
+# Verify contracts
+npx hardhat verify --network sepolia <TOKEN_ADDRESS> "AsiaFlexToken" "AFX" <SUPPLY_CAP> <MAX_DAILY_MINT> <MAX_DAILY_NET_INFLOWS>
+npx hardhat verify --network sepolia <ORACLE_ADDRESS> <INITIAL_NAV> <STALENESS_THRESHOLD> <DEVIATION_THRESHOLD>
+npx hardhat verify --network sepolia <TREASURY_ADDRESS> <TOKEN_ADDRESS> <TREASURY_SIGNER> <REQUEST_EXPIRATION>
+```
+
+### 2. Mainnet Deployment
+
+```bash
+# Deploy to mainnet (requires MAINNET_PRIVATE_KEY)
+npx hardhat run scripts/deploy/00_deploy_asiaflex.ts --network mainnet
+
+# Verify on Etherscan
+npx hardhat verify --network mainnet <CONTRACT_ADDRESSES>
+```
+
+### 3. Post-Deployment Setup
+
+1. **Configure Roles**: Grant appropriate roles to operational addresses
+2. **Set Caps**: Configure initial daily mint and supply caps
+3. **Oracle Setup**: Initialize NAV data and update permissions
+4. **Treasury Configuration**: Set treasury signer and expiration times
+
+## 🔒 Security Checklist
+
+### Pre-Deployment
+- [ ] All tests passing with ≥95% coverage
+- [ ] Slither analysis completed with no critical issues
+- [ ] Role assignments reviewed and documented
+- [ ] Initial parameters validated (caps, thresholds, addresses)
+- [ ] Emergency procedures documented
+- [ ] Backup treasury signer configured
+
+### Post-Deployment
+- [ ] Contract verification completed on block explorer
+- [ ] Role assignments verified on-chain
+- [ ] Circuit breakers tested
+- [ ] Oracle data initialized
+- [ ] Emergency pause tested
+- [ ] Operational runbooks updated
+- [ ] Monitoring alerts configured
+
+### Ongoing Operations
+- [ ] Daily NAV updates verified
+- [ ] Reserve attestations current
+- [ ] Circuit breaker usage monitored
+- [ ] Role assignments audited monthly
+- [ ] Emergency procedures tested quarterly
+- [ ] Security audit scheduled annually
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'feat: add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+### Commit Convention
+
+This project uses [Conventional Commits](https://www.conventionalcommits.org/):
+
+- `feat:` - New features
+- `fix:` - Bug fixes
+- `docs:` - Documentation changes
+- `style:` - Code style changes
+- `refactor:` - Code refactoring
+- `test:` - Test additions/modifications
+- `chore:` - Maintenance tasks
+
+## 📞 Support
+
+- **Documentation**: [GitHub Wiki](https://github.com/PolPol45/ASIAFLEX/wiki)
+- **Issues**: [GitHub Issues](https://github.com/PolPol45/ASIAFLEX/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/PolPol45/ASIAFLEX/discussions)
+
+---
+
+Built with ❤️ following IndexCoop standards and enterprise best practices.
