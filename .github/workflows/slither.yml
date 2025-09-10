@@ -18,6 +18,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install slither-analyzer
           # Install solc (needed by Slither). Adjust version if your contracts use a different pragma.
+          sudo add-apt-repository ppa:ethereum/ethereum
           sudo apt-get update
           sudo apt-get install -y solc
       - name: Run slither
