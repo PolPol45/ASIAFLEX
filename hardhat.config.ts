@@ -72,7 +72,7 @@ const config: HardhatUserConfig = {
     coinmarketcap: process.env.COINMARKETCAP_API_KEY,
   },
   typechain: {
-    outDir: "typechain-types",
+    outDir: "types",
     target: "ethers-v6",
     alwaysGenerateOverloads: false,
     externalArtifacts: ["node_modules/@openzeppelin/contracts/build/contracts/**/*.json"],

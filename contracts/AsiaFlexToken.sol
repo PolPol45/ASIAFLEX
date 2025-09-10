@@ -211,7 +211,7 @@ contract AsiaFlexToken is
         emit RedeemRequested(msg.sender, amount);
     }
 
-    function processRedeem(address user, uint256 blockNumber) external onlyRole(TREASURY_ROLE) {
+    function processRedeem(address user, uint256 /* blockNumber */) external onlyRole(TREASURY_ROLE) {
         uint256 amount = pendingRedeems[user];
         require(amount > 0, "No pending redeem");
         

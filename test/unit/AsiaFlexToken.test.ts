@@ -330,9 +330,9 @@ describe("AsiaFlexToken", function () {
       const mintAmount = ethers.parseEther("1000");
       await token.connect(treasury).mint(user1.address, mintAmount, ethers.ZeroHash);
 
-      const spender = user2.address;
-      const value = ethers.parseEther("100");
-      const deadline = Math.floor(Date.now() / 1000) + 3600; // 1 hour from now
+      // const _spender = user2.address;
+      // const _value = ethers.parseEther("100");
+      // const _deadline = Math.floor(Date.now() / 1000) + 3600; // 1 hour from now
 
       // Note: This is a simplified test. In practice, you'd need to sign the permit message
       // For now, we just test that the permit function exists and can be called

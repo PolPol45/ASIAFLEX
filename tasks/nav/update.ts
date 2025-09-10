@@ -1,5 +1,4 @@
 import { task } from "hardhat/config";
-import { NAVOracleAdapter } from "../../typechain-types";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -38,7 +37,7 @@ task("nav:update", "Updates NAV oracle data with staleness and deviation checks"
     console.log(`🔮 Oracle Address: ${oracleAddress}`);
 
     try {
-      const oracle = (await ethers.getContractAt("NAVOracleAdapter", oracleAddress)) as NAVOracleAdapter;
+      const oracle = await ethers.getContractAt("NAVOracleAdapter", oracleAddress);
       const newNavWei = ethers.parseEther(taskArgs.nav);
 
       // Pre-flight checks

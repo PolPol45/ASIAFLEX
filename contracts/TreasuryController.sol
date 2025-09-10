@@ -18,18 +18,18 @@ contract TreasuryController is AccessControl, Pausable, EIP712, ITreasuryControl
     bytes32 public constant TREASURY_MANAGER_ROLE = keccak256("TREASURY_MANAGER_ROLE");
     
     // Type hashes for EIP712
-    bytes32 private constant MINT_REQUEST_TYPEHASH = keccak256(
+    bytes32 private constant _MINT_REQUEST_TYPEHASH = keccak256(
         "MintRequest(address to,uint256 amount,uint256 timestamp,bytes32 reserveHash)"
     );
     
-    bytes32 private constant REDEEM_REQUEST_TYPEHASH = keccak256(
+    bytes32 private constant _REDEEM_REQUEST_TYPEHASH = keccak256(
         "RedeemRequest(address from,uint256 amount,uint256 timestamp,bytes32 reserveHash)"
     );
 
     // Configuration
     address public treasurySigner;
     uint256 public requestExpiration; // seconds
-    IAsiaFlexToken public immutable asiaFlexToken;
+    IAsiaFlexToken public immutable ASIA_FLEX_TOKEN;
 
     // Nonce tracking to prevent replay attacks
     mapping(bytes32 => bool) public usedRequests;
@@ -42,7 +42,7 @@ contract TreasuryController is AccessControl, Pausable, EIP712, ITreasuryControl
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(TREASURY_MANAGER_ROLE, msg.sender);
 
-        asiaFlexToken = IAsiaFlexToken(_asiaFlexToken);
+        ASIA_FLEX_TOKEN = IAsiaFlexToken(_asiaFlexToken);
         treasurySigner = _treasurySigner;
         requestExpiration = _requestExpiration;
     }
@@ -70,7 +70,7 @@ contract TreasuryController is AccessControl, Pausable, EIP712, ITreasuryControl
         usedRequests[requestHash] = true;
 
         // Execute mint with attestation hash
-        asiaFlexToken.mint(request.to, request.amount, request.reserveHash);
+        ASIA_FLEX_TOKEN.mint(request.to, request.amount, request.reserveHash);
 
         emit MintExecuted(request.to, request.amount, request.reserveHash);
     }
@@ -98,7 +98,7 @@ contract TreasuryController is AccessControl, Pausable, EIP712, ITreasuryControl
         usedRequests[requestHash] = true;
 
         // Execute burn with attestation hash
-        asiaFlexToken.burn(request.from, request.amount, request.reserveHash);
+        ASIA_FLEX_TOKEN.burn(request.from, request.amount, request.reserveHash);
 
         emit RedeemExecuted(request.from, request.amount, request.reserveHash);
     }
@@ -157,7 +157,7 @@ contract TreasuryController is AccessControl, Pausable, EIP712, ITreasuryControl
         uint256 amount,
         bytes32 attestationHash
     ) external onlyRole(DEFAULT_ADMIN_ROLE) whenPaused {
-        asiaFlexToken.mint(to, amount, attestationHash);
+        ASIA_FLEX_TOKEN.mint(to, amount, attestationHash);
         emit MintExecuted(to, amount, attestationHash);
     }
 
@@ -166,14 +166,14 @@ contract TreasuryController is AccessControl, Pausable, EIP712, ITreasuryControl
         uint256 amount,
         bytes32 attestationHash
     ) external onlyRole(DEFAULT_ADMIN_ROLE) whenPaused {
-        asiaFlexToken.burn(from, amount, attestationHash);
+        ASIA_FLEX_TOKEN.burn(from, amount, attestationHash);
         emit RedeemExecuted(from, amount, attestationHash);
     }
 
     // Internal functions
     function _hashMintRequest(MintRequest calldata request) internal pure returns (bytes32) {
         return keccak256(abi.encode(
-            MINT_REQUEST_TYPEHASH,
+            _MINT_REQUEST_TYPEHASH,
             request.to,
             request.amount,
             request.timestamp,
@@ -183,7 +183,7 @@ contract TreasuryController is AccessControl, Pausable, EIP712, ITreasuryControl
 
     function _hashRedeemRequest(RedeemRequest calldata request) internal pure returns (bytes32) {
         return keccak256(abi.encode(
-            REDEEM_REQUEST_TYPEHASH,
+            _REDEEM_REQUEST_TYPEHASH,
             request.from,
             request.amount,
             request.timestamp,
@@ -207,7 +207,10 @@ contract TreasuryController is AccessControl, Pausable, EIP712, ITreasuryControl
         return usedRequests[requestHash];
     }
 
-    function isRedeemRequestUsed(RedeemRequest calldata request, bytes calldata signature) external view returns (bool) {
+    function isRedeemRequestUsed(
+        RedeemRequest calldata request, 
+        bytes calldata signature
+    ) external view returns (bool) {
         bytes32 requestHash = keccak256(abi.encode(request, signature));
         return usedRequests[requestHash];
     }
