@@ -33,19 +33,21 @@ async function saveOperation(network: string, operation: any) {
 async function mint(params: MintParams) {
   const network = await ethers.provider.getNetwork();
   const [signer] = await ethers.getSigners();
-  
+
   console.log(`🪙 Executing mint operation on ${network.name}`);
   console.log(`👤 Signer: ${signer.address}`);
   console.log(`🎯 To: ${params.to}`);
   console.log(`💰 Amount: ${ethers.formatEther(params.amount)} AFX`);
-  console.log(`🔐 Attestation Hash: ${params.attestationHash || "0x0000000000000000000000000000000000000000000000000000000000000000"}`);
+  console.log(
+    `🔐 Attestation Hash: ${params.attestationHash || "0x0000000000000000000000000000000000000000000000000000000000000000"}`
+  );
 
   const deployment = await loadDeployment(network.name);
-  const token = await ethers.getContractAt("AsiaFlexToken", deployment.addresses.AsiaFlexToken) as AsiaFlexToken;
+  const token = (await ethers.getContractAt("AsiaFlexToken", deployment.addresses.AsiaFlexToken)) as AsiaFlexToken;
 
   // Pre-flight checks
   console.log("\n🔍 Pre-flight checks:");
-  
+
   // Check signer has TREASURY_ROLE
   const TREASURY_ROLE = await token.TREASURY_ROLE();
   const hasTreasuryRole = await token.hasRole(TREASURY_ROLE, signer.address);
@@ -103,14 +105,14 @@ async function mint(params: MintParams) {
   // Execute mint
   console.log("\n🚀 Executing mint...");
   const attestationHash = params.attestationHash || ethers.ZeroHash;
-  
+
   try {
     const tx = await token.mint(params.to, params.amount, attestationHash);
     console.log(`📤 Transaction sent: ${tx.hash}`);
-    
+
     const receipt = await tx.wait();
     console.log(`✅ Transaction confirmed in block ${receipt?.blockNumber}`);
-    
+
     // Log new balances
     const newBalance = await token.balanceOf(params.to);
     const newTotalSupply = await token.totalSupply();
@@ -136,7 +138,6 @@ async function mint(params: MintParams) {
     };
 
     await saveOperation(network.name, operation);
-    
   } catch (error) {
     console.error("❌ Mint failed:", error);
     throw error;
@@ -146,7 +147,7 @@ async function mint(params: MintParams) {
 // CLI interface
 async function main() {
   const args = process.argv.slice(2);
-  
+
   if (args.length < 2) {
     console.log("Usage: npx hardhat run scripts/ops/mint.ts -- <to> <amount> [attestationHash] [--dry-run]");
     console.log("Example: npx hardhat run scripts/ops/mint.ts -- 0x123...abc 1000 0x456...def --dry-run");

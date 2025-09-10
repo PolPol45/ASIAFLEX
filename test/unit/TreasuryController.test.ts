@@ -116,16 +116,17 @@ describe("TreasuryController", function () {
       const request = await createMintRequest(expiredTime);
       const signature = await signMintRequest(request, treasurySigner);
 
-      await expect(treasury.executeMint(request, signature))
-        .to.be.revertedWithCustomError(treasury, "RequestExpired");
+      await expect(treasury.executeMint(request, signature)).to.be.revertedWithCustomError(treasury, "RequestExpired");
     });
 
     it("Should revert with invalid signature", async function () {
       const request = await createMintRequest();
       const invalidSignature = await signMintRequest(request, user2); // Wrong signer
 
-      await expect(treasury.executeMint(request, invalidSignature))
-        .to.be.revertedWithCustomError(treasury, "InvalidSignature");
+      await expect(treasury.executeMint(request, invalidSignature)).to.be.revertedWithCustomError(
+        treasury,
+        "InvalidSignature"
+      );
     });
 
     it("Should prevent replay attacks", async function () {
@@ -136,8 +137,10 @@ describe("TreasuryController", function () {
       await treasury.executeMint(request, signature);
 
       // Second execution should fail
-      await expect(treasury.executeMint(request, signature))
-        .to.be.revertedWithCustomError(treasury, "InvalidSignature");
+      await expect(treasury.executeMint(request, signature)).to.be.revertedWithCustomError(
+        treasury,
+        "InvalidSignature"
+      );
     });
 
     it("Should revert when contract is paused", async function () {
@@ -146,8 +149,7 @@ describe("TreasuryController", function () {
       const request = await createMintRequest();
       const signature = await signMintRequest(request, treasurySigner);
 
-      await expect(treasury.executeMint(request, signature))
-        .to.be.revertedWithCustomError(treasury, "EnforcedPause");
+      await expect(treasury.executeMint(request, signature)).to.be.revertedWithCustomError(treasury, "EnforcedPause");
     });
 
     it("Should verify mint signature correctly", async function () {
@@ -231,16 +233,20 @@ describe("TreasuryController", function () {
       const request = await createRedeemRequest(expiredTime);
       const signature = await signRedeemRequest(request, treasurySigner);
 
-      await expect(treasury.executeRedeem(request, signature))
-        .to.be.revertedWithCustomError(treasury, "RequestExpired");
+      await expect(treasury.executeRedeem(request, signature)).to.be.revertedWithCustomError(
+        treasury,
+        "RequestExpired"
+      );
     });
 
     it("Should revert with invalid signature", async function () {
       const request = await createRedeemRequest();
       const invalidSignature = await signRedeemRequest(request, user2); // Wrong signer
 
-      await expect(treasury.executeRedeem(request, invalidSignature))
-        .to.be.revertedWithCustomError(treasury, "InvalidSignature");
+      await expect(treasury.executeRedeem(request, invalidSignature)).to.be.revertedWithCustomError(
+        treasury,
+        "InvalidSignature"
+      );
     });
 
     it("Should prevent replay attacks", async function () {
@@ -251,8 +257,10 @@ describe("TreasuryController", function () {
       await treasury.executeRedeem(request, signature);
 
       // Second execution should fail
-      await expect(treasury.executeRedeem(request, signature))
-        .to.be.revertedWithCustomError(treasury, "InvalidSignature");
+      await expect(treasury.executeRedeem(request, signature)).to.be.revertedWithCustomError(
+        treasury,
+        "InvalidSignature"
+      );
     });
 
     it("Should verify redeem signature correctly", async function () {
@@ -298,11 +306,15 @@ describe("TreasuryController", function () {
     });
 
     it("Should revert when non-manager tries to update configuration", async function () {
-      await expect(treasury.connect(user1).setTreasurySigner(user2.address))
-        .to.be.revertedWithCustomError(treasury, "AccessControlUnauthorizedAccount");
+      await expect(treasury.connect(user1).setTreasurySigner(user2.address)).to.be.revertedWithCustomError(
+        treasury,
+        "AccessControlUnauthorizedAccount"
+      );
 
-      await expect(treasury.connect(user1).setRequestExpiration(7200))
-        .to.be.revertedWithCustomError(treasury, "AccessControlUnauthorizedAccount");
+      await expect(treasury.connect(user1).setRequestExpiration(7200)).to.be.revertedWithCustomError(
+        treasury,
+        "AccessControlUnauthorizedAccount"
+      );
     });
   });
 
@@ -326,8 +338,10 @@ describe("TreasuryController", function () {
     });
 
     it("Should revert when non-manager tries to pause", async function () {
-      await expect(treasury.connect(user1).pause())
-        .to.be.revertedWithCustomError(treasury, "AccessControlUnauthorizedAccount");
+      await expect(treasury.connect(user1).pause()).to.be.revertedWithCustomError(
+        treasury,
+        "AccessControlUnauthorizedAccount"
+      );
     });
   });
 
@@ -359,21 +373,27 @@ describe("TreasuryController", function () {
     });
 
     it("Should revert emergency functions when not paused", async function () {
-      await expect(treasury.emergencyMint(user1.address, emergencyAmount, emergencyHash))
-        .to.be.revertedWithCustomError(treasury, "ExpectedPause");
+      await expect(treasury.emergencyMint(user1.address, emergencyAmount, emergencyHash)).to.be.revertedWithCustomError(
+        treasury,
+        "ExpectedPause"
+      );
 
-      await expect(treasury.emergencyBurn(user1.address, emergencyAmount, emergencyHash))
-        .to.be.revertedWithCustomError(treasury, "ExpectedPause");
+      await expect(treasury.emergencyBurn(user1.address, emergencyAmount, emergencyHash)).to.be.revertedWithCustomError(
+        treasury,
+        "ExpectedPause"
+      );
     });
 
     it("Should revert when non-admin tries emergency functions", async function () {
       await treasury.connect(treasuryManager).pause();
 
-      await expect(treasury.connect(user1).emergencyMint(user2.address, emergencyAmount, emergencyHash))
-        .to.be.revertedWithCustomError(treasury, "AccessControlUnauthorizedAccount");
+      await expect(
+        treasury.connect(user1).emergencyMint(user2.address, emergencyAmount, emergencyHash)
+      ).to.be.revertedWithCustomError(treasury, "AccessControlUnauthorizedAccount");
 
-      await expect(treasury.connect(user1).emergencyBurn(user2.address, emergencyAmount, emergencyHash))
-        .to.be.revertedWithCustomError(treasury, "AccessControlUnauthorizedAccount");
+      await expect(
+        treasury.connect(user1).emergencyBurn(user2.address, emergencyAmount, emergencyHash)
+      ).to.be.revertedWithCustomError(treasury, "AccessControlUnauthorizedAccount");
     });
   });
 
@@ -437,8 +457,7 @@ describe("TreasuryController", function () {
       const signature = await signMintRequest(request, treasurySigner);
 
       // Should fail due to token's daily mint cap
-      await expect(treasury.executeMint(request, signature))
-        .to.be.revertedWithCustomError(token, "DailyCapsExceeded");
+      await expect(treasury.executeMint(request, signature)).to.be.revertedWithCustomError(token, "DailyCapsExceeded");
     });
 
     it("Should respect token pause state", async function () {
@@ -456,8 +475,7 @@ describe("TreasuryController", function () {
       const signature = await signMintRequest(request, treasurySigner);
 
       // Should fail due to token being paused
-      await expect(treasury.executeMint(request, signature))
-        .to.be.revertedWithCustomError(token, "EnforcedPause");
+      await expect(treasury.executeMint(request, signature)).to.be.revertedWithCustomError(token, "EnforcedPause");
     });
 
     it("Should respect token blacklist", async function () {
@@ -475,8 +493,7 @@ describe("TreasuryController", function () {
       const signature = await signMintRequest(request, treasurySigner);
 
       // Should fail due to user being blacklisted
-      await expect(treasury.executeMint(request, signature))
-        .to.be.revertedWithCustomError(token, "AccountBlacklisted");
+      await expect(treasury.executeMint(request, signature)).to.be.revertedWithCustomError(token, "AccountBlacklisted");
     });
   });
 

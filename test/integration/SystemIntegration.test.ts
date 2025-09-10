@@ -7,7 +7,7 @@ describe("AsiaFlex Integration Tests", function () {
   let token: AsiaFlexToken;
   let oracle: NAVOracleAdapter;
   let treasury: TreasuryController;
-  
+
   let deployer: SignerWithAddress;
   let treasurySigner: SignerWithAddress;
   let oracleUpdater: SignerWithAddress;
@@ -37,11 +37,7 @@ describe("AsiaFlex Integration Tests", function () {
 
     // Deploy NAVOracleAdapter
     const NAVOracleAdapterFactory = await ethers.getContractFactory("NAVOracleAdapter");
-    oracle = await NAVOracleAdapterFactory.deploy(
-      INITIAL_NAV,
-      STALENESS_THRESHOLD,
-      DEVIATION_THRESHOLD
-    );
+    oracle = await NAVOracleAdapterFactory.deploy(INITIAL_NAV, STALENESS_THRESHOLD, DEVIATION_THRESHOLD);
 
     // Deploy TreasuryController
     const TreasuryControllerFactory = await ethers.getContractFactory("TreasuryController");
@@ -66,8 +62,7 @@ describe("AsiaFlex Integration Tests", function () {
       // Step 1: Update NAV
       console.log("📊 Step 1: Update NAV to $105");
       const newNAV = ethers.parseEther("105");
-      await expect(oracle.connect(oracleUpdater).updateNAV(newNAV))
-        .to.emit(oracle, "NAVUpdated");
+      await expect(oracle.connect(oracleUpdater).updateNAV(newNAV)).to.emit(oracle, "NAVUpdated");
 
       const [currentNAV] = await oracle.getNAV();
       expect(currentNAV).to.equal(newNAV);
@@ -77,7 +72,7 @@ describe("AsiaFlex Integration Tests", function () {
       console.log("🪙 Step 2: Execute mint via TreasuryController");
       const mintAmount = ethers.parseEther("1000");
       const reserveHash = ethers.keccak256(ethers.toUtf8Bytes("reserve-proof-12345"));
-      
+
       const mintRequest = {
         to: user1.address,
         amount: mintAmount,
@@ -86,7 +81,7 @@ describe("AsiaFlex Integration Tests", function () {
       };
 
       const mintSignature = await signMintRequest(mintRequest, treasurySigner);
-      
+
       await expect(treasury.executeMint(mintRequest, mintSignature))
         .to.emit(treasury, "MintExecuted")
         .withArgs(user1.address, mintAmount, reserveHash)
@@ -99,7 +94,7 @@ describe("AsiaFlex Integration Tests", function () {
       // Step 3: User transfers tokens
       console.log("💸 Step 3: User1 transfers tokens to User2");
       const transferAmount = ethers.parseEther("300");
-      
+
       await expect(token.connect(user1).transfer(user2.address, transferAmount))
         .to.emit(token, "Transfer")
         .withArgs(user1.address, user2.address, transferAmount);
@@ -112,7 +107,7 @@ describe("AsiaFlex Integration Tests", function () {
       console.log("🔥 Step 4: Execute redeem via TreasuryController");
       const redeemAmount = ethers.parseEther("200");
       const redeemHash = ethers.keccak256(ethers.toUtf8Bytes("redeem-proof-67890"));
-      
+
       const redeemRequest = {
         from: user1.address,
         amount: redeemAmount,
@@ -121,7 +116,7 @@ describe("AsiaFlex Integration Tests", function () {
       };
 
       const redeemSignature = await signRedeemRequest(redeemRequest, treasurySigner);
-      
+
       const user1BalanceBefore = await token.balanceOf(user1.address);
       await expect(treasury.executeRedeem(redeemRequest, redeemSignature))
         .to.emit(treasury, "RedeemExecuted")
@@ -136,11 +131,11 @@ describe("AsiaFlex Integration Tests", function () {
       console.log("📋 Step 5: Verify final system state");
       const totalSupply = await token.totalSupply();
       const expectedSupply = mintAmount - redeemAmount; // 1000 - 200 = 800
-      
+
       expect(totalSupply).to.equal(expectedSupply);
       expect(await token.balanceOf(user1.address)).to.equal(ethers.parseEther("500")); // 1000 - 300 - 200
       expect(await token.balanceOf(user2.address)).to.equal(ethers.parseEther("300")); // transferred amount
-      
+
       console.log(`✅ Final total supply: ${ethers.formatEther(totalSupply)} AFX`);
       console.log(`✅ User1 balance: ${ethers.formatEther(await token.balanceOf(user1.address))} AFX`);
       console.log(`✅ User2 balance: ${ethers.formatEther(await token.balanceOf(user2.address))} AFX`);
@@ -160,9 +155,11 @@ describe("AsiaFlex Integration Tests", function () {
       };
 
       const signature = await signMintRequest(mintRequest, treasurySigner);
-      
-      await expect(treasury.executeMint(mintRequest, signature))
-        .to.be.revertedWithCustomError(token, "DailyCapsExceeded");
+
+      await expect(treasury.executeMint(mintRequest, signature)).to.be.revertedWithCustomError(
+        token,
+        "DailyCapsExceeded"
+      );
 
       console.log("✅ Daily mint cap enforced correctly");
 
@@ -176,9 +173,8 @@ describe("AsiaFlex Integration Tests", function () {
       };
 
       const validSignature = await signMintRequest(validRequest, treasurySigner);
-      
-      await expect(treasury.executeMint(validRequest, validSignature))
-        .to.emit(token, "Mint");
+
+      await expect(treasury.executeMint(validRequest, validSignature)).to.emit(token, "Mint");
 
       console.log("✅ Valid mint within cap executed successfully");
 
@@ -193,33 +189,33 @@ describe("AsiaFlex Integration Tests", function () {
 
       // Test normal update
       const validNAV = ethers.parseEther("105"); // 5% increase
-      await expect(oracle.connect(oracleUpdater).updateNAV(validNAV))
-        .to.emit(oracle, "NAVUpdated");
+      await expect(oracle.connect(oracleUpdater).updateNAV(validNAV)).to.emit(oracle, "NAVUpdated");
 
       console.log("✅ Valid NAV update executed");
 
       // Test deviation threshold
       const invalidNAV = ethers.parseEther("120"); // 20% increase (> 10% threshold)
-      await expect(oracle.connect(oracleUpdater).updateNAV(invalidNAV))
-        .to.be.revertedWithCustomError(oracle, "DeviationTooHigh");
+      await expect(oracle.connect(oracleUpdater).updateNAV(invalidNAV)).to.be.revertedWithCustomError(
+        oracle,
+        "DeviationTooHigh"
+      );
 
       console.log("✅ Deviation threshold enforced correctly");
 
       // Test staleness
       expect(await oracle.isStale()).to.be.false;
-      
+
       // Fast forward past staleness threshold
       await network.provider.send("evm_increaseTime", [STALENESS_THRESHOLD + 1]);
       await network.provider.send("evm_mine");
-      
+
       expect(await oracle.isStale()).to.be.true;
       console.log("✅ Staleness detection working correctly");
 
       // Fresh update should reset staleness
       const freshNAV = ethers.parseEther("106");
-      await expect(oracle.connect(oracleUpdater).updateNAV(freshNAV))
-        .to.emit(oracle, "NAVUpdated");
-      
+      await expect(oracle.connect(oracleUpdater).updateNAV(freshNAV)).to.emit(oracle, "NAVUpdated");
+
       expect(await oracle.isStale()).to.be.false;
       console.log("✅ Fresh update resets staleness");
     });
@@ -244,8 +240,9 @@ describe("AsiaFlex Integration Tests", function () {
       await token.pause();
 
       // Transfers should fail
-      await expect(token.connect(user1).transfer(user2.address, ethers.parseEther("100")))
-        .to.be.revertedWithCustomError(token, "EnforcedPause");
+      await expect(
+        token.connect(user1).transfer(user2.address, ethers.parseEther("100"))
+      ).to.be.revertedWithCustomError(token, "EnforcedPause");
 
       // Mints through treasury should fail
       const newMintRequest = {
@@ -255,8 +252,10 @@ describe("AsiaFlex Integration Tests", function () {
         reserveHash: ethers.keccak256(ethers.toUtf8Bytes("paused-mint")),
       };
       const newSignature = await signMintRequest(newMintRequest, treasurySigner);
-      await expect(treasury.executeMint(newMintRequest, newSignature))
-        .to.be.revertedWithCustomError(token, "EnforcedPause");
+      await expect(treasury.executeMint(newMintRequest, newSignature)).to.be.revertedWithCustomError(
+        token,
+        "EnforcedPause"
+      );
 
       console.log("✅ Token pause prevents transfers and mints");
 
@@ -264,8 +263,7 @@ describe("AsiaFlex Integration Tests", function () {
       await token.unpause();
 
       // Now transfers should work
-      await expect(token.connect(user1).transfer(user2.address, ethers.parseEther("100")))
-        .to.emit(token, "Transfer");
+      await expect(token.connect(user1).transfer(user2.address, ethers.parseEther("100"))).to.emit(token, "Transfer");
 
       console.log("✅ Token unpause restores functionality");
 
@@ -275,14 +273,15 @@ describe("AsiaFlex Integration Tests", function () {
       await oracle.pause();
 
       // NAV updates should fail
-      await expect(oracle.connect(oracleUpdater).updateNAV(ethers.parseEther("110")))
-        .to.be.revertedWithCustomError(oracle, "EnforcedPause");
+      await expect(oracle.connect(oracleUpdater).updateNAV(ethers.parseEther("110"))).to.be.revertedWithCustomError(
+        oracle,
+        "EnforcedPause"
+      );
 
       console.log("✅ Oracle pause prevents NAV updates");
 
       // Force update should still work for emergency
-      await expect(oracle.forceUpdateNAV(ethers.parseEther("110")))
-        .to.emit(oracle, "NAVUpdated");
+      await expect(oracle.forceUpdateNAV(ethers.parseEther("110"))).to.emit(oracle, "NAVUpdated");
 
       console.log("✅ Emergency force update works even when paused");
 
@@ -299,12 +298,19 @@ describe("AsiaFlex Integration Tests", function () {
         reserveHash: ethers.keccak256(ethers.toUtf8Bytes("treasury-paused")),
       };
       const pausedSignature = await signMintRequest(pausedMintRequest, treasurySigner);
-      await expect(treasury.executeMint(pausedMintRequest, pausedSignature))
-        .to.be.revertedWithCustomError(treasury, "EnforcedPause");
+      await expect(treasury.executeMint(pausedMintRequest, pausedSignature)).to.be.revertedWithCustomError(
+        treasury,
+        "EnforcedPause"
+      );
 
       // Emergency functions should work
-      await expect(treasury.emergencyMint(user2.address, ethers.parseEther("500"), ethers.keccak256(ethers.toUtf8Bytes("emergency"))))
-        .to.emit(treasury, "MintExecuted");
+      await expect(
+        treasury.emergencyMint(
+          user2.address,
+          ethers.parseEther("500"),
+          ethers.keccak256(ethers.toUtf8Bytes("emergency"))
+        )
+      ).to.emit(treasury, "MintExecuted");
 
       console.log("✅ Treasury pause prevents normal operations but allows emergency functions");
     });
@@ -329,8 +335,9 @@ describe("AsiaFlex Integration Tests", function () {
       await token.setBlacklisted(user1.address, true);
 
       // Transfers should fail
-      await expect(token.connect(user1).transfer(user2.address, ethers.parseEther("100")))
-        .to.be.revertedWithCustomError(token, "AccountBlacklisted");
+      await expect(
+        token.connect(user1).transfer(user2.address, ethers.parseEther("100"))
+      ).to.be.revertedWithCustomError(token, "AccountBlacklisted");
 
       // Mints to blacklisted user should fail
       const blacklistedMintRequest = {
@@ -340,8 +347,10 @@ describe("AsiaFlex Integration Tests", function () {
         reserveHash: ethers.keccak256(ethers.toUtf8Bytes("blacklisted-mint")),
       };
       const blacklistedSignature = await signMintRequest(blacklistedMintRequest, treasurySigner);
-      await expect(treasury.executeMint(blacklistedMintRequest, blacklistedSignature))
-        .to.be.revertedWithCustomError(token, "AccountBlacklisted");
+      await expect(treasury.executeMint(blacklistedMintRequest, blacklistedSignature)).to.be.revertedWithCustomError(
+        token,
+        "AccountBlacklisted"
+      );
 
       // Burns from blacklisted user should fail
       const burnRequest = {
@@ -351,8 +360,10 @@ describe("AsiaFlex Integration Tests", function () {
         reserveHash: ethers.keccak256(ethers.toUtf8Bytes("blacklisted-burn")),
       };
       const burnSignature = await signRedeemRequest(burnRequest, treasurySigner);
-      await expect(treasury.executeRedeem(burnRequest, burnSignature))
-        .to.be.revertedWithCustomError(token, "AccountBlacklisted");
+      await expect(treasury.executeRedeem(burnRequest, burnSignature)).to.be.revertedWithCustomError(
+        token,
+        "AccountBlacklisted"
+      );
 
       console.log("✅ Blacklist prevents all token operations");
 
@@ -360,8 +371,7 @@ describe("AsiaFlex Integration Tests", function () {
       await token.setBlacklisted(user1.address, false);
 
       // Operations should work again
-      await expect(token.connect(user1).transfer(user2.address, ethers.parseEther("100")))
-        .to.emit(token, "Transfer");
+      await expect(token.connect(user1).transfer(user2.address, ethers.parseEther("100"))).to.emit(token, "Transfer");
 
       console.log("✅ Removing from blacklist restores functionality");
     });
@@ -391,12 +401,10 @@ describe("AsiaFlex Integration Tests", function () {
         .withArgs(user1.address, ethers.parseEther("100"), ethers.ZeroHash);
 
       // Legacy redeem flow
-      await expect(token.connect(user1).redeemRequest(ethers.parseEther("200")))
-        .to.emit(token, "RedeemRequested");
+      await expect(token.connect(user1).redeemRequest(ethers.parseEther("200"))).to.emit(token, "RedeemRequested");
 
       const currentBlock = await ethers.provider.getBlockNumber();
-      await expect(token.processRedeem(user1.address, currentBlock))
-        .to.emit(token, "RedeemProcessed");
+      await expect(token.processRedeem(user1.address, currentBlock)).to.emit(token, "RedeemProcessed");
 
       console.log("✅ All legacy functions work correctly");
     });

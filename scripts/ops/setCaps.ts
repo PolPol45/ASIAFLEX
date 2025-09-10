@@ -33,16 +33,16 @@ async function saveOperation(network: string, operation: any) {
 async function setCaps(params: SetCapsParams) {
   const network = await ethers.provider.getNetwork();
   const [signer] = await ethers.getSigners();
-  
+
   console.log(`⚙️  Executing set caps operation on ${network.name}`);
   console.log(`👤 Signer: ${signer.address}`);
 
   const deployment = await loadDeployment(network.name);
-  const token = await ethers.getContractAt("AsiaFlexToken", deployment.addresses.AsiaFlexToken) as AsiaFlexToken;
+  const token = (await ethers.getContractAt("AsiaFlexToken", deployment.addresses.AsiaFlexToken)) as AsiaFlexToken;
 
   // Pre-flight checks
   console.log("\n🔍 Pre-flight checks:");
-  
+
   // Check signer has CAPS_MANAGER_ROLE
   const CAPS_MANAGER_ROLE = await token.CAPS_MANAGER_ROLE();
   const hasCapsManagerRole = await token.hasRole(CAPS_MANAGER_ROLE, signer.address);
@@ -77,7 +77,7 @@ async function setCaps(params: SetCapsParams) {
   if (params.dryRun) {
     console.log("\n🧪 DRY RUN - No transaction will be sent");
     console.log("✅ All checks passed - set caps would succeed");
-    
+
     if (params.maxDailyMint) {
       console.log(`   New Max Daily Mint: ${ethers.formatEther(params.maxDailyMint)} AFX`);
     }
@@ -120,7 +120,7 @@ async function setCaps(params: SetCapsParams) {
     }
 
     console.log(`✅ All cap updates confirmed`);
-    
+
     // Show new caps
     const newMaxDailyMint = await token.maxDailyMint();
     const newMaxDailyNetInflows = await token.maxDailyNetInflows();
@@ -147,7 +147,6 @@ async function setCaps(params: SetCapsParams) {
     };
 
     await saveOperation(network.name, operation);
-    
   } catch (error) {
     console.error("❌ Set caps failed:", error);
     throw error;
@@ -157,10 +156,14 @@ async function setCaps(params: SetCapsParams) {
 // CLI interface
 async function main() {
   const args = process.argv.slice(2);
-  
+
   if (args.length < 1) {
-    console.log("Usage: npx hardhat run scripts/ops/setCaps.ts -- [--max-daily-mint <amount>] [--max-daily-net-inflows <amount>] [--supply-cap <amount>] [--dry-run]");
-    console.log("Example: npx hardhat run scripts/ops/setCaps.ts -- --max-daily-mint 20000 --supply-cap 2000000 --dry-run");
+    console.log(
+      "Usage: npx hardhat run scripts/ops/setCaps.ts -- [--max-daily-mint <amount>] [--max-daily-net-inflows <amount>] [--supply-cap <amount>] [--dry-run]"
+    );
+    console.log(
+      "Example: npx hardhat run scripts/ops/setCaps.ts -- --max-daily-mint 20000 --supply-cap 2000000 --dry-run"
+    );
     process.exit(1);
   }
 

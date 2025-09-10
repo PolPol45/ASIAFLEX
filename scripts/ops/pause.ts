@@ -31,17 +31,17 @@ async function saveOperation(network: string, operation: any) {
 async function pauseControl(params: PauseParams) {
   const network = await ethers.provider.getNetwork();
   const [signer] = await ethers.getSigners();
-  
+
   const action = params.pause ? "pause" : "unpause";
   console.log(`⏸️  Executing ${action} operation on ${network.name}`);
   console.log(`👤 Signer: ${signer.address}`);
 
   const deployment = await loadDeployment(network.name);
-  const token = await ethers.getContractAt("AsiaFlexToken", deployment.addresses.AsiaFlexToken) as AsiaFlexToken;
+  const token = (await ethers.getContractAt("AsiaFlexToken", deployment.addresses.AsiaFlexToken)) as AsiaFlexToken;
 
   // Pre-flight checks
   console.log("\n🔍 Pre-flight checks:");
-  
+
   // Check signer has PAUSER_ROLE
   const PAUSER_ROLE = await token.PAUSER_ROLE();
   const hasPauserRole = await token.hasRole(PAUSER_ROLE, signer.address);
@@ -53,14 +53,14 @@ async function pauseControl(params: PauseParams) {
   // Check current pause state
   const isPaused = await token.paused();
   console.log(`   Current State: ${isPaused ? "Paused" : "Active"}`);
-  
+
   if (params.pause && isPaused) {
     console.log(`⚠️  Warning: Contract is already paused`);
     if (!params.dryRun) {
       throw new Error("Contract is already paused");
     }
   }
-  
+
   if (!params.pause && !isPaused) {
     console.log(`⚠️  Warning: Contract is already unpaused`);
     if (!params.dryRun) {
@@ -76,14 +76,14 @@ async function pauseControl(params: PauseParams) {
 
   // Execute pause/unpause
   console.log(`\n🚀 Executing ${action}...`);
-  
+
   try {
     const tx = params.pause ? await token.pause() : await token.unpause();
     console.log(`📤 Transaction sent: ${tx.hash}`);
-    
+
     const receipt = await tx.wait();
     console.log(`✅ Transaction confirmed in block ${receipt?.blockNumber}`);
-    
+
     // Verify new state
     const newPauseState = await token.paused();
     console.log(`📊 New pause state: ${newPauseState ? "Paused" : "Active"}`);
@@ -106,7 +106,6 @@ async function pauseControl(params: PauseParams) {
     };
 
     await saveOperation(network.name, operation);
-    
   } catch (error) {
     console.error(`❌ ${action} failed:`, error);
     throw error;
@@ -116,7 +115,7 @@ async function pauseControl(params: PauseParams) {
 // CLI interface
 async function main() {
   const args = process.argv.slice(2);
-  
+
   if (args.length < 1) {
     console.log("Usage: npx hardhat run scripts/ops/pause.ts -- <pause|unpause> [--dry-run]");
     console.log("Example: npx hardhat run scripts/ops/pause.ts -- pause --dry-run");

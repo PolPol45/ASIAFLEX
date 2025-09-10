@@ -9,11 +9,11 @@ task("roles", "Displays role information for AsiaFlex contracts")
   .setAction(async (taskArgs, hre) => {
     const { ethers } = hre;
     const network = await ethers.provider.getNetwork();
-    
+
     // Load deployment
     const deploymentPath = path.join(__dirname, "../deployments", `${network.name}.json`);
     let deployment: any = {};
-    
+
     if (fs.existsSync(deploymentPath)) {
       deployment = JSON.parse(fs.readFileSync(deploymentPath, "utf8"));
     } else if (taskArgs.contract === "all") {
@@ -22,7 +22,7 @@ task("roles", "Displays role information for AsiaFlex contracts")
     }
 
     console.log(`🔐 Role Information for ${network.name}`);
-    console.log("=" .repeat(50));
+    console.log("=".repeat(50));
 
     if (taskArgs.account) {
       console.log(`👤 Checking roles for account: ${taskArgs.account}`);
@@ -59,7 +59,7 @@ task("roles", "Displays role information for AsiaFlex contracts")
           const adminRole = await contract.DEFAULT_ADMIN_ROLE();
           console.log(`\n👑 DEFAULT_ADMIN_ROLE:`);
           console.log(`   Hash: ${adminRole}`);
-          
+
           if (taskArgs.account) {
             const hasAdminRole = await contract.hasRole(adminRole, taskArgs.account);
             console.log(`   ${taskArgs.account}: ${hasAdminRole ? "✅ HAS ROLE" : "❌ NO ROLE"}`);
@@ -67,7 +67,6 @@ task("roles", "Displays role information for AsiaFlex contracts")
         } catch (error) {
           console.log(`   ❌ Error checking admin role: ${error}`);
         }
-
       } catch (error) {
         console.log(`❌ Error connecting to contract: ${error}`);
       }
@@ -77,10 +76,10 @@ task("roles", "Displays role information for AsiaFlex contracts")
     if (taskArgs.contract === "all" || taskArgs.contract.toLowerCase() === "asiaflex") {
       if (deployment.addresses?.AsiaFlexToken) {
         await displayContractRoles(deployment.addresses.AsiaFlexToken, "AsiaFlexToken", {
-          "TREASURY_ROLE": "TREASURY_ROLE",
-          "PAUSER_ROLE": "PAUSER_ROLE",
-          "CAPS_MANAGER_ROLE": "CAPS_MANAGER_ROLE",
-          "BLACKLIST_MANAGER_ROLE": "BLACKLIST_MANAGER_ROLE",
+          TREASURY_ROLE: "TREASURY_ROLE",
+          PAUSER_ROLE: "PAUSER_ROLE",
+          CAPS_MANAGER_ROLE: "CAPS_MANAGER_ROLE",
+          BLACKLIST_MANAGER_ROLE: "BLACKLIST_MANAGER_ROLE",
         });
       }
     }
@@ -89,8 +88,8 @@ task("roles", "Displays role information for AsiaFlex contracts")
     if (taskArgs.contract === "all" || taskArgs.contract.toLowerCase() === "oracle") {
       if (deployment.addresses?.NAVOracleAdapter) {
         await displayContractRoles(deployment.addresses.NAVOracleAdapter, "NAVOracleAdapter", {
-          "ORACLE_UPDATER_ROLE": "ORACLE_UPDATER_ROLE",
-          "ORACLE_MANAGER_ROLE": "ORACLE_MANAGER_ROLE",
+          ORACLE_UPDATER_ROLE: "ORACLE_UPDATER_ROLE",
+          ORACLE_MANAGER_ROLE: "ORACLE_MANAGER_ROLE",
         });
       }
     }
@@ -99,7 +98,7 @@ task("roles", "Displays role information for AsiaFlex contracts")
     if (taskArgs.contract === "all" || taskArgs.contract.toLowerCase() === "treasury") {
       if (deployment.addresses?.TreasuryController) {
         await displayContractRoles(deployment.addresses.TreasuryController, "TreasuryController", {
-          "TREASURY_MANAGER_ROLE": "TREASURY_MANAGER_ROLE",
+          TREASURY_MANAGER_ROLE: "TREASURY_MANAGER_ROLE",
         });
       }
     }
@@ -112,25 +111,25 @@ task("roles", "Displays role information for AsiaFlex contracts")
         const contract = await ethers.getContractAt("AsiaFlexToken", taskArgs.contract);
         await contract.TREASURY_ROLE(); // Test if it's AsiaFlexToken
         await displayContractRoles(taskArgs.contract, "AsiaFlexToken", {
-          "TREASURY_ROLE": "TREASURY_ROLE",
-          "PAUSER_ROLE": "PAUSER_ROLE",
-          "CAPS_MANAGER_ROLE": "CAPS_MANAGER_ROLE",
-          "BLACKLIST_MANAGER_ROLE": "BLACKLIST_MANAGER_ROLE",
+          TREASURY_ROLE: "TREASURY_ROLE",
+          PAUSER_ROLE: "PAUSER_ROLE",
+          CAPS_MANAGER_ROLE: "CAPS_MANAGER_ROLE",
+          BLACKLIST_MANAGER_ROLE: "BLACKLIST_MANAGER_ROLE",
         });
       } catch {
         try {
           const contract = await ethers.getContractAt("NAVOracleAdapter", taskArgs.contract);
           await contract.ORACLE_UPDATER_ROLE(); // Test if it's NAVOracleAdapter
           await displayContractRoles(taskArgs.contract, "NAVOracleAdapter", {
-            "ORACLE_UPDATER_ROLE": "ORACLE_UPDATER_ROLE",
-            "ORACLE_MANAGER_ROLE": "ORACLE_MANAGER_ROLE",
+            ORACLE_UPDATER_ROLE: "ORACLE_UPDATER_ROLE",
+            ORACLE_MANAGER_ROLE: "ORACLE_MANAGER_ROLE",
           });
         } catch {
           try {
             const contract = await ethers.getContractAt("TreasuryController", taskArgs.contract);
             await contract.TREASURY_MANAGER_ROLE(); // Test if it's TreasuryController
             await displayContractRoles(taskArgs.contract, "TreasuryController", {
-              "TREASURY_MANAGER_ROLE": "TREASURY_MANAGER_ROLE",
+              TREASURY_MANAGER_ROLE: "TREASURY_MANAGER_ROLE",
             });
           } catch {
             console.log("❌ Unknown contract type or invalid contract");

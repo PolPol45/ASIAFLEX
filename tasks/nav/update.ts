@@ -12,7 +12,7 @@ task("nav:update", "Updates NAV oracle data with staleness and deviation checks"
     const { ethers } = hre;
     const network = await ethers.provider.getNetwork();
     const [signer] = await ethers.getSigners();
-    
+
     console.log(`🔮 Updating NAV Oracle on ${network.name}`);
     console.log(`👤 Signer: ${signer.address}`);
     console.log(`💰 New NAV: $${taskArgs.nav}`);
@@ -27,7 +27,7 @@ task("nav:update", "Updates NAV oracle data with staleness and deviation checks"
         const deployment = JSON.parse(fs.readFileSync(deploymentPath, "utf8"));
         oracleAddress = deployment.addresses?.NAVOracleAdapter;
       }
-      
+
       if (!oracleAddress) {
         console.log("❌ No oracle address provided and no deployment found");
         console.log("   Use --oracle <address> to specify manually");
@@ -38,7 +38,7 @@ task("nav:update", "Updates NAV oracle data with staleness and deviation checks"
     console.log(`🔮 Oracle Address: ${oracleAddress}`);
 
     try {
-      const oracle = await ethers.getContractAt("NAVOracleAdapter", oracleAddress) as NAVOracleAdapter;
+      const oracle = (await ethers.getContractAt("NAVOracleAdapter", oracleAddress)) as NAVOracleAdapter;
       const newNavWei = ethers.parseEther(taskArgs.nav);
 
       // Pre-flight checks
@@ -49,10 +49,10 @@ task("nav:update", "Updates NAV oracle data with staleness and deviation checks"
       const ORACLE_MANAGER_ROLE = await oracle.ORACLE_MANAGER_ROLE();
       const hasUpdaterRole = await oracle.hasRole(ORACLE_UPDATER_ROLE, signer.address);
       const hasManagerRole = await oracle.hasRole(ORACLE_MANAGER_ROLE, signer.address);
-      
+
       console.log(`   Oracle Updater Role: ${hasUpdaterRole ? "✅" : "❌"}`);
       console.log(`   Oracle Manager Role: ${hasManagerRole ? "✅" : "❌"}`);
-      
+
       if (!hasUpdaterRole && !hasManagerRole && !taskArgs.dryRun) {
         throw new Error("Signer does not have ORACLE_UPDATER_ROLE or ORACLE_MANAGER_ROLE");
       }
@@ -69,7 +69,7 @@ task("nav:update", "Updates NAV oracle data with staleness and deviation checks"
       const stalenessThreshold = await oracle.getStalenessThreshold();
       const deviationThreshold = await oracle.getDeviationThreshold();
       const isStale = await oracle.isStale();
-      
+
       console.log(`\n📊 Current Oracle State:`);
       console.log(`   Current NAV: $${ethers.formatEther(currentNAV)}`);
       console.log(`   Last Update: ${new Date(Number(lastUpdateTimestamp) * 1000).toLocaleString()}`);
@@ -80,14 +80,14 @@ task("nav:update", "Updates NAV oracle data with staleness and deviation checks"
       // Check deviation
       const isValidUpdate = await oracle.isValidUpdate(newNavWei);
       let currentDeviation = 0n;
-      
+
       if (currentNAV > 0) {
         currentDeviation = await oracle.getCurrentDeviation(newNavWei);
         console.log(`\n⚖️  Deviation Analysis:`);
         console.log(`   New NAV: $${taskArgs.nav}`);
         console.log(`   Deviation: ${Number(currentDeviation) / 100}%`);
         console.log(`   Within Threshold: ${isValidUpdate ? "✅" : "❌"}`);
-        
+
         if (!isValidUpdate && !taskArgs.force) {
           console.log(`⚠️  Warning: Deviation exceeds threshold`);
           console.log(`   Use --force to override (emergency only)`);
@@ -100,7 +100,7 @@ task("nav:update", "Updates NAV oracle data with staleness and deviation checks"
       if (taskArgs.dryRun) {
         console.log("\n🧪 DRY RUN - No transaction will be sent");
         console.log("✅ All checks passed - NAV update would succeed");
-        
+
         if (taskArgs.force) {
           console.log("🚨 Force mode would be used for this update");
         }
@@ -109,7 +109,7 @@ task("nav:update", "Updates NAV oracle data with staleness and deviation checks"
 
       // Execute update
       console.log("\n🚀 Executing NAV update...");
-      
+
       let tx;
       if (taskArgs.force && hasManagerRole) {
         console.log("🚨 Using force update (bypassing deviation checks)");
@@ -117,17 +117,17 @@ task("nav:update", "Updates NAV oracle data with staleness and deviation checks"
       } else {
         tx = await oracle.updateNAV(newNavWei);
       }
-      
+
       console.log(`📤 Transaction sent: ${tx.hash}`);
-      
+
       const receipt = await tx.wait();
       console.log(`✅ Transaction confirmed in block ${receipt?.blockNumber}`);
-      
+
       // Verify update
       const [newCurrentNAV, newTimestamp] = await oracle.getNAV();
       console.log(`📊 Updated NAV: $${ethers.formatEther(newCurrentNAV)}`);
       console.log(`🕐 Update Time: ${new Date(Number(newTimestamp) * 1000).toLocaleString()}`);
-      
+
       // Save operation log
       const opsDir = path.join(__dirname, "../../deployments/operations");
       if (!fs.existsSync(opsDir)) {
@@ -155,7 +155,6 @@ task("nav:update", "Updates NAV oracle data with staleness and deviation checks"
       const filePath = path.join(opsDir, filename);
       fs.writeFileSync(filePath, JSON.stringify(operation, null, 2));
       console.log(`📝 Operation logged to ${filePath}`);
-
     } catch (error) {
       console.error("❌ NAV update failed:", error);
       throw error;

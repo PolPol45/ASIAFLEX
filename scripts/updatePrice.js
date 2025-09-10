@@ -24,7 +24,9 @@ async function promptYesNo(question) {
   const rl = readline.createInterface({ input, output });
   const answer = await rl.question(question);
   rl.close();
-  const a = String(answer || "").trim().toLowerCase();
+  const a = String(answer || "")
+    .trim()
+    .toLowerCase();
   return a === "y" || a === "yes";
 }
 

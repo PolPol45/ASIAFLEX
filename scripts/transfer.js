@@ -48,4 +48,3 @@ main().catch((error) => {
   console.error("Errore:", error.message || error);
   process.exit(1);
 });
-

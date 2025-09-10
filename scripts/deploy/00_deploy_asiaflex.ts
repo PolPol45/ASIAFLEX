@@ -167,7 +167,7 @@ async function main() {
 
   const [deployer] = await ethers.getSigners();
   const network = await ethers.provider.getNetwork();
-  
+
   console.log(`📍 Network: ${network.name} (${network.chainId})`);
   console.log(`👤 Deployer: ${deployer.address}`);
   console.log(`💰 Balance: ${ethers.formatEther(await ethers.provider.getBalance(deployer.address))} ETH`);
@@ -234,11 +234,17 @@ async function main() {
   console.log(`   AsiaFlexToken: ${addresses.AsiaFlexToken}`);
   console.log(`   NAVOracleAdapter: ${addresses.NAVOracleAdapter}`);
   console.log(`   TreasuryController: ${addresses.TreasuryController}`);
-  
+
   console.log("\n🔍 Verification commands:");
-  console.log(`   npx hardhat verify --network ${network.name} ${addresses.AsiaFlexToken} "${config.token.name}" "${config.token.symbol}" ${config.token.supplyCap} ${config.token.maxDailyMint} ${config.token.maxDailyNetInflows}`);
-  console.log(`   npx hardhat verify --network ${network.name} ${addresses.NAVOracleAdapter} ${config.oracle.initialNAV} ${config.oracle.stalenessThreshold} ${config.oracle.deviationThreshold}`);
-  console.log(`   npx hardhat verify --network ${network.name} ${addresses.TreasuryController} ${addresses.AsiaFlexToken} ${config.treasury.signer} ${config.treasury.requestExpiration}`);
+  console.log(
+    `   npx hardhat verify --network ${network.name} ${addresses.AsiaFlexToken} "${config.token.name}" "${config.token.symbol}" ${config.token.supplyCap} ${config.token.maxDailyMint} ${config.token.maxDailyNetInflows}`
+  );
+  console.log(
+    `   npx hardhat verify --network ${network.name} ${addresses.NAVOracleAdapter} ${config.oracle.initialNAV} ${config.oracle.stalenessThreshold} ${config.oracle.deviationThreshold}`
+  );
+  console.log(
+    `   npx hardhat verify --network ${network.name} ${addresses.TreasuryController} ${addresses.AsiaFlexToken} ${config.treasury.signer} ${config.treasury.requestExpiration}`
+  );
 }
 
 if (require.main === module) {

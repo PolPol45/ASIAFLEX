@@ -1,15 +1,20 @@
 // helper per serializzare BigInt / BigNumber in JSON in modo sicuro
 // toSafeObject converte ricorsivamente BigInt e oggetti "BigNumber-like" in stringhe
 function isBigNumberLike(v) {
-  if (!v || typeof v !== 'object') return false;
+  if (!v || typeof v !== "object") return false;
   // Ethers v5 BigNumber often has _hex or _isBigNumber; v6 returns bigint but not objects
-  return (!!v._hex) || (!!v._isBigNumber) || (typeof v.toHexString === 'function' && typeof v.toString === 'function');
+  return !!v._hex || !!v._isBigNumber || (typeof v.toHexString === "function" && typeof v.toString === "function");
 }
 
 function toSafeObject(value) {
   if (value === null) return null;
-  if (typeof value === 'bigint') return value.toString();
-  if (typeof value === 'number' || typeof value === 'string' || typeof value === 'boolean' || typeof value === 'undefined') {
+  if (typeof value === "bigint") return value.toString();
+  if (
+    typeof value === "number" ||
+    typeof value === "string" ||
+    typeof value === "boolean" ||
+    typeof value === "undefined"
+  ) {
     return value;
   }
   if (Array.isArray(value)) {
@@ -25,7 +30,7 @@ function toSafeObject(value) {
     }
   }
   // If the object has a custom toString and is not a plain object, use it
-  if (typeof value.toString === 'function' && Object.getPrototypeOf(value) !== Object.prototype) {
+  if (typeof value.toString === "function" && Object.getPrototypeOf(value) !== Object.prototype) {
     try {
       return value.toString();
     } catch (e) {

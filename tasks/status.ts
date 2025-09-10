@@ -10,14 +10,14 @@ task("status", "Displays comprehensive status information for AsiaFlex contracts
     const { ethers } = hre;
     const network = await ethers.provider.getNetwork();
     const currentBlock = await ethers.provider.getBlockNumber();
-    
+
     console.log(`📊 AsiaFlex System Status - ${network.name} (Block: ${currentBlock})`);
     console.log("=".repeat(70));
 
     // Load deployment
     const deploymentPath = path.join(__dirname, "../deployments", `${network.name}.json`);
     let deployment: any = {};
-    
+
     if (fs.existsSync(deploymentPath)) {
       deployment = JSON.parse(fs.readFileSync(deploymentPath, "utf8"));
       console.log(`🕐 Deployment: ${new Date(deployment.timestamp).toLocaleString()}`);
@@ -31,7 +31,7 @@ task("status", "Displays comprehensive status information for AsiaFlex contracts
       console.log("-".repeat(50));
 
       try {
-        const token = await ethers.getContractAt("AsiaFlexToken", address) as AsiaFlexToken;
+        const token = (await ethers.getContractAt("AsiaFlexToken", address)) as AsiaFlexToken;
 
         // Basic info
         const name = await token.name();
@@ -39,7 +39,7 @@ task("status", "Displays comprehensive status information for AsiaFlex contracts
         const decimals = await token.decimals();
         const totalSupply = await token.totalSupply();
         const supplyCap = await token.supplyCap();
-        
+
         console.log(`📝 Token: ${name} (${symbol})`);
         console.log(`📈 Total Supply: ${ethers.formatEther(totalSupply)} ${symbol}`);
         console.log(`🧢 Supply Cap: ${ethers.formatEther(supplyCap)} ${symbol}`);
@@ -55,7 +55,7 @@ task("status", "Displays comprehensive status information for AsiaFlex contracts
         const remainingDailyMint = await token.getRemainingDailyMint();
         const remainingDailyNetInflows = await token.getRemainingDailyNetInflows();
         const lastResetTimestamp = await token.lastResetTimestamp();
-        
+
         console.log(`\n🔒 Circuit Breakers:`);
         console.log(`   Max Daily Mint: ${ethers.formatEther(maxDailyMint)} ${symbol}`);
         console.log(`   Remaining Today: ${ethers.formatEther(remainingDailyMint)} ${symbol}`);
@@ -77,7 +77,7 @@ task("status", "Displays comprehensive status information for AsiaFlex contracts
             const burnFilter = token.filters.Burn();
             const recentMints = await token.queryFilter(mintFilter, currentBlock - 1000, currentBlock);
             const recentBurns = await token.queryFilter(burnFilter, currentBlock - 1000, currentBlock);
-            
+
             console.log(`\n📊 Recent Activity (last 1000 blocks):`);
             console.log(`   Mints: ${recentMints.length}`);
             console.log(`   Burns: ${recentBurns.length}`);
@@ -85,7 +85,6 @@ task("status", "Displays comprehensive status information for AsiaFlex contracts
             console.log(`\n📊 Recent Activity: Unable to fetch (${error})`);
           }
         }
-
       } catch (error) {
         console.log(`❌ Error reading token status: ${error}`);
       }
@@ -97,14 +96,14 @@ task("status", "Displays comprehensive status information for AsiaFlex contracts
       console.log("-".repeat(50));
 
       try {
-        const oracle = await ethers.getContractAt("NAVOracleAdapter", address) as NAVOracleAdapter;
+        const oracle = (await ethers.getContractAt("NAVOracleAdapter", address)) as NAVOracleAdapter;
 
         // NAV data
         const [currentNAV, lastUpdateTimestamp] = await oracle.getNAV();
         const stalenessThreshold = await oracle.getStalenessThreshold();
         const deviationThreshold = await oracle.getDeviationThreshold();
         const isStale = await oracle.isStale();
-        
+
         console.log(`💰 Current NAV: ${ethers.formatEther(currentNAV)} USD`);
         console.log(`🕐 Last Update: ${new Date(Number(lastUpdateTimestamp) * 1000).toLocaleString()}`);
         console.log(`⏰ Staleness Threshold: ${stalenessThreshold} seconds (${stalenessThreshold / 3600} hours)`);
@@ -113,7 +112,9 @@ task("status", "Displays comprehensive status information for AsiaFlex contracts
 
         if (isStale) {
           const timeSinceUpdate = await oracle.getTimeSinceLastUpdate();
-          console.log(`⚠️  Data is ${timeSinceUpdate} seconds old (${Math.floor(Number(timeSinceUpdate) / 3600)} hours)`);
+          console.log(
+            `⚠️  Data is ${timeSinceUpdate} seconds old (${Math.floor(Number(timeSinceUpdate) / 3600)} hours)`
+          );
         }
 
         // Pause status
@@ -124,7 +125,7 @@ task("status", "Displays comprehensive status information for AsiaFlex contracts
           try {
             const updateFilter = oracle.filters.NAVUpdated();
             const recentUpdates = await oracle.queryFilter(updateFilter, currentBlock - 1000, currentBlock);
-            
+
             console.log(`\n📊 Recent Updates (last 1000 blocks): ${recentUpdates.length}`);
             if (recentUpdates.length > 0) {
               const lastUpdate = recentUpdates[recentUpdates.length - 1];
@@ -134,7 +135,6 @@ task("status", "Displays comprehensive status information for AsiaFlex contracts
             console.log(`\n📊 Recent Activity: Unable to fetch (${error})`);
           }
         }
-
       } catch (error) {
         console.log(`❌ Error reading oracle status: ${error}`);
       }
@@ -146,13 +146,13 @@ task("status", "Displays comprehensive status information for AsiaFlex contracts
       console.log("-".repeat(50));
 
       try {
-        const treasury = await ethers.getContractAt("TreasuryController", address) as TreasuryController;
+        const treasury = (await ethers.getContractAt("TreasuryController", address)) as TreasuryController;
 
         // Configuration
         const treasurySigner = await treasury.getTreasurySigner();
         const requestExpiration = await treasury.getRequestExpiration();
         const asiaFlexTokenAddress = await treasury.asiaFlexToken();
-        
+
         console.log(`🔑 Treasury Signer: ${treasurySigner}`);
         console.log(`⏰ Request Expiration: ${requestExpiration} seconds (${requestExpiration / 60} minutes)`);
         console.log(`🪙 AsiaFlex Token: ${asiaFlexTokenAddress}`);
@@ -167,7 +167,7 @@ task("status", "Displays comprehensive status information for AsiaFlex contracts
             const redeemFilter = treasury.filters.RedeemExecuted();
             const recentMints = await treasury.queryFilter(mintFilter, currentBlock - 1000, currentBlock);
             const recentRedeems = await treasury.queryFilter(redeemFilter, currentBlock - 1000, currentBlock);
-            
+
             console.log(`\n📊 Recent Activity (last 1000 blocks):`);
             console.log(`   Mints Executed: ${recentMints.length}`);
             console.log(`   Redeems Executed: ${recentRedeems.length}`);
@@ -175,7 +175,6 @@ task("status", "Displays comprehensive status information for AsiaFlex contracts
             console.log(`\n📊 Recent Activity: Unable to fetch (${error})`);
           }
         }
-
       } catch (error) {
         console.log(`❌ Error reading treasury status: ${error}`);
       }
