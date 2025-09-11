@@ -74,14 +74,10 @@ async function setupRoles(token: any, oracle: any, controller: any, treasury: an
   console.log("🔐 Setting up roles...");
 
   const TREASURY_ROLE = await token.TREASURY_ROLE();
-  const ORACLE_ROLE = await token.ORACLE_ROLE();
 
   // Grant treasury role to treasury account and controller
   await token.grantRole(TREASURY_ROLE, treasury.address);
   await token.grantRole(TREASURY_ROLE, await controller.getAddress());
-
-  // Grant oracle role to treasury for demo
-  await token.grantRole(ORACLE_ROLE, treasury.address);
 
   console.log("✅ Roles configured");
 }
@@ -165,7 +161,7 @@ async function setCaps(token: any, treasury: any) {
   const tx1 = await token.connect(treasury).setSupplyCap(newSupplyCap);
   await tx1.wait();
 
-  const tx2 = await token.connect(treasury).setDailyMintCap(newDailyMintCap);
+  const tx2 = await token.connect(treasury).setMaxDailyMint(newDailyMintCap);
   await tx2.wait();
 
   console.log("✅ Caps updated");

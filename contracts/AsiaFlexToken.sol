@@ -102,13 +102,7 @@ contract AsiaFlexToken is
         notBlacklisted(to)
         checkDailyCaps(amount)
     {
-        if (totalSupply() + amount > supplyCap) {
-            revert InsufficientReserves(amount, supplyCap - totalSupply());
-        }
-
-        dailyMintAmount += amount;
-        _mint(to, amount);
-        emit Mint(to, amount, attestationHash);
+        _mintWithAttestation(to, amount, attestationHash);
     }
 
     function burn(
@@ -122,17 +116,7 @@ contract AsiaFlexToken is
         nonReentrant 
         notBlacklisted(from)
     {
-        _checkAndResetDaily();
-        
-        // Burning reduces net inflow pressure
-        if (dailyNetInflowAmount >= amount) {
-            dailyNetInflowAmount -= amount;
-        } else {
-            dailyNetInflowAmount = 0;
-        }
-
-        _burn(from, amount);
-        emit Burn(from, amount, attestationHash);
+        _burnWithAttestation(from, amount, attestationHash);
     }
 
     // Circuit breaker functions
@@ -189,19 +173,25 @@ contract AsiaFlexToken is
     }
 
     // Legacy compatibility functions - maintain existing interface
-    function mint(address to, uint256 amount) external onlyRole(TREASURY_ROLE) {
-        // Convert to new attestation-based approach with empty hash for legacy calls
-        mint(to, amount, bytes32(0));
+    function mint(address to, uint256 amount) external onlyRole(TREASURY_ROLE) whenNotPaused nonReentrant notBlacklisted(to) checkDailyCaps(amount) {
+        _mintWithAttestation(to, amount, bytes32(0));
     }
 
-    function mintByUSD(address to, uint256 usdAmount) external onlyRole(TREASURY_ROLE) {
+    function mintByUSD(address to, uint256 usdAmount) external onlyRole(TREASURY_ROLE) whenNotPaused nonReentrant notBlacklisted(to) {
         require(_price > 0, "Price not set");
         uint256 tokenAmount = (usdAmount * 1e18) / _price;
-        mint(to, tokenAmount, bytes32(0));
+        
+        // Apply daily caps check
+        _checkAndResetDaily();
+        if (dailyMintAmount + tokenAmount > maxDailyMint) {
+            revert DailyCapsExceeded(tokenAmount, maxDailyMint - dailyMintAmount);
+        }
+        
+        _mintWithAttestation(to, tokenAmount, bytes32(0));
     }
 
-    function burnFrom(address user, uint256 amount) external onlyRole(TREASURY_ROLE) {
-        burn(user, amount, bytes32(0));
+    function burnFrom(address user, uint256 amount) external onlyRole(TREASURY_ROLE) whenNotPaused nonReentrant notBlacklisted(user) {
+        _burnWithAttestation(user, amount, bytes32(0));
     }
 
     function redeemRequest(uint256 amount) external {
@@ -248,6 +238,31 @@ contract AsiaFlexToken is
 
     function _shouldResetDaily() internal view returns (bool) {
         return block.timestamp >= lastResetTimestamp + 1 days;
+    }
+
+    // Internal helper function that contains the actual mint logic
+    function _mintWithAttestation(address to, uint256 amount, bytes32 attestationHash) internal {
+        if (totalSupply() + amount > supplyCap) {
+            revert InsufficientReserves(amount, supplyCap - totalSupply());
+        }
+        dailyMintAmount += amount;
+        _mint(to, amount);
+        emit Mint(to, amount, attestationHash);
+    }
+
+    // Internal helper function that contains the actual burn logic
+    function _burnWithAttestation(address from, uint256 amount, bytes32 attestationHash) internal {
+        _checkAndResetDaily();
+        
+        // Burning reduces net inflow pressure
+        if (dailyNetInflowAmount >= amount) {
+            dailyNetInflowAmount -= amount;
+        } else {
+            dailyNetInflowAmount = 0;
+        }
+
+        _burn(from, amount);
+        emit Burn(from, amount, attestationHash);
     }
 
     // Override transfer functions to include blacklist and pause checks
