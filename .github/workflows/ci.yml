@@ -125,7 +125,7 @@ jobs:
         run: npm run coverage
       
       - name: Upload coverage reports
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           file: ./coverage/lcov.info
           fail_ci_if_error: true
@@ -145,7 +145,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
       
-      - uses: crytic/slither-action@v0.3.2
+      - uses: crytic/slither-action@v0.4.1
         with:
           target: .
           solc-version: "0.8.26"
