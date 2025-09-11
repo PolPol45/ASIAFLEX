@@ -19,7 +19,7 @@ async function main() {
   // ❌ Rimuoviamo deployer.address
   const token = await AsiaFlexToken.deploy({
     nonce: nonce,
-    gasPrice: boostedGasPrice
+    gasPrice: boostedGasPrice,
   });
 
   await token.waitForDeployment();
