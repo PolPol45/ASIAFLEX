@@ -173,11 +173,24 @@ contract AsiaFlexToken is
     }
 
     // Legacy compatibility functions - maintain existing interface
-    function mint(address to, uint256 amount) external onlyRole(TREASURY_ROLE) whenNotPaused nonReentrant notBlacklisted(to) checkDailyCaps(amount) {
+    function mint(address to, uint256 amount) 
+        external 
+        onlyRole(TREASURY_ROLE) 
+        whenNotPaused 
+        nonReentrant 
+        notBlacklisted(to) 
+        checkDailyCaps(amount) 
+    {
         _mintWithAttestation(to, amount, bytes32(0));
     }
 
-    function mintByUSD(address to, uint256 usdAmount) external onlyRole(TREASURY_ROLE) whenNotPaused nonReentrant notBlacklisted(to) {
+    function mintByUSD(address to, uint256 usdAmount) 
+        external 
+        onlyRole(TREASURY_ROLE) 
+        whenNotPaused 
+        nonReentrant 
+        notBlacklisted(to) 
+    {
         require(_price > 0, "Price not set");
         uint256 tokenAmount = (usdAmount * 1e18) / _price;
         
@@ -190,7 +203,13 @@ contract AsiaFlexToken is
         _mintWithAttestation(to, tokenAmount, bytes32(0));
     }
 
-    function burnFrom(address user, uint256 amount) external onlyRole(TREASURY_ROLE) whenNotPaused nonReentrant notBlacklisted(user) {
+    function burnFrom(address user, uint256 amount) 
+        external 
+        onlyRole(TREASURY_ROLE) 
+        whenNotPaused 
+        nonReentrant 
+        notBlacklisted(user) 
+    {
         _burnWithAttestation(user, amount, bytes32(0));
     }
 
