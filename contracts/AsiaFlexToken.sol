@@ -164,9 +164,9 @@ contract AsiaFlexToken is
     }
 
     // Blacklist functions
-    function setBlacklisted(address account, bool isBlacklisted) external onlyRole(BLACKLIST_MANAGER_ROLE) {
-        _blacklisted[account] = isBlacklisted;
-        emit BlacklistUpdated(account, isBlacklisted);
+    function setBlacklisted(address account, bool flag) external onlyRole(BLACKLIST_MANAGER_ROLE) {
+        _blacklisted[account] = flag;
+        emit BlacklistUpdated(account, flag);
     }
 
     function isBlacklisted(address account) external view returns (bool) {
@@ -191,17 +191,17 @@ contract AsiaFlexToken is
     // Legacy compatibility functions - maintain existing interface
     function mint(address to, uint256 amount) external onlyRole(TREASURY_ROLE) {
         // Convert to new attestation-based approach with empty hash for legacy calls
-        mint(to, amount, bytes32(0));
+        this.mint(to, amount, bytes32(0));
     }
 
     function mintByUSD(address to, uint256 usdAmount) external onlyRole(TREASURY_ROLE) {
         require(_price > 0, "Price not set");
         uint256 tokenAmount = (usdAmount * 1e18) / _price;
-        mint(to, tokenAmount, bytes32(0));
+        this.mint(to, tokenAmount, bytes32(0));
     }
 
     function burnFrom(address user, uint256 amount) external onlyRole(TREASURY_ROLE) {
-        burn(user, amount, bytes32(0));
+        this.burn(user, amount, bytes32(0));
     }
 
     function redeemRequest(uint256 amount) external {

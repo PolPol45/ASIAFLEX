@@ -18,7 +18,6 @@ async function prompt(question) {
 }
 
 async function main() {
-  const [_sender] = await hre.ethers.getSigners();
   const contractAddress = process.env.CONTRACT_ADDRESS;
 
   if (!contractAddress) {

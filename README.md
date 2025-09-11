@@ -122,28 +122,39 @@ Oracle for AAXJ price data with:
 
 ## Security Model
 
-### Circuit Breakers
+### Circuit Breakers & Caps
 
 - **Daily Mint Cap**: Maximum tokens that can be minted per day
 - **Daily Net Inflow Cap**: Maximum net token inflow per day
 - **Supply Cap**: Maximum total token supply
+- **Circuit Breaker Pattern**: Automatic daily limit resets at 24-hour intervals
 
 ### Oracle Protection
 
-- **Staleness Check**: Reject prices older than `ORACLE_MAX_AGE` (default: 1 hour)
-- **Deviation Limits**: Reject price changes exceeding `ORACLE_MAX_DEVIATION` (default: 1%)
+- **Staleness Check**: Reject prices older than `maxAge` (default: 1 hour)
+- **Deviation Limits**: Reject price changes exceeding `maxDeviation` (default: 1%)
+- **Force Override**: Emergency oracle manager can bypass deviation checks
 
-### Access Controls
+### CEI Pattern & Reentrancy Guards
 
-- Multi-signature treasury management
-- Time-locked administrative operations
-- Emergency pause functionality
+- **Checks-Effects-Interactions**: All state changes before external calls
+- **ReentrancyGuard**: Prevents reentrancy attacks on all critical functions
+- **Fail-safe Design**: Contracts pause on unexpected conditions
+
+### Access Controls & Roles
+
+- **TREASURY_ROLE**: Controls mint/burn operations with attestations
+- **PAUSER_ROLE**: Emergency pause capability
+- **CAPS_MANAGER_ROLE**: Adjusts circuit breaker limits
+- **BLACKLIST_MANAGER_ROLE**: Optional account blacklisting
+- **ORACLE_UPDATER_ROLE**: Updates NAV pricing data
 
 ### Attestation Security
 
-- EIP712 signed attestations for mint/redeem operations
-- Nonce-based replay protection
-- Time-bound request validity
+- **EIP712 Signatures**: Cryptographically signed mint/redeem requests
+- **Replay Protection**: Time-bound requests with expiration
+- **Reserve Hash Validation**: Links operations to specific reserve states
+- **Treasury Signer**: Dedicated signer key for operation attestations
 
 ## Development
 
@@ -252,38 +263,60 @@ Deployment artifacts are saved to `scripts/deployments/<network>.json`.
 
 ## Operations Runbook
 
+Daily operations using built-in scripts:
+
 ### Mint Tokens
 
 ```bash
-# 1. Generate signed attestation (off-chain)
-# 2. Call treasury.mint() with attestation
-# 3. Verify daily limits not exceeded
+# Mint tokens for collateral backing
+npm run ops:mint
+# Or: hardhat run scripts/ops/mint.ts --network localhost
+
+# Direct treasury mint with attestation
+npx hardhat run scripts/ops/mint.ts --network <network>
 ```
 
-### Redeem Tokens
+### Burn/Redeem Tokens
 
 ```bash
-# 1. Generate signed redeem attestation
-# 2. Call treasury.redeem() with attestation
-# 3. Burn tokens, transfer reserves
+# Burn tokens and reduce supply
+npm run ops:burn
+# Or: hardhat run scripts/ops/burn.ts --network localhost
 ```
 
 ### Update NAV Price
 
 ```bash
-# 1. Fetch latest AAXJ NAV
-# 2. Validate within deviation limits
-# 3. Call oracle.updateNAV() with new price
+# Update oracle NAV with staleness/deviation checks
+npm run ops:nav
+# Or: hardhat run tasks/nav/update.ts --network localhost
+
+# Example with specific NAV value
+npx hardhat nav:update --nav 105.50 --network localhost
 ```
 
-### Emergency Procedures
+### Pause/Unpause Operations
 
 ```bash
-# Pause all operations
-npx hardhat run scripts/emergency-pause.ts --network <network>
+# Emergency pause all operations
+npm run ops:pause
+# Or: hardhat run scripts/ops/pause.ts --network localhost
+```
 
-# Update circuit breaker limits
-npx hardhat run scripts/update-caps.ts --network <network>
+### Update Circuit Breaker Caps
+
+```bash
+# Update daily mint/burn caps
+npm run ops:setCaps
+# Or: hardhat run scripts/ops/setCaps.ts --network localhost
+```
+
+### System Status
+
+```bash
+# Check current token and oracle status
+npm run ops:status
+# Or: hardhat run scripts/ops/status.ts --network localhost
 ```
 
 ## Incident Response
