@@ -1,5 +1,4 @@
 // Central eth helper: compatibile ethers v5/v6, provider/wallet/contract/sendTx utilities
-const fs = require("fs");
 const path = require("path");
 const { toSafeObject, safeStringify } = require("./serializers");
 let ethersPkg;
@@ -69,13 +68,13 @@ async function estimateGas(contractOrProvider, txRequest, rpcUrl) {
   return estimate;
 }
 
-function _safeBigIntToNumber(bi) {
-  try {
-    return Number(bi.toString());
-  } catch {
-    return null;
-  }
-}
+// function _safeBigIntToNumber(bi) {
+//   try {
+//     return Number(bi.toString());
+//   } catch {
+//     return null;
+//   }
+// }
 
 async function sendTx(target, method, args = [], opts = {}) {
   // opts: { dryRun, gasBufferPct (e.g. 20), waitConfirmations, timeoutMs, overrides }
