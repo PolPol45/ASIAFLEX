@@ -1,5 +1,5 @@
 import { task } from "hardhat/config";
-import { AsiaFlexToken, NAVOracleAdapter, TreasuryController } from "../typechain-types";
+// import { AsiaFlexToken, NAVOracleAdapter, TreasuryController } from "../typechain-types";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -31,12 +31,12 @@ task("status", "Displays comprehensive status information for AsiaFlex contracts
       console.log("-".repeat(50));
 
       try {
-        const token = (await ethers.getContractAt("AsiaFlexToken", address)) as AsiaFlexToken;
+        const token = await ethers.getContractAt("AsiaFlexToken", address);
 
         // Basic info
         const name = await token.name();
         const symbol = await token.symbol();
-        const decimals = await token.decimals();
+        // const _decimals = await token.decimals();
         const totalSupply = await token.totalSupply();
         const supplyCap = await token.supplyCap();
 
@@ -96,7 +96,7 @@ task("status", "Displays comprehensive status information for AsiaFlex contracts
       console.log("-".repeat(50));
 
       try {
-        const oracle = (await ethers.getContractAt("NAVOracleAdapter", address)) as NAVOracleAdapter;
+        const oracle = await ethers.getContractAt("NAVOracleAdapter", address);
 
         // NAV data
         const [currentNAV, lastUpdateTimestamp] = await oracle.getNAV();
@@ -146,7 +146,7 @@ task("status", "Displays comprehensive status information for AsiaFlex contracts
       console.log("-".repeat(50));
 
       try {
-        const treasury = (await ethers.getContractAt("TreasuryController", address)) as TreasuryController;
+        const treasury = await ethers.getContractAt("TreasuryController", address);
 
         // Configuration
         const treasurySigner = await treasury.getTreasurySigner();

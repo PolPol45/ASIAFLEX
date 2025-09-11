@@ -1,5 +1,4 @@
 import { ethers } from "hardhat";
-import { AsiaFlexToken } from "../../typechain-types";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -43,7 +42,7 @@ async function mint(params: MintParams) {
   );
 
   const deployment = await loadDeployment(network.name);
-  const token = (await ethers.getContractAt("AsiaFlexToken", deployment.addresses.AsiaFlexToken)) as AsiaFlexToken;
+  const token = await ethers.getContractAt("AsiaFlexToken", deployment.addresses.AsiaFlexToken);
 
   // Pre-flight checks
   console.log("\n🔍 Pre-flight checks:");
