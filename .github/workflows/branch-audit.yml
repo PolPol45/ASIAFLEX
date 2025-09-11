@@ -1,0 +1,50 @@
+name: Branch Audit (Scheduled)
+
+on:
+  schedule:
+    # Run every Monday at 3:00 AM UTC
+    - cron: "0 3 * * 1"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  branch-audit:
+    runs-on: ubuntu-latest
+    name: Audit Repository Branches
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          
+      - name: Fetch All Branches
+        run: |
+          git fetch --all --prune
+          
+      - name: Run Branch Audit
+        run: |
+          chmod +x scripts/audit-branches.sh
+          ./scripts/audit-branches.sh
+          
+      - name: Upload Audit Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: branch-audit-report
+          path: branch-audit.md
+          retention-days: 30
+          
+      - name: Create or Update Issue
+        uses: peter-evans/create-issue-from-file@v5
+        with:
+          title: "🔍 Branch Audit Report"
+          content-filepath: branch-audit.md
+          labels: |
+            audit
+            automation
+            maintenance
+          assignees: ${{ github.repository_owner }}
+          token: ${{ secrets.GITHUB_TOKEN }}
