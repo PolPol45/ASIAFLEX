@@ -1,0 +1,191 @@
+name: Branch Cleanup (Manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Cleanup mode'
+        required: true
+        default: 'dry-run'
+        type: choice
+        options:
+          - dry-run
+          - delete
+      exclude:
+        description: 'Branches to exclude (comma-separated patterns)'
+        required: false
+        default: 'main,develop,dev,staging,production,release/*,hotfix/*,gh-pages'
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  branch-cleanup:
+    runs-on: ubuntu-latest
+    name: Branch Cleanup
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          
+      - name: Configure Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+      - name: Fetch All Branches
+        run: |
+          git fetch --all --prune
+          
+      - name: Identify Merged Branches
+        id: identify
+        run: |
+          # Convert exclude patterns to regex
+          EXCLUDE_PATTERNS="${{ inputs.exclude }}"
+          EXCLUDE_REGEX="^($(echo "$EXCLUDE_PATTERNS" | sed 's/,/|/g' | sed 's/\*/[^/]*/g'))$"
+          echo "Exclude regex: $EXCLUDE_REGEX"
+          
+          # Get all remote branches
+          REMOTE_BRANCHES=$(git ls-remote --heads origin | awk '{print $2}' | sed 's|refs/heads/||' | sort)
+          MERGED_BRANCHES=""
+          MERGED_COUNT=0
+          
+          # Create merged branches list
+          echo "# Merged Branches Analysis" > merged-analysis.md
+          echo "" >> merged-analysis.md
+          echo "**Mode:** ${{ inputs.mode }}" >> merged-analysis.md
+          echo "**Exclude Patterns:** \`${{ inputs.exclude }}\`" >> merged-analysis.md
+          echo "" >> merged-analysis.md
+          echo "## Branches Found for Cleanup" >> merged-analysis.md
+          echo "" >> merged-analysis.md
+          
+          for branch in $REMOTE_BRANCHES; do
+            # Skip main branch and excluded patterns
+            if [[ "$branch" =~ $EXCLUDE_REGEX ]]; then
+              echo "Skipping excluded branch: $branch"
+              continue
+            fi
+            
+            if [ "$branch" = "main" ]; then
+              continue
+            fi
+            
+            echo "Checking branch: $branch"
+            
+            # Fetch branch if needed
+            git fetch origin "$branch" 2>/dev/null || continue
+            
+            # Check if merged into main (simplified check)
+            BRANCH_SHA=$(git ls-remote origin "$branch" | cut -f1)
+            MAIN_SHA=$(git ls-remote origin main | cut -f1)
+            
+            # Simple check: if commit exists in main branch history
+            if git merge-base --is-ancestor "$BRANCH_SHA" "origin/main" 2>/dev/null; then
+              MERGED_BRANCHES="$MERGED_BRANCHES $branch"
+              ((MERGED_COUNT++))
+              echo "- \`$branch\` (SHA: ${BRANCH_SHA:0:7})" >> merged-analysis.md
+              echo "$branch" >> merged-to-delete.txt
+            fi
+          done
+          
+          echo "merged_count=$MERGED_COUNT" >> $GITHUB_OUTPUT
+          echo "merged_branches=$MERGED_BRANCHES" >> $GITHUB_OUTPUT
+          
+          if [ $MERGED_COUNT -eq 0 ]; then
+            echo "" >> merged-analysis.md
+            echo "*No merged branches found for deletion.*" >> merged-analysis.md
+          else
+            echo "" >> merged-analysis.md
+            echo "**Total branches identified for cleanup:** $MERGED_COUNT" >> merged-analysis.md
+          fi
+          
+      - name: Dry Run Report
+        if: inputs.mode == 'dry-run'
+        run: |
+          echo "## Dry Run Results" >> merged-analysis.md
+          echo "" >> merged-analysis.md
+          echo "**🔍 DRY RUN MODE - No branches will be deleted**" >> merged-analysis.md
+          echo "" >> merged-analysis.md
+          
+          if [ -f merged-to-delete.txt ]; then
+            echo "The following branches would be deleted in delete mode:" >> merged-analysis.md
+            echo "" >> merged-analysis.md
+            while IFS= read -r branch; do
+              echo "- \`$branch\`" >> merged-analysis.md
+            done < merged-to-delete.txt
+          fi
+          
+      - name: Delete Merged Branches
+        if: inputs.mode == 'delete' && steps.identify.outputs.merged_count > 0
+        run: |
+          echo "## Deletion Results" >> merged-analysis.md
+          echo "" >> merged-analysis.md
+          echo "**🗑️ DELETE MODE - Deleting merged branches**" >> merged-analysis.md
+          echo "" >> merged-analysis.md
+          
+          DELETED_COUNT=0
+          FAILED_COUNT=0
+          
+          if [ -f merged-to-delete.txt ]; then
+            while IFS= read -r branch; do
+              echo "Deleting branch: $branch"
+              if git push origin --delete "$branch" 2>/dev/null; then
+                echo "✅ Deleted: \`$branch\`" >> merged-analysis.md
+                ((DELETED_COUNT++))
+              else
+                echo "❌ Failed to delete: \`$branch\`" >> merged-analysis.md
+                ((FAILED_COUNT++))
+              fi
+            done < merged-to-delete.txt
+          fi
+          
+          echo "" >> merged-analysis.md
+          echo "**Summary:** $DELETED_COUNT deleted, $FAILED_COUNT failed" >> merged-analysis.md
+          
+      - name: Upload Analysis Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: branch-cleanup-report-${{ inputs.mode }}
+          path: |
+            merged-analysis.md
+            merged-to-delete.txt
+          retention-days: 30
+          
+      - name: Find Related Issue or PR
+        id: find-issue
+        run: |
+          # Try to find an existing branch audit issue
+          ISSUE_NUMBER=$(gh issue list --label "audit" --state open --json number,title | jq -r '.[] | select(.title | contains("Branch Audit")) | .number' | head -1)
+          if [ -n "$ISSUE_NUMBER" ] && [ "$ISSUE_NUMBER" != "null" ]; then
+            echo "issue_number=$ISSUE_NUMBER" >> $GITHUB_OUTPUT
+            echo "Found related issue: #$ISSUE_NUMBER"
+          else
+            echo "No related issue found"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Comment on Related Issue
+        if: steps.find-issue.outputs.issue_number
+        run: |
+          gh issue comment ${{ steps.find-issue.outputs.issue_number }} --body-file merged-analysis.md
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Create Standalone Issue
+        if: "!steps.find-issue.outputs.issue_number"
+        uses: peter-evans/create-issue-from-file@v5
+        with:
+          title: "🗑️ Branch Cleanup Report (${{ inputs.mode }})"
+          content-filepath: merged-analysis.md
+          labels: |
+            cleanup
+            automation
+            maintenance
+          assignees: ${{ github.repository_owner }}
+          token: ${{ secrets.GITHUB_TOKEN }}

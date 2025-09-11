@@ -156,7 +156,45 @@ Oracle for AAXJ price data with:
 - **Reserve Hash Validation**: Links operations to specific reserve states
 - **Treasury Signer**: Dedicated signer key for operation attestations
 
-## Development
+## Branch Management & Cleanup
+
+[![Branch Audit](https://github.com/PolPol45/ASIAFLEX/workflows/Branch%20Audit%20(Scheduled)/badge.svg)](https://github.com/PolPol45/ASIAFLEX/actions/workflows/branch-audit.yml)
+
+This repository includes automated branch audit and cleanup tools to maintain repository hygiene.
+
+### Automated Workflows
+
+- **📊 Branch Audit** - Weekly audit (Mondays 3 AM UTC) with GitHub Issues reporting
+- **🗑️ Branch Cleanup** - Manual workflow for safe branch deletion (dry-run/delete modes)
+- **🤖 Auto-delete Merged PR Heads** - Automatically removes merged PR branches
+
+### Manual Tools
+
+```bash
+# Run branch audit
+./scripts/audit-branches.sh
+
+# Manual branch cleanup (interactive)
+./scripts/delete-merged-branches.sh
+
+# Custom exclusion pattern
+./scripts/delete-merged-branches.sh "^(main|develop|release/|custom/)"
+```
+
+### Protected Branches
+
+The following branches are **never** automatically deleted:
+- `main`, `develop`, `dev`, `staging`, `production`, `gh-pages`
+- `release/*`, `hotfix/*`
+
+### Actions Available
+
+- **Trigger Audit:** `Actions → Branch Audit → Run workflow`
+- **Cleanup (Dry-run):** `Actions → Branch Cleanup → Run workflow → mode=dry-run`
+- **Cleanup (Delete):** `Actions → Branch Cleanup → Run workflow → mode=delete`
+
+---
+
 
 ### Prerequisites
 

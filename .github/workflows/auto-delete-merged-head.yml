@@ -1,0 +1,62 @@
+name: Auto-Delete Merged PR Head Branches
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: write
+
+jobs:
+  auto-delete-merged-head:
+    runs-on: ubuntu-latest
+    name: Delete Merged PR Head Branch
+    
+    # Only run if PR was merged and head is from the same repo
+    if: |
+      github.event.pull_request.merged == true &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    
+    steps:
+      - name: Configure Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+      - name: Check Branch Protection
+        id: check-protection
+        run: |
+          BRANCH_NAME="${{ github.event.pull_request.head.ref }}"
+          echo "Branch to check: $BRANCH_NAME"
+          
+          # Protected branch patterns
+          PROTECTED_PATTERNS="^(main|develop|dev|staging|production|gh-pages|release/.*|hotfix/.*)$"
+          
+          if [[ "$BRANCH_NAME" =~ $PROTECTED_PATTERNS ]]; then
+            echo "Branch $BRANCH_NAME is protected - will not delete"
+            echo "protected=true" >> $GITHUB_OUTPUT
+          else
+            echo "Branch $BRANCH_NAME is not protected - safe to delete"
+            echo "protected=false" >> $GITHUB_OUTPUT
+          fi
+          
+          echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
+          
+      - name: Delete Branch
+        if: steps.check-protection.outputs.protected == 'false'
+        run: |
+          BRANCH_NAME="${{ steps.check-protection.outputs.branch_name }}"
+          echo "Attempting to delete branch: $BRANCH_NAME"
+          
+          # Attempt to delete the branch
+          if git push origin --delete "$BRANCH_NAME" 2>/dev/null; then
+            echo "✅ Successfully deleted branch: $BRANCH_NAME"
+          else
+            echo "⚠️ Could not delete branch: $BRANCH_NAME (may already be deleted or protected)"
+          fi
+          
+      - name: Log Protection Skip
+        if: steps.check-protection.outputs.protected == 'true'
+        run: |
+          BRANCH_NAME="${{ steps.check-protection.outputs.branch_name }}"
+          echo "🔒 Skipped deletion of protected branch: $BRANCH_NAME"
