@@ -45,7 +45,6 @@ async function deployContracts() {
     "AFX", // symbol
     ethers.parseEther("1000000"), // supply cap (1M tokens)
     ethers.parseEther("10000"), // daily mint cap (10K tokens)
-    ethers.parseEther("10000"), // daily burn cap (10K tokens)
     ethers.parseEther("5000") // daily net inflow cap (5K tokens)
   );
   await token.waitForDeployment();

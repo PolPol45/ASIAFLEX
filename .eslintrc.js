@@ -1,23 +1,13 @@
 module.exports = {
-  env: {
-    browser: false,
-    es6: true,
-    node: true,
-    mocha: true,
-  },
-  extends: ["eslint:recommended", "prettier"],
+  root: true,
   parser: "@typescript-eslint/parser",
-  parserOptions: {
-    ecmaVersion: 2020,
-    sourceType: "module",
-  },
-  plugins: ["@typescript-eslint", "prettier"],
+  plugins: ["@typescript-eslint"],
+  extends: ["eslint:recommended", "plugin:@typescript-eslint/recommended"],
+  env: { node: true, es2022: true },
+  ignorePatterns: ["artifacts/", "cache/", "types/", "coverage/"],
   rules: {
-    "prettier/prettier": "error",
-    "no-unused-vars": "off",
+    "@typescript-eslint/no-var-requires": "off",
+    "@typescript-eslint/no-explicit-any": "off",
     "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
-    "prefer-const": "error",
-    "no-var": "error",
   },
-  ignorePatterns: ["node_modules/", "dist/", "artifacts/", "cache/", "typechain-types/", "coverage/"],
 };

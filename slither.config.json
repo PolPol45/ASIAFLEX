@@ -1,22 +1,5 @@
 {
-  "detectors_to_exclude": [
-    "timestamp",
-    "low-level-calls",
-    "naming-convention"
-  ],
-  "filter_paths": [
-    "node_modules",
-    "test",
-    "contracts/mocks",
-    "artifacts",
-    "cache"
-  ],
-  "solc_args": "--optimize --optimize-runs 200",
-  "exclude_informational": false,
-  "exclude_low": false,
-  "exclude_medium": false,
-  "exclude_high": false,
-  "exclude_optimization": true,
-  "json": "slither-report.json",
-  "markdown": "slither-report.md"
+  "filter_paths": ["node_modules/", "test/", "scripts/"],
+  "exclude": ["naming-convention", "solc-version"],
+  "triage_mode": false
 }

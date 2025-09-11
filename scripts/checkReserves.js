@@ -143,7 +143,6 @@ async function main() {
       );
       try {
         const abi = require(artifactPath).abi;
-        const iface = makeInterface(abi);
         const hasReserves = abi.some((item) => item.type === "function" && item.name === "reserves");
         console.log("   ABI contains 'reserves'?:", hasReserves);
         if (!hasReserves) {
