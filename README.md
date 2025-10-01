@@ -321,8 +321,12 @@ Daily operations using built-in scripts:
 
 ```bash
 # Mint tokens for collateral backing
-npm run ops:mint
-# Or: hardhat run scripts/ops/mint.ts --network localhost
+# example dry-run on localhost (requires localhost deployment file)
+MINT_TO=0x70997970C51812dc3A010C7d01b50e0d17dc79C8 \
+MINT_AMOUNT=1 \
+MINT_DRY_RUN=true \
+HARDHAT_NETWORK=localhost \
+npx hardhat run scripts/ops/mint.ts
 
 # Direct treasury mint with attestation
 npx hardhat run scripts/ops/mint.ts --network <network>
