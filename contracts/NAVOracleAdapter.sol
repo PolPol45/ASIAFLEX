@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 
-import "@openzeppelin/contracts/access/AccessControl.sol";
-import "@openzeppelin/contracts/utils/Pausable.sol";
-import "./interfaces/INAVOracleAdapter.sol";
+import { AccessControl } from "@openzeppelin/contracts/access/AccessControl.sol";
+import { Pausable } from "@openzeppelin/contracts/utils/Pausable.sol";
+import { INAVOracleAdapter } from "./interfaces/INAVOracleAdapter.sol";
 
 /**
  * @title NAVOracleAdapter
@@ -67,7 +67,9 @@ contract NAVOracleAdapter is AccessControl, Pausable, INAVOracleAdapter {
     }
 
     function setDeviationThreshold(uint256 threshold) external onlyRole(ORACLE_MANAGER_ROLE) {
-        require(threshold <= 10000, "Threshold too high"); // Max 100%
+        if (threshold > 10000) {
+            revert DeviationThresholdTooHigh(threshold);
+        }
         uint256 oldThreshold = deviationThreshold;
         deviationThreshold = threshold;
         emit DeviationThresholdUpdated(oldThreshold, threshold);

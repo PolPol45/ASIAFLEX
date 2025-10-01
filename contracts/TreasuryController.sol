@@ -1,18 +1,19 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 
-import "@openzeppelin/contracts/access/AccessControl.sol";
-import "@openzeppelin/contracts/utils/Pausable.sol";
-import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
-import "./interfaces/ITreasuryController.sol";
-import "./interfaces/IAsiaFlexToken.sol";
+import { AccessControl } from "@openzeppelin/contracts/access/AccessControl.sol";
+import { Pausable } from "@openzeppelin/contracts/utils/Pausable.sol";
+import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import { EIP712 } from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
+import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import { ITreasuryController } from "./interfaces/ITreasuryController.sol";
+import { IAsiaFlexToken } from "./interfaces/IAsiaFlexToken.sol";
 
 /**
  * @title TreasuryController
  * @dev Controls mint/redeem flows with signed attestations for reserve validation
  */
-contract TreasuryController is AccessControl, Pausable, EIP712, ITreasuryController {
+contract TreasuryController is AccessControl, Pausable, EIP712, ITreasuryController, ReentrancyGuard {
     using ECDSA for bytes32;
 
     bytes32 public constant TREASURY_MANAGER_ROLE = keccak256("TREASURY_MANAGER_ROLE");
@@ -42,6 +43,13 @@ contract TreasuryController is AccessControl, Pausable, EIP712, ITreasuryControl
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(TREASURY_MANAGER_ROLE, msg.sender);
 
+        if (_asiaFlexToken == address(0)) {
+            revert InvalidAsiaFlexTokenAddress(_asiaFlexToken);
+        }
+        if (_treasurySigner == address(0)) {
+            revert InvalidTreasurySigner(_treasurySigner);
+        }
+
         ASIA_FLEX_TOKEN = IAsiaFlexToken(_asiaFlexToken);
         treasurySigner = _treasurySigner;
         requestExpiration = _requestExpiration;
@@ -50,7 +58,7 @@ contract TreasuryController is AccessControl, Pausable, EIP712, ITreasuryControl
     function executeMint(
         MintRequest calldata request,
         bytes calldata signature
-    ) external whenNotPaused {
+    ) external whenNotPaused nonReentrant {
         // Check request expiration
         if (block.timestamp > request.timestamp + requestExpiration) {
             revert RequestExpired(request.timestamp, requestExpiration);
@@ -78,7 +86,7 @@ contract TreasuryController is AccessControl, Pausable, EIP712, ITreasuryControl
     function executeRedeem(
         RedeemRequest calldata request,
         bytes calldata signature
-    ) external whenNotPaused {
+    ) external whenNotPaused nonReentrant {
         // Check request expiration
         if (block.timestamp > request.timestamp + requestExpiration) {
             revert RequestExpired(request.timestamp, requestExpiration);
@@ -104,6 +112,10 @@ contract TreasuryController is AccessControl, Pausable, EIP712, ITreasuryControl
     }
 
     function setTreasurySigner(address newSigner) external onlyRole(TREASURY_MANAGER_ROLE) {
+        if (newSigner == address(0)) {
+            revert InvalidTreasurySigner(newSigner);
+        }
+
         address oldSigner = treasurySigner;
         treasurySigner = newSigner;
         emit TreasurySignerUpdated(oldSigner, newSigner);
@@ -156,7 +168,7 @@ contract TreasuryController is AccessControl, Pausable, EIP712, ITreasuryControl
         address to,
         uint256 amount,
         bytes32 attestationHash
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) whenPaused {
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) whenPaused nonReentrant {
         ASIA_FLEX_TOKEN.mint(to, amount, attestationHash);
         emit MintExecuted(to, amount, attestationHash);
     }
@@ -165,7 +177,7 @@ contract TreasuryController is AccessControl, Pausable, EIP712, ITreasuryControl
         address from,
         uint256 amount,
         bytes32 attestationHash
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) whenPaused {
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) whenPaused nonReentrant {
         ASIA_FLEX_TOKEN.burn(from, amount, attestationHash);
         emit RedeemExecuted(from, amount, attestationHash);
     }

@@ -72,8 +72,8 @@ task("nav:update", "Updates NAV oracle data with staleness and deviation checks"
       console.log(`\n📊 Current Oracle State:`);
       console.log(`   Current NAV: $${ethers.formatEther(currentNAV)}`);
       console.log(`   Last Update: ${new Date(Number(lastUpdateTimestamp) * 1000).toLocaleString()}`);
-      console.log(`   Staleness Threshold: ${stalenessThreshold / 3600} hours`);
-      console.log(`   Deviation Threshold: ${deviationThreshold / 100}%`);
+      console.log(`   Staleness Threshold: ${Number(stalenessThreshold) / 3600} hours`);
+      console.log(`   Deviation Threshold: ${Number(deviationThreshold) / 100}%`);
       console.log(`   Status: ${isStale ? "🔴 STALE" : "🟢 FRESH"}`);
 
       // Check deviation

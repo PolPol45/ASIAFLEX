@@ -1,7 +1,11 @@
 import { ethers } from "hardhat";
 import { expect } from "chai";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
+import { time } from "@nomicfoundation/hardhat-network-helpers";
 import { TreasuryController, AsiaFlexToken } from "../../typechain-types";
+
+const mintWithAttestation = (token: AsiaFlexToken, to: string, amount: bigint, attestation: string) =>
+  token["mint(address,uint256,bytes32)"](to, amount, attestation);
 
 describe("TreasuryController", function () {
   let treasury: TreasuryController;
@@ -49,7 +53,7 @@ describe("TreasuryController", function () {
 
   describe("Deployment", function () {
     it("Should have correct initial values", async function () {
-      expect(await treasury.asiaFlexToken()).to.equal(await token.getAddress());
+      expect(await treasury.ASIA_FLEX_TOKEN()).to.equal(await token.getAddress());
       expect(await treasury.getTreasurySigner()).to.equal(treasurySigner.address);
       expect(await treasury.getRequestExpiration()).to.equal(REQUEST_EXPIRATION);
       expect(await treasury.paused()).to.be.false;
@@ -69,7 +73,7 @@ describe("TreasuryController", function () {
     const reserveHash = ethers.keccak256(ethers.toUtf8Bytes("reserve-proof-123"));
 
     async function createMintRequest(timestamp?: number) {
-      const currentTime = timestamp || Math.floor(Date.now() / 1000);
+      const currentTime = timestamp ?? (await time.latest());
       return {
         to: user1.address,
         amount: mintAmount,
@@ -112,7 +116,7 @@ describe("TreasuryController", function () {
     });
 
     it("Should revert with expired request", async function () {
-      const expiredTime = Math.floor(Date.now() / 1000) - REQUEST_EXPIRATION - 1;
+      const expiredTime = (await time.latest()) - REQUEST_EXPIRATION - 1;
       const request = await createMintRequest(expiredTime);
       const signature = await signMintRequest(request, treasurySigner);
 
@@ -181,11 +185,11 @@ describe("TreasuryController", function () {
       // Mint some tokens first
       const mintAmount = ethers.parseEther("1000");
       const mintHash = ethers.keccak256(ethers.toUtf8Bytes("mint-proof"));
-      await token.mint(user1.address, mintAmount, mintHash);
+      await mintWithAttestation(token, user1.address, mintAmount, mintHash);
     });
 
     async function createRedeemRequest(timestamp?: number) {
-      const currentTime = timestamp || Math.floor(Date.now() / 1000);
+      const currentTime = timestamp ?? (await time.latest());
       return {
         from: user1.address,
         amount: redeemAmount,
@@ -229,7 +233,7 @@ describe("TreasuryController", function () {
     });
 
     it("Should revert with expired request", async function () {
-      const expiredTime = Math.floor(Date.now() / 1000) - REQUEST_EXPIRATION - 1;
+      const expiredTime = (await time.latest()) - REQUEST_EXPIRATION - 1;
       const request = await createRedeemRequest(expiredTime);
       const signature = await signRedeemRequest(request, treasurySigner);
 
@@ -361,7 +365,7 @@ describe("TreasuryController", function () {
 
     it("Should allow admin to emergency burn when paused", async function () {
       // First mint some tokens
-      await token.mint(user1.address, emergencyAmount, emergencyHash);
+      await mintWithAttestation(token, user1.address, emergencyAmount, emergencyHash);
 
       await treasury.connect(treasuryManager).pause();
 
@@ -399,10 +403,11 @@ describe("TreasuryController", function () {
 
   describe("View Functions", function () {
     it("Should return correct mint request hash", async function () {
+      const timestamp = await time.latest();
       const request = {
         to: user1.address,
         amount: ethers.parseEther("1000"),
-        timestamp: Math.floor(Date.now() / 1000),
+        timestamp,
         reserveHash: ethers.keccak256(ethers.toUtf8Bytes("test")),
       };
 
@@ -412,10 +417,11 @@ describe("TreasuryController", function () {
     });
 
     it("Should return correct redeem request hash", async function () {
+      const timestamp = await time.latest();
       const request = {
         from: user1.address,
         amount: ethers.parseEther("1000"),
-        timestamp: Math.floor(Date.now() / 1000),
+        timestamp,
         reserveHash: ethers.keccak256(ethers.toUtf8Bytes("test")),
       };
 
@@ -428,10 +434,11 @@ describe("TreasuryController", function () {
   describe("EIP712 Domain", function () {
     it("Should have correct domain separator", async function () {
       // This tests that EIP712 is properly implemented
+      const timestamp = await time.latest();
       const request = {
         to: user1.address,
         amount: ethers.parseEther("1000"),
-        timestamp: Math.floor(Date.now() / 1000),
+        timestamp,
         reserveHash: ethers.keccak256(ethers.toUtf8Bytes("test")),
       };
 
@@ -447,10 +454,11 @@ describe("TreasuryController", function () {
   describe("Integration with AsiaFlexToken", function () {
     it("Should respect token circuit breakers", async function () {
       const largeAmount = MAX_DAILY_MINT + 1n;
+      const timestamp = await time.latest();
       const request = {
         to: user1.address,
         amount: largeAmount,
-        timestamp: Math.floor(Date.now() / 1000),
+        timestamp,
         reserveHash: ethers.keccak256(ethers.toUtf8Bytes("test")),
       };
 
@@ -465,10 +473,11 @@ describe("TreasuryController", function () {
       await token.grantRole(PAUSER_ROLE, owner.address);
       await token.pause();
 
+      const timestamp = await time.latest();
       const request = {
         to: user1.address,
         amount: ethers.parseEther("1000"),
-        timestamp: Math.floor(Date.now() / 1000),
+        timestamp,
         reserveHash: ethers.keccak256(ethers.toUtf8Bytes("test")),
       };
 
@@ -483,10 +492,11 @@ describe("TreasuryController", function () {
       await token.grantRole(BLACKLIST_MANAGER_ROLE, owner.address);
       await token.setBlacklisted(user1.address, true);
 
+      const timestamp = await time.latest();
       const request = {
         to: user1.address,
         amount: ethers.parseEther("1000"),
-        timestamp: Math.floor(Date.now() / 1000),
+        timestamp,
         reserveHash: ethers.keccak256(ethers.toUtf8Bytes("test")),
       };
 

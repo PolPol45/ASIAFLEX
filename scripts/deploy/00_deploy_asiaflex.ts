@@ -1,7 +1,9 @@
-import { ethers } from "hardhat";
-import { AsiaFlexToken, NAVOracleAdapter, TreasuryController } from "../typechain-types";
+import hre from "hardhat";
+import type { AsiaFlexToken, NAVOracleAdapter, TreasuryController } from "../../typechain-types";
 import * as fs from "fs";
 import * as path from "path";
+
+const { ethers } = hre;
 
 interface DeploymentConfig {
   token: {
@@ -73,19 +75,24 @@ async function loadConfig(): Promise<DeploymentConfig> {
 async function saveDeployment(networkName: string, addresses: any, config: DeploymentConfig) {
   const deploymentDir = path.join(__dirname, "../deployments");
   if (!fs.existsSync(deploymentDir)) {
-    fs.mkdirSync(deploymentDir);
+    fs.mkdirSync(deploymentDir, { recursive: true });
   }
+
+  const networkInfo = await ethers.provider.getNetwork();
 
   const deployment = {
     network: networkName,
     timestamp: new Date().toISOString(),
     addresses,
     config,
-    chainId: (await ethers.provider.getNetwork()).chainId,
+    chainId: networkInfo.chainId.toString(),
   };
 
   const filePath = path.join(deploymentDir, `${networkName}.json`);
-  fs.writeFileSync(filePath, JSON.stringify(deployment, null, 2));
+  fs.writeFileSync(
+    filePath,
+    JSON.stringify(deployment, (key, value) => (typeof value === "bigint" ? value.toString() : value), 2)
+  );
   console.log(`📝 Deployment saved to ${filePath}`);
 }
 

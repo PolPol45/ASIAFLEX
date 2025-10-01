@@ -15,6 +15,7 @@ interface INAVOracleAdapter {
     error StaleData(uint256 timestamp, uint256 threshold);
     error DeviationTooHigh(uint256 currentNav, uint256 newNav, uint256 deviation);
     error InvalidTimestamp(uint256 timestamp);
+    error DeviationThresholdTooHigh(uint256 threshold);
 
     // Core functions
     function getNAV() external view returns (uint256 nav, uint256 timestamp);

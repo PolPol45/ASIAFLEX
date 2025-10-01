@@ -1,0 +1,21 @@
+{
+  "type": "burn",
+  "network": "localhost",
+  "timestamp": "2025-10-01T19:08:03.114Z",
+  "signer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+  "params": {
+    "from": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+    "amount": "10000000000000000000",
+    "signer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+    "dryRun": false
+  },
+  "transaction": {
+    "hash": "0x02022e57aec7c87e82bbf4ed97a8deb5439df02e1cfb87d7687ee057a79da632",
+    "blockNumber": 16,
+    "gasUsed": "50402"
+  },
+  "results": {
+    "accountBalance": "65000000000000000000",
+    "totalSupply": "90000000000000000000"
+  }
+}

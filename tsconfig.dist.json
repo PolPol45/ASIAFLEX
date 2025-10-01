@@ -6,17 +6,6 @@
     "declarationMap": true,
     "sourceMap": false
   },
-  "include": [
-    "./contracts/**/*",
-    "./scripts/**/*",
-    "./tasks/**/*",
-    "./utils/**/*",
-    "./types/**/*"
-  ],
-  "exclude": [
-    "./test/**/*",
-    "node_modules",
-    "artifacts",
-    "cache"
-  ]
+  "include": ["./contracts/**/*", "./scripts/**/*", "./tasks/**/*", "./utils/**/*", "./typechain-types/**/*"],
+  "exclude": ["./test/**/*", "node_modules", "artifacts", "cache"]
 }

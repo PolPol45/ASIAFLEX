@@ -40,9 +40,7 @@ class PriceWatcher {
     try {
       const oracle = await ethers.getContractAt("NAVOracleAdapter", this.oracleAddress);
 
-      const currentNAV = await oracle.currentNAV();
-      const lastUpdateTimestamp = await oracle.lastUpdateTimestamp();
-      // const _maxStaleness = await oracle.maxStaleness();
+      const [currentNAV, lastUpdateTimestamp] = await oracle.getNAV();
       const isStale = await oracle.isStale();
 
       const now = Math.floor(Date.now() / 1000);

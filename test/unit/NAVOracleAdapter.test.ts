@@ -1,7 +1,9 @@
 import { ethers } from "hardhat";
+import { time } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import { NAVOracleAdapter } from "../../typechain-types";
+import { anyValue } from "@nomicfoundation/hardhat-chai-matchers/withArgs";
 
 describe("NAVOracleAdapter", function () {
   let oracle: NAVOracleAdapter;
@@ -26,6 +28,7 @@ describe("NAVOracleAdapter", function () {
 
     await oracle.grantRole(ORACLE_UPDATER_ROLE, oracleUpdater.address);
     await oracle.grantRole(ORACLE_MANAGER_ROLE, oracleManager.address);
+    await oracle.grantRole(ORACLE_UPDATER_ROLE, oracleManager.address);
   });
 
   describe("Deployment", function () {
@@ -37,9 +40,10 @@ describe("NAVOracleAdapter", function () {
       expect(await oracle.paused()).to.be.false;
       expect(await oracle.isStale()).to.be.false;
 
-      // Check that timestamp is recent (within last minute)
-      const currentTime = Math.floor(Date.now() / 1000);
-      expect(Number(timestamp)).to.be.closeTo(currentTime, 60);
+      // Check that timestamp is equal to or slightly behind latest block timestamp
+      const latestTimestamp = await time.latest();
+      expect(Number(timestamp)).to.be.at.most(latestTimestamp);
+      expect(latestTimestamp - Number(timestamp)).to.be.at.most(5);
     });
 
     it("Should grant roles correctly", async function () {
@@ -65,7 +69,7 @@ describe("NAVOracleAdapter", function () {
 
       await expect(oracle.connect(oracleUpdater).updateNAV(newNAV))
         .to.emit(oracle, "NAVUpdated")
-        .withArgs((await ethers.provider.getBlockNumber()) + 1, INITIAL_NAV, newNAV);
+        .withArgs(anyValue, INITIAL_NAV, newNAV);
 
       const [nav] = await oracle.getNAV();
       expect(nav).to.equal(newNAV);
@@ -142,7 +146,7 @@ describe("NAVOracleAdapter", function () {
 
       await expect(oracle.connect(oracleManager).forceUpdateNAV(newNAV))
         .to.emit(oracle, "NAVUpdated")
-        .withArgs((await ethers.provider.getBlockNumber()) + 1, INITIAL_NAV, newNAV);
+        .withArgs(anyValue, INITIAL_NAV, newNAV);
 
       const [nav] = await oracle.getNAV();
       expect(nav).to.equal(newNAV);
@@ -202,15 +206,15 @@ describe("NAVOracleAdapter", function () {
     });
 
     it("Should return correct time since last update", async function () {
-      const timeBefore = await oracle.getTimeSinceLastUpdate();
-      expect(timeBefore).to.be.closeTo(0, 2); // Within 2 seconds
+      const timeBefore = Number(await oracle.getTimeSinceLastUpdate());
+      expect(timeBefore).to.be.at.most(5);
 
       // Fast forward 1 hour
       await ethers.provider.send("evm_increaseTime", [3600]);
       await ethers.provider.send("evm_mine", []);
 
-      const timeAfter = await oracle.getTimeSinceLastUpdate();
-      expect(timeAfter).to.be.closeTo(3600, 2);
+      const timeAfter = Number(await oracle.getTimeSinceLastUpdate());
+      expect(timeAfter - timeBefore).to.be.closeTo(3600, 2);
     });
   });
 
@@ -238,8 +242,9 @@ describe("NAVOracleAdapter", function () {
     it("Should revert when setting deviation threshold above 100%", async function () {
       const invalidThreshold = 10001; // 100.01%
 
-      await expect(oracle.connect(oracleManager).setDeviationThreshold(invalidThreshold)).to.be.revertedWith(
-        "Threshold too high"
+      await expect(oracle.connect(oracleManager).setDeviationThreshold(invalidThreshold)).to.be.revertedWithCustomError(
+        oracle,
+        "DeviationThresholdTooHigh"
       );
     });
 

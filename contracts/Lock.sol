@@ -10,11 +10,14 @@ contract Lock {
 
     event Withdrawal(uint256 amount, uint256 when);
 
+    error UnlockTimeNotInFuture(uint256 provided, uint256 currentTime);
+    error UnlockTimeNotReached(uint256 unlockTime, uint256 currentTime);
+    error NotLockOwner(address caller, address owner);
+
     constructor(uint256 _unlockTime) payable {
-        require(
-            block.timestamp < _unlockTime,
-            "Unlock time should be in the future"
-        );
+        if (block.timestamp >= _unlockTime) {
+            revert UnlockTimeNotInFuture(_unlockTime, block.timestamp);
+        }
 
         unlockTime = _unlockTime;
         owner = payable(msg.sender);
@@ -24,8 +27,12 @@ contract Lock {
         // Uncomment this line, and the import of "hardhat/console.sol", to print a log in your terminal
         // console.log("Unlock time is %o and block timestamp is %o", unlockTime, block.timestamp);
 
-        require(block.timestamp >= unlockTime, "You can't withdraw yet");
-        require(msg.sender == owner, "You aren't the owner");
+        if (block.timestamp < unlockTime) {
+            revert UnlockTimeNotReached(unlockTime, block.timestamp);
+        }
+        if (msg.sender != owner) {
+            revert NotLockOwner(msg.sender, owner);
+        }
 
         emit Withdrawal(address(this).balance, block.timestamp);
 

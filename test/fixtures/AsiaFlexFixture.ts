@@ -1,4 +1,5 @@
 import { ethers } from "hardhat";
+import { time } from "@nomicfoundation/hardhat-network-helpers";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import { AsiaFlexToken, NAVOracleAdapter, TreasuryController } from "../../typechain-types";
 
@@ -158,7 +159,7 @@ export async function createMintRequest(to: string, amount: bigint, reserveHash?
   return {
     to,
     amount,
-    timestamp: timestamp || Math.floor(Date.now() / 1000),
+    timestamp: timestamp ?? (await time.latest()),
     reserveHash: reserveHash || ethers.keccak256(ethers.toUtf8Bytes(`mint-${Date.now()}`)),
   };
 }
@@ -167,7 +168,7 @@ export async function createRedeemRequest(from: string, amount: bigint, reserveH
   return {
     from,
     amount,
-    timestamp: timestamp || Math.floor(Date.now() / 1000),
+    timestamp: timestamp ?? (await time.latest()),
     reserveHash: reserveHash || ethers.keccak256(ethers.toUtf8Bytes(`redeem-${Date.now()}`)),
   };
 }

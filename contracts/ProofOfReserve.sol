@@ -9,13 +9,21 @@ contract ProofOfReserve {
     uint256 public reserveUSD;
     address public owner;
 
+    event ReserveUpdated(uint256 oldReserveUSD, uint256 newReserveUSD);
+
+    error NotAuthorized(address caller, address expectedOwner);
+
     constructor() {
         owner = msg.sender;
     }
 
     function setReserve(uint256 amount) external {
-        require(msg.sender == owner, "Not authorized");
+        if (msg.sender != owner) {
+            revert NotAuthorized(msg.sender, owner);
+        }
+        uint256 previousReserve = reserveUSD;
         reserveUSD = amount;
+        emit ReserveUpdated(previousReserve, amount);
     }
 
     function getReserve() external view returns (uint256) {

@@ -1,4 +1,5 @@
 import { ethers, network } from "hardhat";
+import { time } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import { AsiaFlexToken, NAVOracleAdapter, TreasuryController } from "../../typechain-types";
@@ -72,11 +73,11 @@ describe("AsiaFlex Integration Tests", function () {
       console.log("🪙 Step 2: Execute mint via TreasuryController");
       const mintAmount = ethers.parseEther("1000");
       const reserveHash = ethers.keccak256(ethers.toUtf8Bytes("reserve-proof-12345"));
-
+      const mintTimestamp = await time.latest();
       const mintRequest = {
         to: user1.address,
         amount: mintAmount,
-        timestamp: Math.floor(Date.now() / 1000),
+        timestamp: mintTimestamp,
         reserveHash: reserveHash,
       };
 
@@ -107,11 +108,11 @@ describe("AsiaFlex Integration Tests", function () {
       console.log("🔥 Step 4: Execute redeem via TreasuryController");
       const redeemAmount = ethers.parseEther("200");
       const redeemHash = ethers.keccak256(ethers.toUtf8Bytes("redeem-proof-67890"));
-
+      const redeemTimestamp = await time.latest();
       const redeemRequest = {
         from: user1.address,
         amount: redeemAmount,
-        timestamp: Math.floor(Date.now() / 1000),
+        timestamp: redeemTimestamp,
         reserveHash: redeemHash,
       };
 
@@ -147,10 +148,11 @@ describe("AsiaFlex Integration Tests", function () {
 
       // Test daily mint cap
       const largeAmount = MAX_DAILY_MINT + ethers.parseEther("1");
+      const largeRequestTimestamp = await time.latest();
       const mintRequest = {
         to: user1.address,
         amount: largeAmount,
-        timestamp: Math.floor(Date.now() / 1000),
+        timestamp: largeRequestTimestamp,
         reserveHash: ethers.keccak256(ethers.toUtf8Bytes("test")),
       };
 
@@ -165,10 +167,11 @@ describe("AsiaFlex Integration Tests", function () {
 
       // Test successful mint within cap
       const validAmount = MAX_DAILY_MINT;
+      const validRequestTimestamp = await time.latest();
       const validRequest = {
         to: user1.address,
         amount: validAmount,
-        timestamp: Math.floor(Date.now() / 1000),
+        timestamp: validRequestTimestamp,
         reserveHash: ethers.keccak256(ethers.toUtf8Bytes("test-valid")),
       };
 
@@ -225,10 +228,11 @@ describe("AsiaFlex Integration Tests", function () {
 
       // Setup: mint some tokens first
       const mintAmount = ethers.parseEther("1000");
+      const initialMintTimestamp = await time.latest();
       const mintRequest = {
         to: user1.address,
         amount: mintAmount,
-        timestamp: Math.floor(Date.now() / 1000),
+        timestamp: initialMintTimestamp,
         reserveHash: ethers.keccak256(ethers.toUtf8Bytes("initial-mint")),
       };
       const signature = await signMintRequest(mintRequest, treasurySigner);
@@ -245,10 +249,11 @@ describe("AsiaFlex Integration Tests", function () {
       ).to.be.revertedWithCustomError(token, "EnforcedPause");
 
       // Mints through treasury should fail
+      const pausedMintTimestamp = await time.latest();
       const newMintRequest = {
         to: user2.address,
         amount: ethers.parseEther("500"),
-        timestamp: Math.floor(Date.now() / 1000),
+        timestamp: pausedMintTimestamp,
         reserveHash: ethers.keccak256(ethers.toUtf8Bytes("paused-mint")),
       };
       const newSignature = await signMintRequest(newMintRequest, treasurySigner);
@@ -291,10 +296,11 @@ describe("AsiaFlex Integration Tests", function () {
       await treasury.pause();
 
       // Normal operations should fail
+      const treasuryPausedTimestamp = await time.latest();
       const pausedMintRequest = {
         to: user2.address,
         amount: ethers.parseEther("500"),
-        timestamp: Math.floor(Date.now() / 1000),
+        timestamp: treasuryPausedTimestamp,
         reserveHash: ethers.keccak256(ethers.toUtf8Bytes("treasury-paused")),
       };
       const pausedSignature = await signMintRequest(pausedMintRequest, treasurySigner);
@@ -320,10 +326,11 @@ describe("AsiaFlex Integration Tests", function () {
 
       // Mint tokens to user1
       const mintAmount = ethers.parseEther("1000");
+      const blacklistMintTimestamp = await time.latest();
       const mintRequest = {
         to: user1.address,
         amount: mintAmount,
-        timestamp: Math.floor(Date.now() / 1000),
+        timestamp: blacklistMintTimestamp,
         reserveHash: ethers.keccak256(ethers.toUtf8Bytes("blacklist-test")),
       };
       const signature = await signMintRequest(mintRequest, treasurySigner);
@@ -340,10 +347,11 @@ describe("AsiaFlex Integration Tests", function () {
       ).to.be.revertedWithCustomError(token, "AccountBlacklisted");
 
       // Mints to blacklisted user should fail
+      const blacklistedMintTimestamp = await time.latest();
       const blacklistedMintRequest = {
         to: user1.address,
         amount: ethers.parseEther("500"),
-        timestamp: Math.floor(Date.now() / 1000),
+        timestamp: blacklistedMintTimestamp,
         reserveHash: ethers.keccak256(ethers.toUtf8Bytes("blacklisted-mint")),
       };
       const blacklistedSignature = await signMintRequest(blacklistedMintRequest, treasurySigner);
@@ -353,10 +361,11 @@ describe("AsiaFlex Integration Tests", function () {
       );
 
       // Burns from blacklisted user should fail
+      const blacklistedBurnTimestamp = await time.latest();
       const burnRequest = {
         from: user1.address,
         amount: ethers.parseEther("500"),
-        timestamp: Math.floor(Date.now() / 1000),
+        timestamp: blacklistedBurnTimestamp,
         reserveHash: ethers.keccak256(ethers.toUtf8Bytes("blacklisted-burn")),
       };
       const burnSignature = await signRedeemRequest(burnRequest, treasurySigner);
@@ -386,7 +395,7 @@ describe("AsiaFlex Integration Tests", function () {
       await token.setPrice(ethers.parseEther("100"));
 
       // Legacy mint
-      await expect(token.mint(user1.address, ethers.parseEther("500")))
+      await expect(token["mint(address,uint256)"](user1.address, ethers.parseEther("500")))
         .to.emit(token, "Mint")
         .withArgs(user1.address, ethers.parseEther("500"), ethers.ZeroHash);
 

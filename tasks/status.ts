@@ -106,8 +106,10 @@ task("status", "Displays comprehensive status information for AsiaFlex contracts
 
         console.log(`💰 Current NAV: ${ethers.formatEther(currentNAV)} USD`);
         console.log(`🕐 Last Update: ${new Date(Number(lastUpdateTimestamp) * 1000).toLocaleString()}`);
-        console.log(`⏰ Staleness Threshold: ${stalenessThreshold} seconds (${stalenessThreshold / 3600} hours)`);
-        console.log(`📊 Deviation Threshold: ${deviationThreshold / 100}%`);
+        console.log(
+          `⏰ Staleness Threshold: ${stalenessThreshold} seconds (${Number(stalenessThreshold) / 3600} hours)`
+        );
+        console.log(`📊 Deviation Threshold: ${Number(deviationThreshold) / 100}%`);
         console.log(`🚨 Status: ${isStale ? "🔴 STALE" : "🟢 FRESH"}`);
 
         if (isStale) {
@@ -151,10 +153,10 @@ task("status", "Displays comprehensive status information for AsiaFlex contracts
         // Configuration
         const treasurySigner = await treasury.getTreasurySigner();
         const requestExpiration = await treasury.getRequestExpiration();
-        const asiaFlexTokenAddress = await treasury.asiaFlexToken();
+        const asiaFlexTokenAddress = await treasury.ASIA_FLEX_TOKEN();
 
         console.log(`🔑 Treasury Signer: ${treasurySigner}`);
-        console.log(`⏰ Request Expiration: ${requestExpiration} seconds (${requestExpiration / 60} minutes)`);
+        console.log(`⏰ Request Expiration: ${requestExpiration} seconds (${Number(requestExpiration) / 60} minutes)`);
         console.log(`🪙 AsiaFlex Token: ${asiaFlexTokenAddress}`);
 
         // Pause status

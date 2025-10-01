@@ -31,6 +31,8 @@ interface ITreasuryController {
     error InvalidSignature(bytes signature, bytes32 hash);
     error RequestExpired(uint256 timestamp, uint256 expiration);
     error InvalidReserveAttestation(bytes32 provided, bytes32 expected);
+    error InvalidAsiaFlexTokenAddress(address provided);
+    error InvalidTreasurySigner(address provided);
 
     // Core functions
     function executeMint(

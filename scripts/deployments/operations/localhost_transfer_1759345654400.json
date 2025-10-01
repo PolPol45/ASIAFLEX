@@ -1,0 +1,20 @@
+{
+  "type": "transfer",
+  "network": "localhost",
+  "timestamp": "2025-10-01T19:07:34.400Z",
+  "params": {
+    "from": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+    "to": "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
+    "amount": "25000000000000000000",
+    "dryRun": false
+  },
+  "transaction": {
+    "hash": "0xb198fb389e70de91aa17ec417f195627e42cc82d01327c48d53e0bf127669f67",
+    "blockNumber": 15,
+    "gasUsed": "58306"
+  },
+  "results": {
+    "senderBalance": "75000000000000000000",
+    "recipientBalance": "25000000000000000000"
+  }
+}

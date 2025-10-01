@@ -3,6 +3,22 @@ import { expect } from "chai";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import { AsiaFlexToken } from "../../typechain-types";
 
+const mintWithAttestation = (
+  token: AsiaFlexToken,
+  signer: SignerWithAddress | undefined,
+  to: string,
+  amount: bigint,
+  attestation: string
+) => {
+  const instance = signer ? token.connect(signer) : token;
+  return instance["mint(address,uint256,bytes32)"](to, amount, attestation);
+};
+
+const legacyMint = (token: AsiaFlexToken, signer: SignerWithAddress | undefined, to: string, amount: bigint) => {
+  const instance = signer ? token.connect(signer) : token;
+  return instance["mint(address,uint256)"](to, amount);
+};
+
 describe("AsiaFlexToken", function () {
   let token: AsiaFlexToken;
   let owner: SignerWithAddress;
@@ -76,7 +92,7 @@ describe("AsiaFlexToken", function () {
     const attestationHash = ethers.keccak256(ethers.toUtf8Bytes("test-attestation"));
 
     it("Should allow TREASURY_ROLE to mint tokens", async function () {
-      await expect(token.connect(treasury).mint(user1.address, mintAmount, attestationHash))
+      await expect(mintWithAttestation(token, treasury, user1.address, mintAmount, attestationHash))
         .to.emit(token, "Mint")
         .withArgs(user1.address, mintAmount, attestationHash);
 
@@ -85,38 +101,40 @@ describe("AsiaFlexToken", function () {
     });
 
     it("Should revert when non-treasury tries to mint", async function () {
-      await expect(token.connect(user1).mint(user1.address, mintAmount, attestationHash)).to.be.revertedWithCustomError(
-        token,
-        "AccessControlUnauthorizedAccount"
-      );
+      await expect(
+        mintWithAttestation(token, user1, user1.address, mintAmount, attestationHash)
+      ).to.be.revertedWithCustomError(token, "AccessControlUnauthorizedAccount");
     });
 
     it("Should revert when minting exceeds supply cap", async function () {
+      const extendedDailyCap = INITIAL_SUPPLY_CAP + 1n;
+      await token.connect(capsManager).setMaxDailyMint(extendedDailyCap);
+
       const largeAmount = INITIAL_SUPPLY_CAP + 1n;
       await expect(
-        token.connect(treasury).mint(user1.address, largeAmount, attestationHash)
+        mintWithAttestation(token, treasury, user1.address, largeAmount, attestationHash)
       ).to.be.revertedWithCustomError(token, "InsufficientReserves");
     });
 
     it("Should revert when minting exceeds daily cap", async function () {
       const largeAmount = INITIAL_MAX_DAILY_MINT + 1n;
       await expect(
-        token.connect(treasury).mint(user1.address, largeAmount, attestationHash)
+        mintWithAttestation(token, treasury, user1.address, largeAmount, attestationHash)
       ).to.be.revertedWithCustomError(token, "DailyCapsExceeded");
     });
 
     it("Should track daily mint amounts correctly", async function () {
       const halfDaily = INITIAL_MAX_DAILY_MINT / 2n;
 
-      await token.connect(treasury).mint(user1.address, halfDaily, attestationHash);
+      await mintWithAttestation(token, treasury, user1.address, halfDaily, attestationHash);
       expect(await token.getRemainingDailyMint()).to.equal(halfDaily);
 
-      await token.connect(treasury).mint(user2.address, halfDaily, attestationHash);
+      await mintWithAttestation(token, treasury, user2.address, halfDaily, attestationHash);
       expect(await token.getRemainingDailyMint()).to.equal(0);
     });
 
     it("Should reset daily caps after 24 hours", async function () {
-      await token.connect(treasury).mint(user1.address, INITIAL_MAX_DAILY_MINT, attestationHash);
+      await mintWithAttestation(token, treasury, user1.address, INITIAL_MAX_DAILY_MINT, attestationHash);
       expect(await token.getRemainingDailyMint()).to.equal(0);
 
       // Fast forward 24 hours + 1 second
@@ -130,7 +148,7 @@ describe("AsiaFlexToken", function () {
       await token.connect(blacklistManager).setBlacklisted(user1.address, true);
 
       await expect(
-        token.connect(treasury).mint(user1.address, mintAmount, attestationHash)
+        mintWithAttestation(token, treasury, user1.address, mintAmount, attestationHash)
       ).to.be.revertedWithCustomError(token, "AccountBlacklisted");
     });
 
@@ -138,12 +156,12 @@ describe("AsiaFlexToken", function () {
       await token.connect(pauser).pause();
 
       await expect(
-        token.connect(treasury).mint(user1.address, mintAmount, attestationHash)
+        mintWithAttestation(token, treasury, user1.address, mintAmount, attestationHash)
       ).to.be.revertedWithCustomError(token, "EnforcedPause");
     });
 
     it("Should support legacy mint function", async function () {
-      await expect(token.connect(treasury).mint(user1.address, mintAmount))
+      await expect(legacyMint(token, treasury, user1.address, mintAmount))
         .to.emit(token, "Mint")
         .withArgs(user1.address, mintAmount, ethers.ZeroHash);
     });
@@ -155,7 +173,7 @@ describe("AsiaFlexToken", function () {
     const attestationHash = ethers.keccak256(ethers.toUtf8Bytes("test-attestation"));
 
     beforeEach(async function () {
-      await token.connect(treasury).mint(user1.address, mintAmount, attestationHash);
+      await mintWithAttestation(token, treasury, user1.address, mintAmount, attestationHash);
     });
 
     it("Should allow TREASURY_ROLE to burn tokens", async function () {
@@ -226,10 +244,13 @@ describe("AsiaFlexToken", function () {
 
     it("Should revert when setting supply cap below current supply", async function () {
       const mintAmount = ethers.parseEther("1000");
-      await token.connect(treasury).mint(user1.address, mintAmount, ethers.ZeroHash);
+      await mintWithAttestation(token, treasury, user1.address, mintAmount, ethers.ZeroHash);
 
       const lowCap = mintAmount - 1n;
-      await expect(token.connect(capsManager).setSupplyCap(lowCap)).to.be.revertedWith("Cap below current supply");
+      await expect(token.connect(capsManager).setSupplyCap(lowCap)).to.be.revertedWithCustomError(
+        token,
+        "SupplyCapBelowCurrentSupply"
+      );
     });
 
     it("Should revert when non-caps manager tries to update caps", async function () {
@@ -263,7 +284,7 @@ describe("AsiaFlexToken", function () {
 
     it("Should revert transfers from blacklisted addresses", async function () {
       const mintAmount = ethers.parseEther("1000");
-      await token.connect(treasury).mint(user1.address, mintAmount, ethers.ZeroHash);
+      await mintWithAttestation(token, treasury, user1.address, mintAmount, ethers.ZeroHash);
 
       await token.connect(blacklistManager).setBlacklisted(user1.address, true);
 
@@ -274,7 +295,7 @@ describe("AsiaFlexToken", function () {
 
     it("Should revert transfers to blacklisted addresses", async function () {
       const mintAmount = ethers.parseEther("1000");
-      await token.connect(treasury).mint(user1.address, mintAmount, ethers.ZeroHash);
+      await mintWithAttestation(token, treasury, user1.address, mintAmount, ethers.ZeroHash);
 
       await token.connect(blacklistManager).setBlacklisted(user2.address, true);
 
@@ -308,7 +329,7 @@ describe("AsiaFlexToken", function () {
 
     it("Should revert transfers when paused", async function () {
       const mintAmount = ethers.parseEther("1000");
-      await token.connect(treasury).mint(user1.address, mintAmount, ethers.ZeroHash);
+      await mintWithAttestation(token, treasury, user1.address, mintAmount, ethers.ZeroHash);
 
       await token.connect(pauser).pause();
 
@@ -328,7 +349,7 @@ describe("AsiaFlexToken", function () {
   describe("EIP712 Permit", function () {
     it("Should support permit functionality", async function () {
       const mintAmount = ethers.parseEther("1000");
-      await token.connect(treasury).mint(user1.address, mintAmount, ethers.ZeroHash);
+      await mintWithAttestation(token, treasury, user1.address, mintAmount, ethers.ZeroHash);
 
       // const _spender = user2.address;
       // const _value = ethers.parseEther("100");
@@ -374,7 +395,7 @@ describe("AsiaFlexToken", function () {
       const mintAmount = ethers.parseEther("1000");
       const redeemAmount = ethers.parseEther("500");
 
-      await token.connect(treasury).mint(user1.address, mintAmount, ethers.ZeroHash);
+      await mintWithAttestation(token, treasury, user1.address, mintAmount, ethers.ZeroHash);
 
       await expect(token.connect(user1).redeemRequest(redeemAmount))
         .to.emit(token, "RedeemRequested")

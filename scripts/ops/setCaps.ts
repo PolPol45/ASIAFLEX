@@ -1,7 +1,9 @@
-import { ethers } from "hardhat";
-import { AsiaFlexToken } from "../../typechain-types";
+import hre from "hardhat";
+import type { AsiaFlexToken } from "../../typechain-types";
 import * as fs from "fs";
 import * as path from "path";
+
+const { ethers } = hre;
 
 interface SetCapsParams {
   maxDailyMint?: string;

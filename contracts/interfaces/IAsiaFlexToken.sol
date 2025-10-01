@@ -30,6 +30,6 @@ interface IAsiaFlexToken {
     function getRemainingDailyNetInflows() external view returns (uint256);
     
     // Blacklist functions
-    function setBlacklisted(address account, bool isBlacklisted) external;
+    function setBlacklisted(address account, bool blacklisted) external;
     function isBlacklisted(address account) external view returns (bool);
 }

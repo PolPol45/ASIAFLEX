@@ -1,0 +1,38 @@
+{
+  "network": "sepolia",
+  "timestamp": "2025-10-01T16:41:19.023Z",
+  "addresses": {
+    "AsiaFlexToken": "0xe7909C5484C561C90b22C028C9c0c5b4c9aAcDE9",
+    "NAVOracleAdapter": "0x0ac63db89ea52afd9Ff6cab59Ed229e25764e99A",
+    "TreasuryController": "0xDea6088ED028eB34524633Dd66795B5486c3d4aE"
+  },
+  "config": {
+    "token": {
+      "name": "AsiaFlexToken",
+      "symbol": "AFX",
+      "supplyCap": "1000000000000000000000000",
+      "maxDailyMint": "10000000000000000000000",
+      "maxDailyNetInflows": "50000000000000000000000"
+    },
+    "oracle": {
+      "initialNAV": "100000000000000000000",
+      "stalenessThreshold": 86400,
+      "deviationThreshold": 1000
+    },
+    "treasury": {
+      "signer": "0xF4569BC729C62a2eD036F0A3fA66EDf842F14574",
+      "requestExpiration": 3600
+    },
+    "roles": {
+      "admin": "0xF4569BC729C62a2eD036F0A3fA66EDf842F14574",
+      "treasury": ["0xF4569BC729C62a2eD036F0A3fA66EDf842F14574"],
+      "pauser": ["0xF4569BC729C62a2eD036F0A3fA66EDf842F14574"],
+      "capsManager": ["0xF4569BC729C62a2eD036F0A3fA66EDf842F14574"],
+      "blacklistManager": ["0xF4569BC729C62a2eD036F0A3fA66EDf842F14574"],
+      "oracleUpdater": ["0xF4569BC729C62a2eD036F0A3fA66EDf842F14574"],
+      "oracleManager": ["0xF4569BC729C62a2eD036F0A3fA66EDf842F14574"],
+      "treasuryManager": ["0xF4569BC729C62a2eD036F0A3fA66EDf842F14574"]
+    }
+  },
+  "chainId": "11155111"
+}

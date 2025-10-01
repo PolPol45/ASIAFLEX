@@ -1,47 +1,139 @@
-import { ethers } from "hardhat";
-import * as fs from "fs";
-import * as path from "path";
+import "dotenv/config";
+import hre from "hardhat";
+import { ensureOracleNav, showNavQuote } from "./utils/nav";
+import { getSignerOrImpersonate, logAvailableAccounts } from "./utils/signer";
+import { loadDeployment } from "./utils/deployments";
+import { saveOperation } from "./utils/operations";
+import { prompt, promptsEnabled } from "./utils/prompt";
+
+const { ethers } = hre;
 
 interface MintParams {
   to: string;
   amount: string;
   attestationHash?: string;
+  signer: string;
   dryRun?: boolean;
 }
 
-async function loadDeployment(network: string) {
-  const filePath = path.join(__dirname, "../../deployments", `${network}.json`);
-  if (!fs.existsSync(filePath)) {
-    throw new Error(`Deployment file not found for network: ${network}`);
-  }
-  return JSON.parse(fs.readFileSync(filePath, "utf8"));
+interface ParsedInput {
+  to?: string;
+  amount?: string;
+  attestationHash?: string;
+  signer?: string;
+  dryRun: boolean;
 }
 
-async function saveOperation(network: string, operation: any) {
-  const opsDir = path.join(__dirname, "../../deployments/operations");
-  if (!fs.existsSync(opsDir)) {
-    fs.mkdirSync(opsDir, { recursive: true });
+function parseInputArgs(): ParsedInput {
+  const rawArgs = process.argv.slice(2);
+
+  const positionalArgs = rawArgs.filter((arg) => !arg.startsWith("--"));
+  const flagArgs = rawArgs.filter((arg) => arg.startsWith("--"));
+
+  const [cliTo, cliAmount, cliAttestation] = positionalArgs;
+  let dryRunFlag = false;
+  let signerFlag: string | undefined;
+
+  for (const flag of flagArgs) {
+    if (flag === "--dry-run") {
+      dryRunFlag = true;
+    } else if (flag.startsWith("--signer=")) {
+      signerFlag = flag.slice("--signer=".length);
+    }
   }
 
-  const filename = `${network}_mint_${Date.now()}.json`;
-  const filePath = path.join(opsDir, filename);
-  fs.writeFileSync(filePath, JSON.stringify(operation, null, 2));
-  console.log(`📝 Operation saved to ${filePath}`);
+  return {
+    to: cliTo,
+    amount: cliAmount,
+    attestationHash: cliAttestation,
+    signer: signerFlag,
+    dryRun: dryRunFlag,
+  };
+}
+
+async function resolveMintParams(): Promise<MintParams> {
+  const cli = parseInputArgs();
+
+  const initialRecipient = cli.to ?? process.env.MINT_TO;
+  let to = initialRecipient;
+  let amountInput = cli.amount ?? process.env.MINT_AMOUNT;
+  const attestationHash = cli.attestationHash ?? process.env.MINT_ATTESTATION;
+  const initialSigner = cli.signer ?? process.env.MINT_SIGNER;
+  const dryRun = cli.dryRun || (process.env.MINT_DRY_RUN ?? "").toLowerCase() === "true";
+
+  if (!amountInput) {
+    amountInput = await prompt("Quanti AFX vuoi mintare?");
+  }
+
+  if (!amountInput) {
+    throw new Error("Nessun importo fornito per il mint.");
+  }
+
+  let amount: string;
+  try {
+    amount = ethers.parseEther(amountInput).toString();
+  } catch (error) {
+    throw new Error(`Importo non valido: ${amountInput}`);
+  }
+
+  if (!to) {
+    to = await prompt("Inserisci l'indirizzo destinatario", initialRecipient);
+  }
+
+  if (!to || !ethers.isAddress(to)) {
+    throw new Error(
+      "Mint recipient address missing or invalid. Provide it as CLI arg or set MINT_TO/rispondi al prompt con un address valido."
+    );
+  }
+
+  const normalizedRecipient = ethers.getAddress(to);
+
+  let signerCandidate = initialSigner;
+
+  if (!signerCandidate) {
+    const availableAccounts = (await hre.network.provider.send("eth_accounts", [])) as string[];
+    const defaultSigner = availableAccounts[0];
+    if (promptsEnabled()) {
+      await logAvailableAccounts(defaultSigner);
+    }
+    signerCandidate = await prompt("Indica l'indirizzo Treasury che firmerà il mint", defaultSigner);
+  }
+
+  if (!signerCandidate || !ethers.isAddress(signerCandidate)) {
+    throw new Error("Indirizzo signer mancante o non valido.");
+  }
+
+  const normalizedSigner = ethers.getAddress(signerCandidate);
+
+  return {
+    to: normalizedRecipient,
+    amount,
+    attestationHash,
+    signer: normalizedSigner,
+    dryRun,
+  };
 }
 
 async function mint(params: MintParams) {
   const network = await ethers.provider.getNetwork();
-  const [signer] = await ethers.getSigners();
+  const signer = await getSignerOrImpersonate(params.signer);
+  const signerAddress = await signer.getAddress();
 
   console.log(`🪙 Executing mint operation on ${network.name}`);
-  console.log(`👤 Signer: ${signer.address}`);
+  console.log(`👤 Signer: ${signerAddress}`);
   console.log(`🎯 To: ${params.to}`);
   console.log(`💰 Amount: ${ethers.formatEther(params.amount)} AFX`);
   console.log(
     `🔐 Attestation Hash: ${params.attestationHash || "0x0000000000000000000000000000000000000000000000000000000000000000"}`
   );
 
-  const deployment = await loadDeployment(network.name);
+  const deployment = await loadDeployment(network.name, network.chainId);
+  const oracleAddress = deployment.addresses?.NAVOracleAdapter;
+  const isDryRun = Boolean(params.dryRun);
+
+  const syncedNav = await ensureOracleNav(oracleAddress, isDryRun);
+  await showNavQuote(oracleAddress, params.amount, syncedNav, { mode: "mint" });
+
   const token = await ethers.getContractAt("AsiaFlexToken", deployment.addresses.AsiaFlexToken);
 
   // Pre-flight checks
@@ -49,7 +141,7 @@ async function mint(params: MintParams) {
 
   // Check signer has TREASURY_ROLE
   const TREASURY_ROLE = await token.TREASURY_ROLE();
-  const hasTreasuryRole = await token.hasRole(TREASURY_ROLE, signer.address);
+  const hasTreasuryRole = await token.hasRole(TREASURY_ROLE, signerAddress);
   console.log(`   Treasury Role: ${hasTreasuryRole ? "✅" : "❌"}`);
   if (!hasTreasuryRole && !params.dryRun) {
     throw new Error("Signer does not have TREASURY_ROLE");
@@ -106,7 +198,7 @@ async function mint(params: MintParams) {
   const attestationHash = params.attestationHash || ethers.ZeroHash;
 
   try {
-    const tx = await token.mint(params.to, params.amount, attestationHash);
+    const tx = await token.connect(signer)["mint(address,uint256,bytes32)"](params.to, params.amount, attestationHash);
     console.log(`📤 Transaction sent: ${tx.hash}`);
 
     const receipt = await tx.wait();
@@ -123,7 +215,7 @@ async function mint(params: MintParams) {
       type: "mint",
       network: network.name,
       timestamp: new Date().toISOString(),
-      signer: signer.address,
+      signer: signerAddress,
       params,
       transaction: {
         hash: tx.hash,
@@ -136,7 +228,7 @@ async function mint(params: MintParams) {
       },
     };
 
-    await saveOperation(network.name, operation);
+    saveOperation(network.name, "mint", operation);
   } catch (error) {
     console.error("❌ Mint failed:", error);
     throw error;
@@ -145,25 +237,21 @@ async function mint(params: MintParams) {
 
 // CLI interface
 async function main() {
-  const args = process.argv.slice(2);
+  let params: MintParams;
 
-  if (args.length < 2) {
-    console.log("Usage: npx hardhat run scripts/ops/mint.ts -- <to> <amount> [attestationHash] [--dry-run]");
-    console.log("Example: npx hardhat run scripts/ops/mint.ts -- 0x123...abc 1000 0x456...def --dry-run");
+  try {
+    params = await resolveMintParams();
+  } catch (error) {
+    console.error("❌", (error as Error).message);
+    console.log(
+      "Usage (Hardhat v2.26+): MINT_TO=0x... MINT_AMOUNT=123 HARDHAT_NETWORK=localhost npx hardhat run scripts/ops/mint.ts"
+    );
+    console.log("Legacy (direct node/ts-node): npx ts-node scripts/ops/mint.ts 0x... 123 --dry-run");
     process.exit(1);
+    return;
   }
 
-  const to = args[0];
-  const amount = ethers.parseEther(args[1]).toString();
-  const attestationHash = args.length > 2 && !args[2].startsWith("--") ? args[2] : undefined;
-  const dryRun = args.includes("--dry-run");
-
-  if (!ethers.isAddress(to)) {
-    console.error("❌ Invalid address:", to);
-    process.exit(1);
-  }
-
-  await mint({ to, amount, attestationHash, dryRun });
+  await mint(params);
 }
 
 if (require.main === module) {
