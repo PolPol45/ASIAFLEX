@@ -8,6 +8,14 @@ pragma solidity ^0.8.26;
 interface INAVOracleAdapter {
     // Events
     event NAVUpdated(uint256 indexed timestamp, uint256 oldNav, uint256 newNav);
+    event NAVForceUpdated(
+        uint256 indexed timestamp,
+        uint256 oldNav,
+        uint256 newNav,
+        uint256 deviation,
+        address indexed updater,
+        string reason
+    );
     event StalenessThresholdUpdated(uint256 oldThreshold, uint256 newThreshold);
     event DeviationThresholdUpdated(uint256 oldThreshold, uint256 newThreshold);
 
