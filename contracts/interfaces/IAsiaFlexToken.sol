@@ -12,6 +12,19 @@ interface IAsiaFlexToken {
     event DailyCapUpdated(uint256 oldCap, uint256 newCap);
     event DailyNetInflowCapUpdated(uint256 oldCap, uint256 newCap);
     event BlacklistUpdated(address indexed account, bool isBlacklisted);
+    event SupplyCapUpdated(uint256 indexed timestamp, uint256 oldCap, uint256 newCap, address indexed updater);
+    event RoleGrantedWithReason(
+        bytes32 indexed role,
+        address indexed account,
+        address indexed sender,
+        string reason
+    );
+    event RoleRevokedWithReason(
+        bytes32 indexed role,
+        address indexed account,
+        address indexed sender,
+        string reason
+    );
 
     // Errors
     error InsufficientReserves(uint256 requested, uint256 available);

@@ -100,13 +100,24 @@ contract NAVOracleAdapter is AccessControl, Pausable, INAVOracleAdapter {
         _unpause();
     }
 
-    function forceUpdateNAV(uint256 newNav) external onlyRole(ORACLE_MANAGER_ROLE) {
+    function forceUpdateNAV(uint256 newNav, string calldata reason) external onlyRole(ORACLE_MANAGER_ROLE) {
         // Emergency function to update NAV bypassing deviation checks
+        // This should be logged with extra detail for audit purposes
         uint256 oldNav = _currentNAV;
+        uint256 deviation = _calculateDeviation(oldNav, newNav);
+        
         _currentNAV = newNav;
         _lastUpdateTimestamp = block.timestamp;
 
         emit NAVUpdated(block.timestamp, oldNav, newNav);
+        emit NAVForceUpdated(
+            block.timestamp,
+            oldNav,
+            newNav,
+            deviation,
+            msg.sender,
+            reason
+        );
     }
 
     function _calculateDeviation(uint256 currentValue, uint256 newValue) internal pure returns (uint256) {
