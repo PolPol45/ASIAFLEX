@@ -1,0 +1,34 @@
+{
+  "type": "basket_mint",
+  "network": "localhost",
+  "timestamp": "2025-10-02T13:00:30.005Z",
+  "basket": {
+    "symbol": "EUBND",
+    "name": "EU Bond Basket",
+    "region": "eu",
+    "strategy": "bond",
+    "basketId": 1
+  },
+  "params": {
+    "account": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+    "beneficiary": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+    "depositWei": "500000000000000000000",
+    "depositInput": "500",
+    "slippageBps": 50,
+    "minTokensOut": "5312789547190506491"
+  },
+  "nav": {
+    "value": "93641955056000000000",
+    "timestamp": 1759409846
+  },
+  "results": {
+    "mintedTokens": "5339486982101011549",
+    "mintedValueUsd": "499999999999999999923",
+    "baseResidual": "500000000000000000000",
+    "transaction": {
+      "hash": "0xee6add6fa3224cbabfd7349304f3accc81c075bf33677f7094a1a0c39b821a4a",
+      "blockNumber": 132,
+      "gasUsed": "126266"
+    }
+  }
+}

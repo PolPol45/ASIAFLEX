@@ -1,0 +1,24 @@
+{
+  "type": "redeem",
+  "network": "localhost",
+  "timestamp": "2025-10-02T10:37:08.065Z",
+  "caller": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+  "params": {
+    "from": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+    "amount": "15000000000000000000",
+    "reserveHash": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "timestamp": "1759401334",
+    "signature": "0x0c3a2392bd5c5d2b3a0cf7f0f882a2e63a5a5957ab33c9edee4f68f844c4b7fc69715821254077084131c42f92b4d6b54a9a3b97c07b7403bf25aab370415ef41b",
+    "caller": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+    "dryRun": false
+  },
+  "transaction": {
+    "hash": "0x604a955874b560e6499bcbba6377f2ceebf3da4102ecefd547b7d2fd1ad8738a",
+    "blockNumber": 15,
+    "gasUsed": "97811"
+  },
+  "results": {
+    "userBalance": "50000000000000000000",
+    "totalSupply": "75000000000000000000"
+  }
+}

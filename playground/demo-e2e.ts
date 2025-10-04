@@ -1,87 +1,94 @@
 // playground/demo-e2e.ts
 import { ethers } from "hardhat";
-import { keccak256, toUtf8Bytes } from "ethers";
 import * as fs from "fs";
 import * as path from "path";
 
-const u = (v: string) => ethers.parseUnits(v, 18);
-
-async function deployToken() {
-  console.log("🚀 Deploying AsiaFlexToken...");
-
-  const [deployer, user1, user2] = await ethers.getSigners();
-
-  const name = "AsiaFlex Token";
-  const symbol = "AFX";
-  const SUPPLY_CAP = u("1000000"); // 1,000,000
-  const MAX_DAILY_MINT = u("10000"); // 10,000
-  const MAX_DAILY_NET = u("5000"); // 5,000
-
-  const factory = await ethers.getContractFactory("AsiaFlexToken", deployer);
-  const token = await factory.deploy(name, symbol, SUPPLY_CAP, MAX_DAILY_MINT, MAX_DAILY_NET);
-  await token.waitForDeployment();
-
-  console.log("✅ AsiaFlexToken deployed at:", await token.getAddress());
-  return { token, deployer, user1, user2 };
-}
+import { deployBasketE2EFixture } from "../test/fixtures/BasketE2E.fixture";
+import { toWei, formatWei } from "../test/helpers/quote";
+import { basketTreasuryDomain, signMintRedeem, type MintRedeemRequest } from "../scripts/helpers/eip712";
 
 async function runDemo() {
-  console.log("\n🎭 AsiaFlex Demo - End-to-End Scenario\n=====================================\n");
+  console.log("\n🧺 Basket-first Demo - End-to-End Scenario\n=======================================\n");
 
-  const { token, deployer, user1, user2 } = await deployToken();
+  const { manager, treasury, controller, treasurySigner, user, basketToken, basketId, seedFreshNAV, navOracle } =
+    await deployBasketE2EFixture();
 
-  // 1) Set price (mock NAV)
-  console.log("📈 Setting mock price...");
-  await (await token.connect(deployer).setPrice(u("1.00"))).wait();
+  const nav = toWei("1.05");
+  await seedFreshNAV("EUFX", nav);
 
-  // 2) Mint to user1
-  console.log("🪙 Minting 1000 AFX to user1...");
-  const att = keccak256(toUtf8Bytes(`demo-${Date.now()}`));
-  await (await token.connect(deployer)["mint(address,uint256,bytes32)"](user1.address, u("1000"), att)).wait();
+  console.log("📈 NAV seeded at", formatWei(nav));
 
-  // 3) Transfer 300 from user1 to user2
-  console.log("🔁 Transfer 300 AFX from user1 to user2...");
-  await (await token.connect(user1).transfer(user2.address, u("300"))).wait();
+  const chainId = (await ethers.provider.getNetwork()).chainId;
+  const domain = basketTreasuryDomain(chainId, await treasury.getAddress());
 
-  // 4) Burn 100 from user2 (treasury burns)
-  console.log("🔥 Burn 100 AFX from user2...");
-  await (await token.connect(deployer).burn(user2.address, u("100"), att)).wait();
+  const mintRequest: MintRedeemRequest = {
+    basketId,
+    to: user.address,
+    notional: toWei("1000"),
+    nav,
+    deadline: BigInt(Math.floor(Date.now() / 1000) + 3600),
+    proofHash: ethers.ZeroHash,
+    nonce: 1n,
+  };
 
-  // 5) Pause and unpause
-  console.log("⏸️  Pausing...");
-  await (await token.connect(deployer).pause()).wait();
-  console.log("▶️  Unpausing...");
-  await (await token.connect(deployer).unpause()).wait();
+  const mintSignature = await signMintRedeem(treasurySigner, domain, mintRequest);
+  await treasury.connect(controller).mintWithProof(mintRequest, mintSignature, treasurySigner.address);
 
-  // 6) Update caps
-  console.log("🔧 Updating caps...");
-  await (await token.connect(deployer).setSupplyCap(u("2000000"))).wait();
-  await (await token.connect(deployer).setMaxDailyMint(u("20000"))).wait();
+  const mintedShares = await basketToken.balanceOf(user.address);
+  console.log("🪙 Minted shares:", formatWei(mintedShares));
 
-  // 7) Status & Report
-  const supply = await token.totalSupply();
-  const bal1 = await token.balanceOf(user1.address);
-  const bal2 = await token.balanceOf(user2.address);
-  const paused = await token.paused();
-  const price = await token.getPrice();
+  const redeemRequest: MintRedeemRequest = {
+    basketId,
+    to: user.address,
+    notional: toWei("250"),
+    nav,
+    deadline: BigInt(Math.floor(Date.now() / 1000) + 7200),
+    proofHash: ethers.ZeroHash,
+    nonce: 2n,
+  };
+
+  const redeemSignature = await signMintRedeem(treasurySigner, domain, redeemRequest);
+  await treasury.connect(controller).redeemWithProof(redeemRequest, redeemSignature, treasurySigner.address);
+
+  const remainingShares = await basketToken.balanceOf(user.address);
+  const totalSupply = await basketToken.totalSupply();
+  const redeemedNotional = await manager.quoteRedeem(basketId, mintedShares - remainingShares);
+
+  console.log("🔥 Redeemed notional:", formatWei(redeemedNotional));
+  console.log("� Remaining shares:", formatWei(remainingShares));
+
+  const observation = await navOracle.getObservation(basketId);
 
   const result = {
-    token: await token.getAddress(),
-    totalSupply: supply.toString(),
-    balances: {
-      user1: bal1.toString(),
-      user2: bal2.toString(),
+    basketId,
+    contracts: {
+      manager: await manager.getAddress(),
+      treasury: await treasury.getAddress(),
+      basketToken: await basketToken.getAddress(),
+      navOracle: await navOracle.getAddress(),
     },
-    paused,
-    price: price.toString(),
+    nav: {
+      value: formatWei(observation.nav),
+      updatedAt: Number(observation.timestamp),
+      stalenessThreshold: Number(observation.stalenessThreshold),
+    },
+    balances: {
+      user: formatWei(remainingShares),
+      totalSupply: formatWei(totalSupply),
+    },
+    flows: {
+      mintedNotional: formatWei(mintRequest.notional),
+      redeemedNotional: formatWei(redeemedNotional),
+    },
   };
 
   const outDir = path.join("playground", "out");
   fs.mkdirSync(outDir, { recursive: true });
-  const outfile = path.join(outDir, `demo-run-${Date.now()}.json`);
+  const outfile = path.join(outDir, `basket-demo-${Date.now()}.json`);
   fs.writeFileSync(outfile, JSON.stringify(result, null, 2));
+
   console.log("📦 Report saved to", outfile);
-  console.log("\n✅ Demo completed successfully.\n");
+  console.log("\n✅ Basket demo completed successfully.\n");
 }
 
 async function main() {
@@ -93,4 +100,6 @@ async function main() {
   }
 }
 
-main();
+if (require.main === module) {
+  main();
+}

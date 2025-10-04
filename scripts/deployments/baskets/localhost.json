@@ -1,0 +1,351 @@
+{
+  "network": "localhost",
+  "chainId": "31337",
+  "timestamp": "2025-10-02T12:56:07.371Z",
+  "baseAsset": "0x8198f5d8F8CfFE8f9C413d98a0A55aEB8ab9FbB7",
+  "manager": "0x202CCe504e04bEd6fC0521238dDf04Bc9E8E15aB",
+  "baskets": [
+    {
+      "name": "EU Currency Basket",
+      "symbol": "EUFX",
+      "region": "eu",
+      "strategy": "fx",
+      "regionEnum": 0,
+      "strategyEnum": 0,
+      "basketId": 0,
+      "tokenAddress": "0xf4B146FbA71F41E0592668ffbF264F1D186b2Ca8",
+      "nav": "2692675000000000000",
+      "navTimestamp": 1759409838,
+      "allocations": [
+        {
+          "assetId": "0xfff16d60be267153303bbfa66e593fb8d06e24ea5ef24b6acca5224c2ca6b907",
+          "assetLabel": "EUR",
+          "aggregator": "0x172076E0166D1F9Cc711C77Adf8488051744980C",
+          "weightBps": 6360,
+          "isBond": false,
+          "accrualBps": 0
+        },
+        {
+          "assetId": "0x90832e2dc3221e4d56977c1aa8f6a6706b9ad6542fbbdaac13097d0fa5e42e67",
+          "assetLabel": "GBP",
+          "aggregator": "0x4EE6eCAD1c2Dae9f525404De8555724e3c35d07B",
+          "weightBps": 1360,
+          "isBond": false,
+          "accrualBps": 0
+        },
+        {
+          "assetId": "0xc9d84274fd58aa177cabff54611546051b74ad658b939babaad6282500300d36",
+          "assetLabel": "CHF",
+          "aggregator": "0xBEc49fA140aCaA83533fB00A2BB19bDdd0290f25",
+          "weightBps": 910,
+          "isBond": false,
+          "accrualBps": 0
+        },
+        {
+          "assetId": "0x002619e57850f6a501d624da07b69a45616ebf4852fe267ab242b306675e6bc4",
+          "assetLabel": "SEK/NOK",
+          "aggregator": "0xD84379CEae14AA33C123Af12424A37803F885889",
+          "weightBps": 450,
+          "isBond": false,
+          "accrualBps": 0
+        },
+        {
+          "assetId": "0xdbd17891fc491ac6717dd01ab1f90f82509f1f2e91cd5066f68805860fbdeb72",
+          "assetLabel": "GOLD",
+          "aggregator": "0x2B0d36FACD61B71CC05ab8F3D2355ec3631C0dd5",
+          "weightBps": 920,
+          "isBond": false,
+          "accrualBps": 0
+        }
+      ]
+    },
+    {
+      "name": "EU Bond Basket",
+      "symbol": "EUBND",
+      "region": "eu",
+      "strategy": "bond",
+      "regionEnum": 0,
+      "strategyEnum": 1,
+      "basketId": 1,
+      "tokenAddress": "0xC9a43158891282A2B1475592D5719c001986Aaec",
+      "nav": "93641955056000000000",
+      "navTimestamp": 1759409846,
+      "allocations": [
+        {
+          "assetId": "0x5759c4a54adb8327920b9f052a751e29986e4046b922bf8757c3d13ef7b12da4",
+          "assetLabel": "Bund",
+          "aggregator": "0x1c85638e118b37167e9298c2268758e058DdfDA0",
+          "weightBps": 3636,
+          "isBond": true,
+          "accrualBps": 20
+        },
+        {
+          "assetId": "0x82be75a18ba689f23f4b15ba0a3c8adb55c3acda61e764931799903c442564d0",
+          "assetLabel": "BTP",
+          "aggregator": "0x367761085BF3C12e5DA2Df99AC6E1a824612b8fb",
+          "weightBps": 1818,
+          "isBond": true,
+          "accrualBps": 35
+        },
+        {
+          "assetId": "0x7a5bc7d40b98bf7837d696b1681caf7413f6b210ce64b4e17f4e23f9af6fe334",
+          "assetLabel": "Gilt",
+          "aggregator": "0x4C2F7092C2aE51D986bEFEe378e50BD4dB99C901",
+          "weightBps": 1818,
+          "isBond": true,
+          "accrualBps": 25
+        },
+        {
+          "assetId": "0x7ef45cc30793ebf120d3af250ec7c99890c2f7566f5a3d07588a34597ab45497",
+          "assetLabel": "SwissGov",
+          "aggregator": "0x7A9Ec1d04904907De0ED7b6839CcdD59c3716AC9",
+          "weightBps": 909,
+          "isBond": true,
+          "accrualBps": 15
+        },
+        {
+          "assetId": "0x1ab4f0a836267c3da78df9067bca5ed48749f1d8cb179dbf93171f3d8972ecf0",
+          "assetLabel": "ScandiGov",
+          "aggregator": "0x49fd2BE640DB2910c2fAb69bB8531Ab6E76127ff",
+          "weightBps": 909,
+          "isBond": true,
+          "accrualBps": 18
+        },
+        {
+          "assetId": "0xdbd17891fc491ac6717dd01ab1f90f82509f1f2e91cd5066f68805860fbdeb72",
+          "assetLabel": "GOLD",
+          "aggregator": "0x4631BCAbD6dF18D94796344963cB60d44a4136b6",
+          "weightBps": 910,
+          "isBond": false,
+          "accrualBps": 0
+        }
+      ]
+    },
+    {
+      "name": "Asia Currency Basket",
+      "symbol": "ASFX",
+      "region": "asia",
+      "strategy": "fx",
+      "regionEnum": 1,
+      "strategyEnum": 0,
+      "basketId": 3,
+      "tokenAddress": "0xf953b3A269d80e3eB0F2947630Da976B896A8C5b",
+      "nav": "1843305540000000000",
+      "navTimestamp": 1759409855,
+      "allocations": [
+        {
+          "assetId": "0xfaaa9c7b2f09d6a1b0971574d43ca62c3e40723167c09830ec33f06cec921381",
+          "assetLabel": "CNY",
+          "aggregator": "0xAA292E8611aDF267e563f334Ee42320aC96D0463",
+          "weightBps": 3180,
+          "isBond": false,
+          "accrualBps": 0
+        },
+        {
+          "assetId": "0xfe13aafd831cb225dfce3f6431b34b5b17426b6bff4fccabe4bbe0fe4adc0452",
+          "assetLabel": "JPY",
+          "aggregator": "0x5c74c94173F05dA1720953407cbb920F3DF9f887",
+          "weightBps": 1820,
+          "isBond": false,
+          "accrualBps": 0
+        },
+        {
+          "assetId": "0xaad766fbc07fb357bed9fd8b03b935f2f71fe29fc48f08274bc2a01d7f642afc",
+          "assetLabel": "INR",
+          "aggregator": "0x720472c8ce72c2A2D711333e064ABD3E6BbEAdd3",
+          "weightBps": 1360,
+          "isBond": false,
+          "accrualBps": 0
+        },
+        {
+          "assetId": "0xc7914cfda800b414621b0ce0d8fed732cabbb831d6afcd8b2a73fb1ca78e443c",
+          "assetLabel": "KRW",
+          "aggregator": "0xe8D2A1E88c91DCd5433208d4152Cc4F399a7e91d",
+          "weightBps": 910,
+          "isBond": false,
+          "accrualBps": 0
+        },
+        {
+          "assetId": "0xf6dedb8ccef86e7bb2856e4ab08ba68b3836b63d2d51ded70563ca3cdb80b41a",
+          "assetLabel": "SGD/HKD",
+          "aggregator": "0x5067457698Fd6Fa1C6964e416b3f42713513B3dD",
+          "weightBps": 910,
+          "isBond": false,
+          "accrualBps": 0
+        },
+        {
+          "assetId": "0xaabd93c9071e410cf7502aa00d2ea238eb10866b597b9032a6c3dfa002464239",
+          "assetLabel": "ASEAN",
+          "aggregator": "0x18E317A7D70d8fBf8e6E893616b52390EbBdb629",
+          "weightBps": 910,
+          "isBond": false,
+          "accrualBps": 0
+        },
+        {
+          "assetId": "0xdbd17891fc491ac6717dd01ab1f90f82509f1f2e91cd5066f68805860fbdeb72",
+          "assetLabel": "GOLD",
+          "aggregator": "0x4b6aB5F819A515382B0dEB6935D793817bB4af28",
+          "weightBps": 910,
+          "isBond": false,
+          "accrualBps": 0
+        }
+      ]
+    },
+    {
+      "name": "Asia Bond Basket",
+      "symbol": "ASBND",
+      "region": "asia",
+      "strategy": "bond",
+      "regionEnum": 1,
+      "strategyEnum": 1,
+      "basketId": 4,
+      "tokenAddress": "0xF8e31cb472bc70500f08Cd84917E5A1912Ec8397",
+      "nav": "93095219612000000000",
+      "navTimestamp": 1759409865,
+      "allocations": [
+        {
+          "assetId": "0x0ed030791870f576fe65337a4da98d6fc339f6181a3b166169780c4ee947dd82",
+          "assetLabel": "CGB",
+          "aggregator": "0xc0F115A19107322cFBf1cDBC7ea011C19EbDB4F8",
+          "weightBps": 2728,
+          "isBond": true,
+          "accrualBps": 30
+        },
+        {
+          "assetId": "0x54b17f23dae39730b6d4c3479dcce16ecc30fa8ecd504443d2d2a8200d58aba0",
+          "assetLabel": "JGB",
+          "aggregator": "0xc96304e3c037f81dA488ed9dEa1D8F2a48278a75",
+          "weightBps": 2273,
+          "isBond": true,
+          "accrualBps": 12
+        },
+        {
+          "assetId": "0x9dbb4f0d68ecdc9e93273b9de456ce16c337ac64d965f0b1fffc976c4e6b8f08",
+          "assetLabel": "G-Secs",
+          "aggregator": "0x34B40BA116d5Dec75548a9e9A8f15411461E8c70",
+          "weightBps": 1364,
+          "isBond": true,
+          "accrualBps": 40
+        },
+        {
+          "assetId": "0x59a27cac2e0643231861b6dc73870174ac18a4e9aff271d689ca145cdb0a3320",
+          "assetLabel": "KTB",
+          "aggregator": "0xD0141E899a65C95a556fE2B27e5982A6DE7fDD7A",
+          "weightBps": 909,
+          "isBond": true,
+          "accrualBps": 25
+        },
+        {
+          "assetId": "0x8ed6131c233859320db65938d05b1f54a04726c763b0c48fb288b2b9cc5a6ed2",
+          "assetLabel": "SGS/HK",
+          "aggregator": "0x07882Ae1ecB7429a84f1D53048d35c4bB2056877",
+          "weightBps": 909,
+          "isBond": true,
+          "accrualBps": 20
+        },
+        {
+          "assetId": "0xebcc6e3bf51689e3d7916b47ec88e9e46f407c7cd0f1e45df57a3f9960f2ba73",
+          "assetLabel": "ASEANGov",
+          "aggregator": "0x22753E4264FDDc6181dc7cce468904A80a363E44",
+          "weightBps": 909,
+          "isBond": true,
+          "accrualBps": 28
+        },
+        {
+          "assetId": "0xdbd17891fc491ac6717dd01ab1f90f82509f1f2e91cd5066f68805860fbdeb72",
+          "assetLabel": "GOLD",
+          "aggregator": "0xA7c59f010700930003b33aB25a7a0679C860f29c",
+          "weightBps": 908,
+          "isBond": false,
+          "accrualBps": 0
+        }
+      ]
+    },
+    {
+      "name": "EuroAsia Mix Basket",
+      "symbol": "EAMIX",
+      "region": "euroasia",
+      "strategy": "mix",
+      "regionEnum": 2,
+      "strategyEnum": 2,
+      "basketId": 8,
+      "tokenAddress": "0x3347B4d90ebe72BeFb30444C9966B2B990aE9FcB",
+      "nav": "2377542000000000000",
+      "navTimestamp": 1759409875,
+      "allocations": [
+        {
+          "assetId": "0xfff16d60be267153303bbfa66e593fb8d06e24ea5ef24b6acca5224c2ca6b907",
+          "assetLabel": "EUR",
+          "aggregator": "0x3155755b79aA083bd953911C92705B7aA82a18F9",
+          "weightBps": 3000,
+          "isBond": false,
+          "accrualBps": 0
+        },
+        {
+          "assetId": "0x90832e2dc3221e4d56977c1aa8f6a6706b9ad6542fbbdaac13097d0fa5e42e67",
+          "assetLabel": "GBP",
+          "aggregator": "0x5bf5b11053e734690269C6B9D438F8C9d48F528A",
+          "weightBps": 700,
+          "isBond": false,
+          "accrualBps": 0
+        },
+        {
+          "assetId": "0xc9d84274fd58aa177cabff54611546051b74ad658b939babaad6282500300d36",
+          "assetLabel": "CHF",
+          "aggregator": "0xffa7CA1AEEEbBc30C874d32C7e22F052BbEa0429",
+          "weightBps": 300,
+          "isBond": false,
+          "accrualBps": 0
+        },
+        {
+          "assetId": "0xfaaa9c7b2f09d6a1b0971574d43ca62c3e40723167c09830ec33f06cec921381",
+          "assetLabel": "CNY",
+          "aggregator": "0x3aAde2dCD2Df6a8cAc689EE797591b2913658659",
+          "weightBps": 2000,
+          "isBond": false,
+          "accrualBps": 0
+        },
+        {
+          "assetId": "0xfe13aafd831cb225dfce3f6431b34b5b17426b6bff4fccabe4bbe0fe4adc0452",
+          "assetLabel": "JPY",
+          "aggregator": "0xab16A69A5a8c12C732e0DEFF4BE56A70bb64c926",
+          "weightBps": 1500,
+          "isBond": false,
+          "accrualBps": 0
+        },
+        {
+          "assetId": "0xaad766fbc07fb357bed9fd8b03b935f2f71fe29fc48f08274bc2a01d7f642afc",
+          "assetLabel": "INR",
+          "aggregator": "0xE3011A37A904aB90C8881a99BD1F6E21401f1522",
+          "weightBps": 700,
+          "isBond": false,
+          "accrualBps": 0
+        },
+        {
+          "assetId": "0xc7914cfda800b414621b0ce0d8fed732cabbb831d6afcd8b2a73fb1ca78e443c",
+          "assetLabel": "KRW",
+          "aggregator": "0x1f10F3Ba7ACB61b2F50B9d6DdCf91a6f787C0E82",
+          "weightBps": 500,
+          "isBond": false,
+          "accrualBps": 0
+        },
+        {
+          "assetId": "0xc241cc1f9752d2d53d1ab67189223a3f330e48b75f73ebf86f50b2c78fe8df88",
+          "assetLabel": "SGD",
+          "aggregator": "0x457cCf29090fe5A24c19c1bc95F492168C0EaFdb",
+          "weightBps": 300,
+          "isBond": false,
+          "accrualBps": 0
+        },
+        {
+          "assetId": "0xdbd17891fc491ac6717dd01ab1f90f82509f1f2e91cd5066f68805860fbdeb72",
+          "assetLabel": "GOLD",
+          "aggregator": "0x525C7063E7C20997BaaE9bDa922159152D0e8417",
+          "weightBps": 1000,
+          "isBond": false,
+          "accrualBps": 0
+        }
+      ]
+    }
+  ]
+}

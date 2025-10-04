@@ -3,7 +3,9 @@ pragma solidity ^0.8.26;
 
 import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import { ERC20Permit } from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
-import { AccessControl } from "@openzeppelin/contracts/access/AccessControl.sol";
+import {
+    AccessControlDefaultAdminRules
+} from "@openzeppelin/contracts/access/extensions/AccessControlDefaultAdminRules.sol";
 import { Pausable } from "@openzeppelin/contracts/utils/Pausable.sol";
 import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import { IAsiaFlexToken } from "./interfaces/IAsiaFlexToken.sol";
@@ -16,7 +18,7 @@ import { IAsiaFlexToken } from "./interfaces/IAsiaFlexToken.sol";
 contract AsiaFlexToken is
     ERC20,
     ERC20Permit,
-    AccessControl,
+    AccessControlDefaultAdminRules,
     Pausable,
     ReentrancyGuard,
     IAsiaFlexToken
@@ -26,6 +28,7 @@ contract AsiaFlexToken is
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
     bytes32 public constant CAPS_MANAGER_ROLE = keccak256("CAPS_MANAGER_ROLE");
     bytes32 public constant BLACKLIST_MANAGER_ROLE = keccak256("BLACKLIST_MANAGER_ROLE");
+    bytes32 public constant ATTESTATION_BYPASS_ROLE = keccak256("ATTESTATION_BYPASS_ROLE");
 
     // Circuit breaker state
     uint256 public maxDailyMint;
@@ -76,12 +79,16 @@ contract AsiaFlexToken is
         uint256 _supplyCap,
         uint256 _maxDailyMint,
         uint256 _maxDailyNetInflows
-    ) ERC20(name_, symbol_) ERC20Permit(name_) {
-        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+    )
+        ERC20(name_, symbol_)
+        ERC20Permit(name_)
+        AccessControlDefaultAdminRules(uint48(1 days), msg.sender)
+    {
         _grantRole(TREASURY_ROLE, msg.sender);
         _grantRole(PAUSER_ROLE, msg.sender);
         _grantRole(CAPS_MANAGER_ROLE, msg.sender);
         _grantRole(BLACKLIST_MANAGER_ROLE, msg.sender);
+        _grantRole(ATTESTATION_BYPASS_ROLE, msg.sender);
 
         supplyCap = _supplyCap;
         maxDailyMint = _maxDailyMint;
@@ -109,11 +116,21 @@ contract AsiaFlexToken is
         notBlacklisted(to)
         checkDailyCaps(amount)
     {
+        if (attestationHash == bytes32(0) && !hasRole(ATTESTATION_BYPASS_ROLE, _msgSender())) {
+            revert AttestationRequired(_msgSender());
+        }
         if (totalSupply() + amount > supplyCap) {
             revert InsufficientReserves(amount, supplyCap - totalSupply());
         }
 
+        uint256 remainingNetInflow =
+            maxDailyNetInflows > dailyNetInflowAmount ? maxDailyNetInflows - dailyNetInflowAmount : 0;
+        if (amount > remainingNetInflow) {
+            revert DailyNetInflowExceeded(amount, remainingNetInflow);
+        }
+
         dailyMintAmount += amount;
+        dailyNetInflowAmount += amount;
         _mint(to, amount);
         emit Mint(to, amount, attestationHash);
     }
@@ -130,6 +147,10 @@ contract AsiaFlexToken is
         notBlacklisted(from)
     {
         _checkAndResetDaily();
+
+        if (attestationHash == bytes32(0) && !hasRole(ATTESTATION_BYPASS_ROLE, _msgSender())) {
+            revert AttestationRequired(_msgSender());
+        }
 
         // Burning reduces net inflow pressure
         if (dailyNetInflowAmount >= amount) {
@@ -172,6 +193,10 @@ contract AsiaFlexToken is
             maxDailyNetInflows > dailyNetInflowAmount
                 ? maxDailyNetInflows - dailyNetInflowAmount
                 : 0;
+    }
+
+    function getRedeemQueueLength(address account) external view returns (uint256) {
+        return redeemBlockQueue[account].length;
     }
 
     // -------------------------------------------------------------------------
@@ -221,6 +246,9 @@ contract AsiaFlexToken is
     }
 
     function mintByUSD(address to, uint256 usdAmount) external onlyRole(TREASURY_ROLE) {
+        if (!hasRole(ATTESTATION_BYPASS_ROLE, _msgSender())) {
+            revert AttestationRequired(_msgSender());
+        }
         if (_price == 0) {
             revert PriceNotAvailable();
         }
@@ -229,6 +257,9 @@ contract AsiaFlexToken is
     }
 
     function burnFrom(address user, uint256 amount) external onlyRole(TREASURY_ROLE) {
+        if (!hasRole(ATTESTATION_BYPASS_ROLE, _msgSender())) {
+            revert AttestationRequired(_msgSender());
+        }
         burn(user, amount, bytes32(0));
     }
 
@@ -238,7 +269,7 @@ contract AsiaFlexToken is
             revert InsufficientRedeemBalance(msg.sender, amount, balance);
         }
         pendingRedeems[msg.sender] += amount;
-        redeemBlockQueue[msg.sender].push(block.number);
+    redeemBlockQueue[msg.sender].push(block.number);
         emit RedeemRequested(msg.sender, amount);
     }
 
@@ -251,7 +282,8 @@ contract AsiaFlexToken is
             revert NoPendingRedeem(user);
         }
 
-        pendingRedeems[user] = 0;
+    pendingRedeems[user] = 0;
+    delete redeemBlockQueue[user];
         _burn(user, amount);
 
         emit RedeemProcessed(user, amount);
@@ -312,7 +344,7 @@ contract AsiaFlexToken is
         public
         view
         virtual
-        override(AccessControl)
+    override(AccessControlDefaultAdminRules)
         returns (bool)
     {
         return super.supportsInterface(interfaceId);

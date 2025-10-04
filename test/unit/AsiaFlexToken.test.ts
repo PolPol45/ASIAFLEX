@@ -50,11 +50,13 @@ describe("AsiaFlexToken", function () {
     const PAUSER_ROLE = await token.PAUSER_ROLE();
     const CAPS_MANAGER_ROLE = await token.CAPS_MANAGER_ROLE();
     const BLACKLIST_MANAGER_ROLE = await token.BLACKLIST_MANAGER_ROLE();
+    const ATTESTATION_BYPASS_ROLE = await token.ATTESTATION_BYPASS_ROLE();
 
     await token.grantRole(TREASURY_ROLE, treasury.address);
     await token.grantRole(PAUSER_ROLE, pauser.address);
     await token.grantRole(CAPS_MANAGER_ROLE, capsManager.address);
     await token.grantRole(BLACKLIST_MANAGER_ROLE, blacklistManager.address);
+    await token.grantRole(ATTESTATION_BYPASS_ROLE, treasury.address);
   });
 
   describe("Deployment", function () {
@@ -164,6 +166,33 @@ describe("AsiaFlexToken", function () {
       await expect(legacyMint(token, treasury, user1.address, mintAmount))
         .to.emit(token, "Mint")
         .withArgs(user1.address, mintAmount, ethers.ZeroHash);
+    });
+
+    it("Should revert legacy mint when caller lacks attestation bypass role", async function () {
+      const bypassRole = await token.ATTESTATION_BYPASS_ROLE();
+      await token.revokeRole(bypassRole, treasury.address);
+
+      await expect(legacyMint(token, treasury, user1.address, mintAmount)).to.be.revertedWithCustomError(
+        token,
+        "AttestationRequired"
+      );
+    });
+
+    it("Should enforce daily net inflow cap", async function () {
+      const limitedNetInflow = ethers.parseEther("500");
+      await token.connect(capsManager).setMaxDailyNetInflows(limitedNetInflow);
+
+      const overCapAmount = limitedNetInflow + 1n;
+      await expect(
+        mintWithAttestation(token, treasury, user1.address, overCapAmount, attestationHash)
+      ).to.be.revertedWithCustomError(token, "DailyNetInflowExceeded");
+    });
+
+    it("Should reduce remaining daily net inflow after mint", async function () {
+      await mintWithAttestation(token, treasury, user1.address, mintAmount, attestationHash);
+
+      const remainingNetInflow = await token.getRemainingDailyNetInflows();
+      expect(remainingNetInflow).to.equal(INITIAL_MAX_DAILY_NET_INFLOWS - mintAmount);
     });
   });
 
@@ -410,6 +439,7 @@ describe("AsiaFlexToken", function () {
 
       expect(await token.balanceOf(user1.address)).to.equal(mintAmount - redeemAmount);
       expect(await token.pendingRedeems(user1.address)).to.equal(0);
+      expect(await token.getRedeemQueueLength(user1.address)).to.equal(0);
     });
   });
 });

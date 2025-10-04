@@ -1,131 +1,88 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 
-import { AccessControl } from "@openzeppelin/contracts/access/AccessControl.sol";
-import { Pausable } from "@openzeppelin/contracts/utils/Pausable.sol";
+import {
+    AccessControlDefaultAdminRules
+} from "@openzeppelin/contracts/access/extensions/AccessControlDefaultAdminRules.sol";
 import { INAVOracleAdapter } from "./interfaces/INAVOracleAdapter.sol";
 
 /**
  * @title NAVOracleAdapter
- * @dev Oracle adapter for NAV data with staleness and deviation protection
+ * @notice Stores per-basket NAV observations with configurable staleness and deviation thresholds.
  */
-contract NAVOracleAdapter is AccessControl, Pausable, INAVOracleAdapter {
+contract NAVOracleAdapter is AccessControlDefaultAdminRules, INAVOracleAdapter {
     bytes32 public constant ORACLE_UPDATER_ROLE = keccak256("ORACLE_UPDATER_ROLE");
     bytes32 public constant ORACLE_MANAGER_ROLE = keccak256("ORACLE_MANAGER_ROLE");
 
-    // NAV data
-    uint256 private _currentNAV;
-    uint256 private _lastUpdateTimestamp;
+    uint256 private constant BASIS_POINTS_DENOMINATOR = 10_000;
 
-    // Configuration
-    uint256 public stalenessThreshold; // seconds
-    uint256 public deviationThreshold; // basis points (10000 = 100%)
+    mapping(bytes32 => NAVObservation) private _observations;
 
-    constructor(
-        uint256 _initialNAV,
-        uint256 _stalenessThreshold,
-        uint256 _deviationThreshold
-    ) {
-        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        _grantRole(ORACLE_UPDATER_ROLE, msg.sender);
-        _grantRole(ORACLE_MANAGER_ROLE, msg.sender);
-
-        _currentNAV = _initialNAV;
-        _lastUpdateTimestamp = block.timestamp;
-        stalenessThreshold = _stalenessThreshold;
-        deviationThreshold = _deviationThreshold;
-
-        emit NAVUpdated(block.timestamp, 0, _initialNAV);
+    constructor(address admin) AccessControlDefaultAdminRules(uint48(1 days), admin) {
+        _grantRole(ORACLE_UPDATER_ROLE, admin);
+        _grantRole(ORACLE_MANAGER_ROLE, admin);
     }
 
-    function getNAV() external view returns (uint256 nav, uint256 timestamp) {
-        return (_currentNAV, _lastUpdateTimestamp);
+    /// @inheritdoc INAVOracleAdapter
+    function getNAV(bytes32 basketId) external view returns (uint256 nav, uint256 timestamp) {
+        NAVObservation memory observation = _observations[basketId];
+        return (observation.nav, observation.timestamp);
     }
 
-    function updateNAV(uint256 newNav) external onlyRole(ORACLE_UPDATER_ROLE) whenNotPaused {
-        if (newNav == 0) {
-            revert InvalidTimestamp(newNav);
+    /// @inheritdoc INAVOracleAdapter
+    function getObservation(bytes32 basketId) external view returns (NAVObservation memory observation) {
+        return _observations[basketId];
+    }
+
+    /// @inheritdoc INAVOracleAdapter
+    function updateNAV(bytes32 basketId, uint256 newNav) external onlyRole(ORACLE_UPDATER_ROLE) {
+        if (newNav == 0) revert InvalidNav(basketId);
+
+        NAVObservation storage observation = _observations[basketId];
+        if (observation.nav != 0 && observation.deviationThreshold != 0) {
+            uint256 deviation = _calculateDeviation(observation.nav, newNav);
+            if (deviation > observation.deviationThreshold) {
+                revert DeviationTooHigh(basketId, observation.nav, newNav, deviation);
+            }
         }
 
-        // Check deviation if we have a previous NAV
-        if (_currentNAV > 0 && !isValidUpdate(newNav)) {
-            uint256 deviation = _calculateDeviation(_currentNAV, newNav);
-            revert DeviationTooHigh(_currentNAV, newNav, deviation);
-        }
+        uint256 oldNav = observation.nav;
+        observation.nav = newNav;
+        observation.timestamp = block.timestamp;
 
-        uint256 oldNav = _currentNAV;
-        _currentNAV = newNav;
-        _lastUpdateTimestamp = block.timestamp;
-
-        emit NAVUpdated(block.timestamp, oldNav, newNav);
+        emit NAVUpdated(basketId, oldNav, newNav, block.timestamp);
     }
 
-    function setStalenessThreshold(uint256 threshold) external onlyRole(ORACLE_MANAGER_ROLE) {
-        uint256 oldThreshold = stalenessThreshold;
-        stalenessThreshold = threshold;
-        emit StalenessThresholdUpdated(oldThreshold, threshold);
+    /// @inheritdoc INAVOracleAdapter
+    function setStalenessThreshold(bytes32 basketId, uint256 newThreshold) external onlyRole(ORACLE_MANAGER_ROLE) {
+        NAVObservation storage observation = _observations[basketId];
+        uint256 oldThreshold = observation.stalenessThreshold;
+        observation.stalenessThreshold = newThreshold;
+        emit StalenessThresholdUpdated(basketId, oldThreshold, newThreshold);
     }
 
-    function setDeviationThreshold(uint256 threshold) external onlyRole(ORACLE_MANAGER_ROLE) {
-        if (threshold > 10000) {
-            revert DeviationThresholdTooHigh(threshold);
-        }
-        uint256 oldThreshold = deviationThreshold;
-        deviationThreshold = threshold;
-        emit DeviationThresholdUpdated(oldThreshold, threshold);
+    /// @inheritdoc INAVOracleAdapter
+    function setDeviationThreshold(bytes32 basketId, uint256 newThreshold) external onlyRole(ORACLE_MANAGER_ROLE) {
+        if (newThreshold > BASIS_POINTS_DENOMINATOR) revert InvalidThreshold(basketId);
+        NAVObservation storage observation = _observations[basketId];
+        uint256 oldThreshold = observation.deviationThreshold;
+        observation.deviationThreshold = newThreshold;
+        emit DeviationThresholdUpdated(basketId, oldThreshold, newThreshold);
     }
 
-    function getStalenessThreshold() external view returns (uint256) {
-        return stalenessThreshold;
+    function _calculateDeviation(uint256 currentNav, uint256 newNav) private pure returns (uint256) {
+        if (currentNav == 0) return 0;
+        uint256 difference = currentNav > newNav ? currentNav - newNav : newNav - currentNav;
+        return (difference * BASIS_POINTS_DENOMINATOR) / currentNav;
     }
 
-    function getDeviationThreshold() external view returns (uint256) {
-        return deviationThreshold;
-    }
-
-    function isStale() external view returns (bool) {
-        return block.timestamp > _lastUpdateTimestamp + stalenessThreshold;
-    }
-
-    function isValidUpdate(uint256 newNav) public view returns (bool) {
-        if (_currentNAV == 0) return true; // First update is always valid
-        
-        uint256 deviation = _calculateDeviation(_currentNAV, newNav);
-        return deviation <= deviationThreshold;
-    }
-
-    function pause() external onlyRole(ORACLE_MANAGER_ROLE) {
-        _pause();
-    }
-
-    function unpause() external onlyRole(ORACLE_MANAGER_ROLE) {
-        _unpause();
-    }
-
-    function forceUpdateNAV(uint256 newNav) external onlyRole(ORACLE_MANAGER_ROLE) {
-        // Emergency function to update NAV bypassing deviation checks
-        uint256 oldNav = _currentNAV;
-        _currentNAV = newNav;
-        _lastUpdateTimestamp = block.timestamp;
-
-        emit NAVUpdated(block.timestamp, oldNav, newNav);
-    }
-
-    function _calculateDeviation(uint256 currentValue, uint256 newValue) internal pure returns (uint256) {
-        if (currentValue == 0) return 0;
-        
-        uint256 difference = currentValue > newValue ? 
-                           currentValue - newValue : 
-                           newValue - currentValue;
-        
-        return (difference * 10000) / currentValue; // Return in basis points
-    }
-
-    function getCurrentDeviation(uint256 newNav) external view returns (uint256) {
-        return _calculateDeviation(_currentNAV, newNav);
-    }
-
-    function getTimeSinceLastUpdate() external view returns (uint256) {
-        return block.timestamp - _lastUpdateTimestamp;
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        virtual
+        override(AccessControlDefaultAdminRules)
+        returns (bool)
+    {
+        return super.supportsInterface(interfaceId);
     }
 }

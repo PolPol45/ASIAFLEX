@@ -3,31 +3,32 @@ pragma solidity ^0.8.26;
 
 /**
  * @title INAVOracleAdapter
- * @notice Interface for NAV oracle adapter with staleness and deviation checks
+ * @notice Interface for retrieving per-basket NAV data with staleness and deviation controls.
  */
 interface INAVOracleAdapter {
-    // Events
-    event NAVUpdated(uint256 indexed timestamp, uint256 oldNav, uint256 newNav);
-    event StalenessThresholdUpdated(uint256 oldThreshold, uint256 newThreshold);
-    event DeviationThresholdUpdated(uint256 oldThreshold, uint256 newThreshold);
+    struct NAVObservation {
+        uint256 nav; // NAV per share scaled to 1e18
+        uint256 timestamp; // last update timestamp
+        uint256 stalenessThreshold; // seconds
+        uint256 deviationThreshold; // basis points (1e4 = 100%)
+    }
 
-    // Errors
-    error StaleData(uint256 timestamp, uint256 threshold);
-    error DeviationTooHigh(uint256 currentNav, uint256 newNav, uint256 deviation);
-    error InvalidTimestamp(uint256 timestamp);
-    error DeviationThresholdTooHigh(uint256 threshold);
+    event NAVUpdated(bytes32 indexed basketId, uint256 oldNav, uint256 newNav, uint256 timestamp);
+    event StalenessThresholdUpdated(bytes32 indexed basketId, uint256 oldThreshold, uint256 newThreshold);
+    event DeviationThresholdUpdated(bytes32 indexed basketId, uint256 oldThreshold, uint256 newThreshold);
 
-    // Core functions
-    function getNAV() external view returns (uint256 nav, uint256 timestamp);
-    function updateNAV(uint256 newNav) external;
-    
-    // Configuration
-    function setStalenessThreshold(uint256 threshold) external;
-    function setDeviationThreshold(uint256 threshold) external;
-    function getStalenessThreshold() external view returns (uint256);
-    function getDeviationThreshold() external view returns (uint256);
-    
-    // Status checks
-    function isStale() external view returns (bool);
-    function isValidUpdate(uint256 newNav) external view returns (bool);
+    error StalePrice(bytes32 basketId, uint256 age, uint256 threshold);
+    error DeviationTooHigh(bytes32 basketId, uint256 currentNav, uint256 newNav, uint256 deviationBps);
+    error InvalidNav(bytes32 basketId);
+    error InvalidThreshold(bytes32 basketId);
+
+    function getNAV(bytes32 basketId) external view returns (uint256 nav, uint256 timestamp);
+
+    function getObservation(bytes32 basketId) external view returns (NAVObservation memory observation);
+
+    function updateNAV(bytes32 basketId, uint256 newNav) external;
+
+    function setStalenessThreshold(bytes32 basketId, uint256 newThreshold) external;
+
+    function setDeviationThreshold(bytes32 basketId, uint256 newThreshold) external;
 }

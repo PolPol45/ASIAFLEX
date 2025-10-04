@@ -2,6 +2,8 @@ import { ethers } from "hardhat";
 import * as fs from "fs";
 import * as path from "path";
 
+import type { NAVOracleAdapter } from "../typechain-types";
+
 interface NAVRecord {
   timestamp: string;
   navValue: string;
@@ -13,13 +15,26 @@ interface NAVRecord {
 
 class PriceWatcher {
   private oracleAddress: string;
+  private oraclePromise: Promise<NAVOracleAdapter>;
+  private basketId: `0x${string}`;
+  private basketLabel: string;
   private interval: number;
   private outDir: string;
   private csvPath: string;
   private running: boolean = false;
 
-  constructor(oracleAddress: string, intervalSeconds: number = 30) {
+  constructor(oracleAddress: string, basketInput: string, intervalSeconds: number = 30) {
     this.oracleAddress = oracleAddress;
+    this.oraclePromise = ethers.getContractAt("NAVOracleAdapter", oracleAddress) as Promise<NAVOracleAdapter>;
+
+    if (basketInput.startsWith("0x")) {
+      this.basketId = basketInput as `0x${string}`;
+      this.basketLabel = basketInput;
+    } else {
+      this.basketId = ethers.keccak256(ethers.toUtf8Bytes(basketInput)) as `0x${string}`;
+      this.basketLabel = `${basketInput} (${this.basketId})`;
+    }
+
     this.interval = intervalSeconds * 1000; // Convert to milliseconds
     this.outDir = path.join(__dirname, "out");
     this.csvPath = path.join(this.outDir, "price.csv");
@@ -38,13 +53,17 @@ class PriceWatcher {
 
   async readNAV(): Promise<NAVRecord | null> {
     try {
-      const oracle = await ethers.getContractAt("NAVOracleAdapter", this.oracleAddress);
+      const oracle = await this.oraclePromise;
+      const observation = await oracle.getObservation(this.basketId);
 
-      const [currentNAV, lastUpdateTimestamp] = await oracle.getNAV();
-      const isStale = await oracle.isStale();
+      if (observation.nav === 0n) {
+        return null;
+      }
 
       const now = Math.floor(Date.now() / 1000);
-      const staleness = now - Number(lastUpdateTimestamp);
+      const staleness = now - Number(observation.timestamp);
+      const stalenessThreshold = Number(observation.stalenessThreshold);
+      const isStale = stalenessThreshold !== 0 && staleness > stalenessThreshold;
 
       // Try to get previous value for deviation calculation
       let deviation: string | undefined;
@@ -60,7 +79,7 @@ class PriceWatcher {
           if (fields.length >= 2) {
             previousValue = fields[1];
             const prevNAV = parseFloat(previousValue);
-            const currentNAVFloat = parseFloat(ethers.formatEther(currentNAV));
+            const currentNAVFloat = parseFloat(ethers.formatEther(observation.nav));
             if (prevNAV > 0) {
               const deviationPercent = ((currentNAVFloat - prevNAV) / prevNAV) * 100;
               deviation = deviationPercent.toFixed(4);
@@ -73,7 +92,7 @@ class PriceWatcher {
 
       return {
         timestamp: new Date().toISOString(),
-        navValue: ethers.formatEther(currentNAV),
+        navValue: ethers.formatEther(observation.nav),
         staleness,
         isStale,
         deviation,
@@ -98,6 +117,7 @@ class PriceWatcher {
     console.log("============================");
     console.log(`⏰ Last Update: ${now}`);
     console.log(`📍 Oracle: ${this.oracleAddress}`);
+    console.log(`🧺 Basket: ${this.basketLabel}`);
     console.log(`📄 CSV File: ${this.csvPath}`);
     console.log("");
 
@@ -162,6 +182,7 @@ class PriceWatcher {
   async start(): Promise<void> {
     this.running = true;
     console.log(`🚀 Starting NAV price watcher for oracle: ${this.oracleAddress}`);
+    console.log(`🧺 Tracking basket: ${this.basketLabel}`);
     console.log(`📊 Monitoring every ${this.interval / 1000} seconds`);
     console.log(`💾 Saving data to: ${this.csvPath}\n`);
 
@@ -192,26 +213,27 @@ class PriceWatcher {
 async function main() {
   const args = process.argv.slice(2);
 
-  if (args.length < 1) {
-    console.log("Usage: ts-node playground/price-watcher.ts <oracleAddress> [intervalSeconds]");
-    console.log("Example: ts-node playground/price-watcher.ts 0x123...abc 30");
+  if (args.length < 2) {
+    console.log("Usage: ts-node playground/price-watcher.ts <oracleAddress> <basketSymbolOrId> [intervalSeconds]");
+    console.log("Example: ts-node playground/price-watcher.ts 0xOracleAddr EUFX 30");
     process.exit(1);
   }
 
   const oracleAddress = args[0];
-  const intervalSeconds = args.length > 1 ? parseInt(args[1]) : 30;
+  const basketInput = args[1];
+  const intervalSeconds = args.length > 2 ? parseInt(args[2], 10) : 30;
 
   if (!ethers.isAddress(oracleAddress)) {
     console.error("❌ Invalid oracle address:", oracleAddress);
     process.exit(1);
   }
 
-  if (intervalSeconds < 5) {
+  if (Number.isNaN(intervalSeconds) || intervalSeconds < 5) {
     console.error("❌ Interval must be at least 5 seconds");
     process.exit(1);
   }
 
-  const watcher = new PriceWatcher(oracleAddress, intervalSeconds);
+  const watcher = new PriceWatcher(oracleAddress, basketInput, intervalSeconds);
 
   // Handle graceful shutdown
   process.on("SIGINT", () => {

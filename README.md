@@ -78,6 +78,7 @@ graph TB
 - **TreasuryController**: Controls mint/redeem flows with signed attestations
 - **NAVOracleAdapter**: Oracle adapter for AAXJ NAV data with staleness protection
 - **Proof of Reserve**: Regular attestations of backing reserves
+- **BasketManager (optional)**: Multi-basket issuance (EU/Asia/EuroAsia × FX/Bond) with dedicated `BasketToken` ERC20s and NAV aggregation across FX, bond, and gold feeds
 
 ## Contracts
 
@@ -171,6 +172,13 @@ npm run typecheck      # Type checking only
 npm run clean          # Clean artifacts
 ```
 
+Set the following environment variables in `.env` (or your shell) to unlock live pricing feeds:
+
+```bash
+EXCHANGERATE_API_KEY=your_exchange_rate_api_key
+GOLD_API_KEY=your_gold_api_key
+```
+
 ### Testing
 
 ```bash
@@ -180,6 +188,16 @@ npm run coverage       # Generate coverage report
 npm run gas-snapshot   # Gas usage analysis
 ```
 
+## Test & validation checklist
+
+Run these commands before shipping changes to ensure the basket-first toolchain stays healthy:
+
+- `npx hardhat compile`
+- `npm run typecheck`
+- `npm run build`
+- `npx hardhat test --grep "basket|feeder|transfer|mint"`
+- `node scripts/ops/mint-basket.ts --help`
+
 ### Linting
 
 ```bash
@@ -188,6 +206,56 @@ npm run lint:sol       # Solidity only
 npm run lint:ts        # TypeScript only
 npm run lint:fix       # Auto-fix issues
 ```
+
+### Basket Manager Ops
+
+```bash
+# 1. Deploy BasketManager and register baskets (mock feeds for localhost)
+npx hardhat run scripts/deploy/10_register_baskets.ts --network localhost
+
+# 2. Mint a specific basket token (interactive CLI)
+npm run ops:mint-basket -- --symbol=eubnd --deposit=500 --account=<depositor>
+
+# 3. Refresh oracle prices (dry-run)
+node scripts/ops/price-feeder.ts --network localhost --symbols EUR,GBP,XAUUSD
+
+# 4. Commit oracle updates to MedianOracle
+node scripts/ops/price-feeder.ts --network localhost --symbols EUR,GBP,XAUUSD --commit
+```
+
+The price feeder automatically looks up contract addresses in `scripts/deployments/<network>.json`. If the file is missing it will be created with an empty template the first time you run the command. Override the lookup path with `--addresses ./my/custom.json` when operating across environments.
+
+The CLI will:
+
+- List all available baskets (EU/Asia/EuroAsia × FX/Bond/Mix) from the latest deployment snapshot
+- Let you specify the deposit size in the base asset (MockUSD by default)
+- Choose the depositor and beneficiary accounts
+- Display current NAV, expected basket tokens, and USD value before executing the mint
+- Save the operation details in `scripts/deployments/operations/`
+
+### Operations CLI quick reference
+
+- **Median oracle feed (dry-run vs commit)**
+
+  ```bash
+  npm run ops:nav:dry -- --network sepolia --addresses scripts/deployments/sepolia.json --symbols EURUSD,USDJPY,XAUUSD
+  npm run ops:nav:update -- --network sepolia --addresses scripts/deployments/sepolia.json --symbols EURUSD --commit
+  ```
+
+- **Basket transfer with live tracking**
+
+  ```bash
+  node scripts/ops/transfer.ts \
+      --network sepolia \
+      --basket EUFX \
+      --from 0xYourSender \
+      --to 0xBeneficiary \
+      --amount 1.25 \
+      --addresses scripts/deployments/sepolia.json \
+      --wss wss://sepolia.infura.io/ws/v3/YOUR_KEY
+  ```
+
+  Every confirmed transfer appends a JSON line with event metadata to `scripts/ops/ledger/transfers-<network>.jsonl`, capturing whether the event arrived via WebSocket or polling fallback.
 
 ## Static Analysis
 

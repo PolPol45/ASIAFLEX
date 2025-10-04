@@ -5,6 +5,7 @@ import * as path from "path";
 
 task("status", "Displays comprehensive status information for AsiaFlex contracts")
   .addOptionalParam("contract", "Contract to check (all, token, oracle, treasury, or address)", "all")
+  .addOptionalParam("basket", "Basket identifier (bytes32) when inspecting NAV oracle", "")
   .addFlag("detailed", "Show detailed information including recent activity")
   .setAction(async (taskArgs, hre) => {
     const { ethers } = hre;
@@ -97,31 +98,31 @@ task("status", "Displays comprehensive status information for AsiaFlex contracts
 
       try {
         const oracle = await ethers.getContractAt("NAVOracleAdapter", address);
+        const basketId = (taskArgs.basket as string) || process.env.NAV_STATUS_BASKET_ID || "";
 
-        // NAV data
-        const [currentNAV, lastUpdateTimestamp] = await oracle.getNAV();
-        const stalenessThreshold = await oracle.getStalenessThreshold();
-        const deviationThreshold = await oracle.getDeviationThreshold();
-        const isStale = await oracle.isStale();
-
-        console.log(`💰 Current NAV: ${ethers.formatEther(currentNAV)} USD`);
-        console.log(`🕐 Last Update: ${new Date(Number(lastUpdateTimestamp) * 1000).toLocaleString()}`);
-        console.log(
-          `⏰ Staleness Threshold: ${stalenessThreshold} seconds (${Number(stalenessThreshold) / 3600} hours)`
-        );
-        console.log(`📊 Deviation Threshold: ${Number(deviationThreshold) / 100}%`);
-        console.log(`🚨 Status: ${isStale ? "🔴 STALE" : "🟢 FRESH"}`);
-
-        if (isStale) {
-          const timeSinceUpdate = await oracle.getTimeSinceLastUpdate();
+        if (!basketId) {
           console.log(
-            `⚠️  Data is ${timeSinceUpdate} seconds old (${Math.floor(Number(timeSinceUpdate) / 3600)} hours)`
+            "ℹ️  Provide --basket <bytes32> or NAV_STATUS_BASKET_ID env var to inspect per-basket observations."
           );
-        }
+        } else {
+          const observation = await oracle.getObservation(basketId);
+          const { nav, timestamp, stalenessThreshold, deviationThreshold } = observation;
 
-        // Pause status
-        const isPaused = await oracle.paused();
-        console.log(`⏸️  Paused: ${isPaused ? "🔴 YES" : "🟢 NO"}`);
+          const navValue = ethers.formatEther(nav);
+          const updatedAt = Number(timestamp);
+          const thresholdSeconds = Number(stalenessThreshold);
+          const deviationBps = Number(deviationThreshold);
+          const nowSeconds = Math.floor(Date.now() / 1000);
+          const ageSeconds = updatedAt ? nowSeconds - updatedAt : undefined;
+          const isStale = thresholdSeconds > 0 && ageSeconds !== undefined ? ageSeconds > thresholdSeconds : false;
+
+          console.log(`� Basket ID: ${basketId}`);
+          console.log(`💰 Current NAV: ${navValue} USD`);
+          console.log(`🕐 Last Update: ${updatedAt ? new Date(updatedAt * 1000).toLocaleString() : "n/a"}`);
+          console.log(`⏰ Staleness Threshold: ${thresholdSeconds} seconds (${thresholdSeconds / 3600} hours)`);
+          console.log(`📊 Deviation Threshold: ${deviationBps / 100}%`);
+          console.log(`🚨 Status: ${isStale ? "🔴 STALE" : "🟢 FRESH"}`);
+        }
 
         if (taskArgs.detailed) {
           try {

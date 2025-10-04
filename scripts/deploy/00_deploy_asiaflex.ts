@@ -1,5 +1,5 @@
 import hre from "hardhat";
-import type { AsiaFlexToken, NAVOracleAdapter, TreasuryController } from "../../typechain-types";
+import type { AsiaFlexToken, NAVOracleAdapter, TreasuryController, TimelockController } from "../../typechain-types";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -21,6 +21,12 @@ interface DeploymentConfig {
   treasury: {
     signer: string;
     requestExpiration: number; // seconds
+  };
+  timelock?: {
+    minDelay: number;
+    proposers: string[];
+    executors: string[];
+    admin?: string;
   };
   roles: {
     admin: string;
@@ -58,6 +64,12 @@ async function loadConfig(): Promise<DeploymentConfig> {
     treasury: {
       signer: deployer.address,
       requestExpiration: 3600, // 1 hour
+    },
+    timelock: {
+      minDelay: 86400,
+      proposers: [deployer.address],
+      executors: [deployer.address],
+      admin: deployer.address,
     },
     roles: {
       admin: deployer.address,
@@ -100,7 +112,8 @@ async function setupRoles(
   token: AsiaFlexToken,
   oracle: NAVOracleAdapter,
   treasury: TreasuryController,
-  config: DeploymentConfig
+  config: DeploymentConfig,
+  timelockAddress?: string
 ) {
   console.log("🔐 Setting up roles...");
 
@@ -166,7 +179,35 @@ async function setupRoles(
     }
   }
 
+  const ATTESTATION_BYPASS_ROLE = await token.ATTESTATION_BYPASS_ROLE();
+  const bypassTargets = new Set<string>(
+    [...(config.roles.treasury ?? []), config.treasury.signer, timelockAddress, await treasury.getAddress()].filter(
+      (addr): addr is string => !!addr && addr !== ethers.ZeroAddress
+    )
+  );
+
+  for (const address of bypassTargets) {
+    if (!(await token.hasRole(ATTESTATION_BYPASS_ROLE, address))) {
+      await token.grantRole(ATTESTATION_BYPASS_ROLE, address);
+      console.log(`  ✅ Granted ATTESTATION_BYPASS_ROLE to ${address}`);
+    }
+  }
+
   console.log("✅ Role setup complete");
+}
+
+async function scheduleDefaultAdminTransfer(
+  label: string,
+  contract: AsiaFlexToken | NAVOracleAdapter | TreasuryController,
+  timelockAddress: string
+) {
+  console.log(`⏳ Scheduling default admin transfer for ${label} to ${timelockAddress}`);
+  const tx = await contract.beginDefaultAdminTransfer(timelockAddress);
+  await tx.wait();
+  const [, schedule] = await contract.pendingDefaultAdmin();
+  const activation = Number(schedule);
+  const iso = new Date(activation * 1000).toISOString();
+  console.log(`   🔔 Transfer can be accepted after ${iso}`);
 }
 
 async function main() {
@@ -181,6 +222,20 @@ async function main() {
 
   const config = await loadConfig();
   console.log("📄 Config loaded");
+
+  let timelock: TimelockController | undefined;
+  if (config.timelock) {
+    console.log("\n📦 Deploying TimelockController...");
+    const TimelockFactory = await ethers.getContractFactory("AsiaFlexTimelock");
+    timelock = (await TimelockFactory.deploy(
+      config.timelock.minDelay,
+      config.timelock.proposers,
+      config.timelock.executors,
+      config.timelock.admin ?? ethers.ZeroAddress
+    )) as unknown as TimelockController;
+    await timelock.waitForDeployment();
+    console.log(`✅ TimelockController deployed at: ${await timelock.getAddress()}`);
+  }
 
   // Deploy AsiaFlexToken
   console.log("\n📦 Deploying AsiaFlexToken...");
@@ -198,11 +253,7 @@ async function main() {
   // Deploy NAVOracleAdapter
   console.log("\n📦 Deploying NAVOracleAdapter...");
   const NAVOracleAdapterFactory = await ethers.getContractFactory("NAVOracleAdapter");
-  const oracle = await NAVOracleAdapterFactory.deploy(
-    config.oracle.initialNAV,
-    config.oracle.stalenessThreshold,
-    config.oracle.deviationThreshold
-  );
+  const oracle = await NAVOracleAdapterFactory.deploy(deployer.address);
   await oracle.waitForDeployment();
   console.log(`✅ NAVOracleAdapter deployed at: ${await oracle.getAddress()}`);
 
@@ -218,7 +269,8 @@ async function main() {
   console.log(`✅ TreasuryController deployed at: ${await treasury.getAddress()}`);
 
   // Setup roles
-  await setupRoles(token, oracle, treasury, config);
+  const timelockAddress = timelock ? await timelock.getAddress() : undefined;
+  await setupRoles(token, oracle, treasury, config, timelockAddress);
 
   // Grant TREASURY_ROLE to TreasuryController
   const TREASURY_ROLE = await token.TREASURY_ROLE();
@@ -227,10 +279,18 @@ async function main() {
     console.log(`✅ Granted TREASURY_ROLE to TreasuryController`);
   }
 
+  if (timelock && timelockAddress) {
+    await scheduleDefaultAdminTransfer("AsiaFlexToken", token, timelockAddress);
+    await scheduleDefaultAdminTransfer("NAVOracleAdapter", oracle, timelockAddress);
+    await scheduleDefaultAdminTransfer("TreasuryController", treasury, timelockAddress);
+    console.log("   ✅ Remember: Timelock must call acceptDefaultAdminTransfer after delay elapses");
+  }
+
   const addresses = {
     AsiaFlexToken: await token.getAddress(),
     NAVOracleAdapter: await oracle.getAddress(),
     TreasuryController: await treasury.getAddress(),
+    TimelockController: timelockAddress,
   };
 
   // Save deployment
@@ -241,17 +301,27 @@ async function main() {
   console.log(`   AsiaFlexToken: ${addresses.AsiaFlexToken}`);
   console.log(`   NAVOracleAdapter: ${addresses.NAVOracleAdapter}`);
   console.log(`   TreasuryController: ${addresses.TreasuryController}`);
+  if (addresses.TimelockController) {
+    console.log(`   TimelockController: ${addresses.TimelockController}`);
+  }
 
   console.log("\n🔍 Verification commands:");
   console.log(
     `   npx hardhat verify --network ${network.name} ${addresses.AsiaFlexToken} "${config.token.name}" "${config.token.symbol}" ${config.token.supplyCap} ${config.token.maxDailyMint} ${config.token.maxDailyNetInflows}`
   );
-  console.log(
-    `   npx hardhat verify --network ${network.name} ${addresses.NAVOracleAdapter} ${config.oracle.initialNAV} ${config.oracle.stalenessThreshold} ${config.oracle.deviationThreshold}`
-  );
+  console.log(`   npx hardhat verify --network ${network.name} ${addresses.NAVOracleAdapter} ${deployer.address}`);
   console.log(
     `   npx hardhat verify --network ${network.name} ${addresses.TreasuryController} ${addresses.AsiaFlexToken} ${config.treasury.signer} ${config.treasury.requestExpiration}`
   );
+  if (addresses.TimelockController) {
+    const formatArray = (values: string[] | undefined) =>
+      values && values.length > 0 ? `['${values.join("','")}']` : "[]";
+    const proposersArg = formatArray(config.timelock?.proposers);
+    const executorsArg = formatArray(config.timelock?.executors);
+    console.log(
+      `   npx hardhat verify --network ${network.name} ${addresses.TimelockController} ${config.timelock?.minDelay ?? 0} ${proposersArg} ${executorsArg} ${config.timelock?.admin ?? ethers.ZeroAddress}`
+    );
+  }
 }
 
 if (require.main === module) {

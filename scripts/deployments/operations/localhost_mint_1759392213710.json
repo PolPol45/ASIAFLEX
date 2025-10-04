@@ -1,0 +1,21 @@
+{
+  "type": "mint",
+  "network": "localhost",
+  "timestamp": "2025-10-02T08:03:33.710Z",
+  "signer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+  "params": {
+    "to": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+    "amount": "200000000000000000000",
+    "signer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+    "dryRun": false
+  },
+  "transaction": {
+    "hash": "0xd22e754a6a5d526a97c7d6c0adac869881713fac37295431e24f7fbd2f5a6126",
+    "blockNumber": 12,
+    "gasUsed": "136241"
+  },
+  "results": {
+    "recipientBalance": "200000000000000000000",
+    "totalSupply": "200000000000000000000"
+  }
+}

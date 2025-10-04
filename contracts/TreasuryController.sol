@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 
-import { AccessControl } from "@openzeppelin/contracts/access/AccessControl.sol";
+import {
+    AccessControlDefaultAdminRules
+} from "@openzeppelin/contracts/access/extensions/AccessControlDefaultAdminRules.sol";
 import { Pausable } from "@openzeppelin/contracts/utils/Pausable.sol";
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { EIP712 } from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
@@ -13,7 +15,7 @@ import { IAsiaFlexToken } from "./interfaces/IAsiaFlexToken.sol";
  * @title TreasuryController
  * @dev Controls mint/redeem flows with signed attestations for reserve validation
  */
-contract TreasuryController is AccessControl, Pausable, EIP712, ITreasuryController, ReentrancyGuard {
+contract TreasuryController is AccessControlDefaultAdminRules, Pausable, EIP712, ITreasuryController, ReentrancyGuard {
     using ECDSA for bytes32;
 
     bytes32 public constant TREASURY_MANAGER_ROLE = keccak256("TREASURY_MANAGER_ROLE");
@@ -39,8 +41,7 @@ contract TreasuryController is AccessControl, Pausable, EIP712, ITreasuryControl
         address _asiaFlexToken,
         address _treasurySigner,
         uint256 _requestExpiration
-    ) EIP712("TreasuryController", "1") {
-        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+    ) EIP712("TreasuryController", "1") AccessControlDefaultAdminRules(uint48(1 days), msg.sender) {
         _grantRole(TREASURY_MANAGER_ROLE, msg.sender);
 
         if (_asiaFlexToken == address(0)) {
@@ -225,5 +226,15 @@ contract TreasuryController is AccessControl, Pausable, EIP712, ITreasuryControl
     ) external view returns (bool) {
         bytes32 requestHash = keccak256(abi.encode(request, signature));
         return usedRequests[requestHash];
+    }
+
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        virtual
+        override(AccessControlDefaultAdminRules)
+        returns (bool)
+    {
+        return super.supportsInterface(interfaceId);
     }
 }

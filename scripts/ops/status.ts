@@ -106,17 +106,31 @@ async function getStatus(): Promise<void> {
       console.log("\n🔮 NAV ORACLE STATUS");
       try {
         const oracle = await ethers.getContractAt("NAVOracleAdapter", deployment.addresses.NAVOracleAdapter);
-        const [currentNAV, lastUpdate] = await oracle.getNAV();
-        const stalenessThreshold = await oracle.getStalenessThreshold();
-        const deviationThreshold = await oracle.getDeviationThreshold();
-        const isStale = await oracle.isStale();
+        const basketIdInput = process.env.NAV_STATUS_BASKET_ID;
 
         console.log(`   Address: ${await oracle.getAddress()}`);
-        console.log(`   Current NAV: $${ethers.formatEther(currentNAV)}`);
-        console.log(`   Last Update: ${new Date(Number(lastUpdate) * 1000).toISOString()}`);
-        console.log(`   Staleness Threshold: ${Number(stalenessThreshold) / 3600} hours`);
-        console.log(`   Deviation Threshold: ${Number(deviationThreshold) / 100}%`);
-        console.log(`   Is Stale: ${isStale ? "🔴 YES" : "🟢 NO"}`);
+
+        if (!basketIdInput) {
+          console.log("   Set NAV_STATUS_BASKET_ID=<basketId hex> to inspect per-basket NAV observations.");
+        } else {
+          const observation = await oracle.getObservation(basketIdInput);
+          const { nav, timestamp, stalenessThreshold, deviationThreshold } = observation;
+          const navValue = nav ?? 0n;
+          const updatedAt = Number(timestamp ?? 0n);
+          const threshold = Number(stalenessThreshold ?? 0n);
+          const deviation = Number(deviationThreshold ?? 0n);
+
+          const now = Math.floor(Date.now() / 1000);
+          const age = updatedAt ? now - updatedAt : undefined;
+          const isStale = threshold && age !== undefined ? age > threshold : false;
+
+          console.log(`   Basket ID: ${basketIdInput}`);
+          console.log(`   Current NAV: $${ethers.formatEther(navValue)}`);
+          console.log(`   Last Update: ${updatedAt ? new Date(updatedAt * 1000).toISOString() : "n/a"}`);
+          console.log(`   Staleness Threshold: ${threshold ? threshold / 3600 : 0} hours`);
+          console.log(`   Deviation Threshold: ${deviation / 100}%`);
+          console.log(`   Is Stale: ${isStale ? "🔴 YES" : "🟢 NO"}`);
+        }
       } catch (error) {
         console.log(`   ❌ Error querying oracle: ${error instanceof Error ? error.message : String(error)}`);
       }

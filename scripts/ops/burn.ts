@@ -1,13 +1,11 @@
 import "dotenv/config";
-import hre from "hardhat";
+import { ethers } from "hardhat";
 import type { AsiaFlexToken } from "../../typechain-types";
 import { ensureOracleNav, showNavQuote } from "./utils/nav";
 import { getSignerOrImpersonate, logAvailableAccounts } from "./utils/signer";
-import { loadDeployment } from "./utils/deployments";
 import { saveOperation } from "./utils/operations";
 import { prompt, promptsEnabled } from "./utils/prompt";
-
-const { ethers } = hre;
+import { loadAddresses, saveAddress } from "../helpers/addresses";
 
 interface BurnParams {
   from: string;
@@ -15,6 +13,7 @@ interface BurnParams {
   attestationHash?: string;
   signer: string;
   dryRun?: boolean;
+  addressesPath?: string;
 }
 
 interface ParsedInput {
@@ -23,6 +22,7 @@ interface ParsedInput {
   attestationHash?: string;
   signer?: string;
   dryRun: boolean;
+  addressesPath?: string;
 }
 
 function parseInputArgs(): ParsedInput {
@@ -35,11 +35,29 @@ function parseInputArgs(): ParsedInput {
   let dryRunFlag = false;
   let signerFlag: string | undefined;
 
-  for (const flag of flagArgs) {
+  let addressesFlag: string | undefined;
+
+  for (let i = 0; i < flagArgs.length; i++) {
+    const flag = flagArgs[i];
     if (flag === "--dry-run") {
       dryRunFlag = true;
-    } else if (flag.startsWith("--signer=")) {
+      continue;
+    }
+
+    if (flag.startsWith("--signer=")) {
       signerFlag = flag.slice("--signer=".length);
+      continue;
+    }
+
+    if (flag.startsWith("--addresses=")) {
+      addressesFlag = flag.slice("--addresses=".length);
+      continue;
+    }
+
+    if (flag === "--addresses" && flagArgs[i + 1] && !flagArgs[i + 1].startsWith("--")) {
+      addressesFlag = flagArgs[i + 1];
+      i += 1;
+      continue;
     }
   }
 
@@ -49,6 +67,7 @@ function parseInputArgs(): ParsedInput {
     attestationHash: cliAttestation,
     signer: signerFlag,
     dryRun: dryRunFlag,
+    addressesPath: addressesFlag,
   };
 }
 
@@ -61,6 +80,7 @@ async function resolveBurnParams(): Promise<BurnParams> {
   const attestationHash = cli.attestationHash ?? process.env.BURN_ATTESTATION;
   const initialSigner = cli.signer ?? process.env.BURN_SIGNER;
   const dryRun = cli.dryRun || (process.env.BURN_DRY_RUN ?? "").toLowerCase() === "true";
+  const addressesPath = cli.addressesPath ?? process.env.BURN_ADDRESSES_PATH;
 
   if (!amountInput) {
     amountInput = await prompt("Quanti AFX vuoi bruciare?");
@@ -111,6 +131,7 @@ async function resolveBurnParams(): Promise<BurnParams> {
     attestationHash,
     signer: normalizedSigner,
     dryRun,
+    addressesPath,
   };
 }
 
@@ -146,6 +167,18 @@ async function burn(params: BurnParams) {
   const network = await ethers.provider.getNetwork();
   const signer = await getSignerOrImpersonate(params.signer);
   const signerAddress = await signer.getAddress();
+  const networkLabel = network.name || network.chainId.toString();
+  const addressesOverride = params.addressesPath;
+  const { data: addresses, filePath: addressesPath } = loadAddresses(networkLabel, addressesOverride);
+  const tokenAddress = addresses.contracts?.AsiaFlexToken;
+
+  if (!tokenAddress) {
+    throw new Error(
+      `AsiaFlexToken non registrato nel file di indirizzi (${addressesPath}). Specifica --addresses o aggiorna il deployment.`
+    );
+  }
+
+  saveAddress(networkLabel, "AsiaFlexToken", tokenAddress, addressesOverride);
 
   console.log(`🔥 Executing burn operation on ${network.name}`);
   console.log(`👤 Signer: ${signerAddress}`);
@@ -155,13 +188,12 @@ async function burn(params: BurnParams) {
     `🔐 Attestation Hash: ${params.attestationHash || "0x0000000000000000000000000000000000000000000000000000000000000000"}`
   );
 
-  const deployment = await loadDeployment(network.name, network.chainId);
-  const oracleAddress = deployment.addresses?.NAVOracleAdapter;
+  const oracleAddress = addresses.contracts?.NAVOracleAdapter;
   const isDryRun = Boolean(params.dryRun);
   const syncedNav = await ensureOracleNav(oracleAddress, isDryRun);
   await showNavQuote(oracleAddress, params.amount, syncedNav, { mode: "burn" });
 
-  const token = (await ethers.getContractAt("AsiaFlexToken", deployment.addresses.AsiaFlexToken)) as AsiaFlexToken;
+  const token = (await ethers.getContractAt("AsiaFlexToken", tokenAddress)) as AsiaFlexToken;
 
   // Pre-flight checks
   console.log("\n🔍 Pre-flight checks:");
@@ -231,7 +263,7 @@ async function burn(params: BurnParams) {
     // Save operation
     const operation = {
       type: "burn",
-      network: network.name,
+      network: networkLabel,
       timestamp: new Date().toISOString(),
       signer: signerAddress,
       params,
@@ -246,7 +278,8 @@ async function burn(params: BurnParams) {
       },
     };
 
-    saveOperation(network.name, "burn", operation);
+    saveOperation(networkLabel, "burn", operation);
+    console.log("🔒 Burn eseguito (dettagli salvati).");
   } catch (error) {
     console.error("❌ Burn failed:", error);
     throw error;

@@ -1,0 +1,247 @@
+{
+  "AAXJ": {
+    "type": "INDEX",
+    "unit": "USD_1e18",
+    "pythId": null,
+    "chainlinkFeed": null,
+    "fallbackTicker": "AAXJ",
+    "maxStalenessSeconds": 3600,
+    "maxDailyChangeBps": 300,
+    "notes": "iShares MSCI All Country Asia ex Japan ETF"
+  },
+  "EUR": {
+    "type": "FX",
+    "unit": "USD_1e18",
+    "pythId": "0xff61491a931112ddf1bd8147cd1b641375f79f5825126d665480874634fd0ace",
+    "chainlinkFeed": "0x73366Fe0AA0Ded304479862808e02506FE556a98",
+    "fallbackTicker": "EURUSD=X",
+    "maxStalenessSeconds": 1800,
+    "maxDailyChangeBps": 1000
+  },
+  "GBP": {
+    "type": "FX",
+    "unit": "USD_1e18",
+    "pythId": "0xfb75f43a64b0703b01a7a509179a0b53d71a4a7cbd474c1c1ff7174ce786f80f",
+    "chainlinkFeed": "0x5c0Ab2d9b5a7ed9f470386e82BB36A3613cDd4b5",
+    "fallbackTicker": "GBPUSD=X",
+    "maxStalenessSeconds": 1800,
+    "maxDailyChangeBps": 1000
+  },
+  "CHF": {
+    "type": "FX",
+    "unit": "USD_1e18",
+    "pythId": "0xf37c5e646b6dcd50836857a529ae94f4c83cd3d8db15bf95df2da233c6e0a427",
+    "chainlinkFeed": "0x449d117117838fFA61263B61dA6301AA2a88B13A",
+    "fallbackTicker": "CHFUSD=X",
+    "invert": true,
+    "maxStalenessSeconds": 1800,
+    "maxDailyChangeBps": 1000
+  },
+  "SEK_NOK": {
+    "type": "FX",
+    "unit": "USD_1e18",
+    "pythId": null,
+    "chainlinkFeed": null,
+    "fallbackTicker": "FXNOKSEK=X",
+    "maxStalenessSeconds": 3600,
+    "maxDailyChangeBps": 1000,
+    "notes": "Proxy basket SEK/NOK via fallback"
+  },
+  "GOLD": {
+    "type": "GOLD",
+    "unit": "USD_PER_OUNCE",
+    "pythId": null,
+    "chainlinkFeed": "0x2140E2aAB8622C848e64C8dA93aF6AAc8c41b58f",
+    "fallbackTicker": "GC=F",
+    "maxStalenessSeconds": 1800,
+    "maxDailyChangeBps": 500
+  },
+  "Bund": {
+    "type": "BOND",
+    "unit": "USD_1e18",
+    "ecbSeries": "FM.M.DE.YC.B.U2.EUR.4F.G_N.A.A",
+    "durationYears": 7,
+    "baseYield": 0.02,
+    "basePrice": 102,
+    "proxyTicker": "IBGL.DE",
+    "maxStalenessSeconds": 86400,
+    "maxDailyChangeBps": 300
+  },
+  "BTP": {
+    "type": "BOND",
+    "unit": "USD_1e18",
+    "ecbSeries": "FM.M.IT.YC.B.U2.EUR.4F.G_N.A.A",
+    "durationYears": 7,
+    "baseYield": 0.035,
+    "basePrice": 100,
+    "proxyTicker": "ITLY",
+    "maxStalenessSeconds": 86400,
+    "maxDailyChangeBps": 300
+  },
+  "Gilt": {
+    "type": "BOND",
+    "unit": "USD_1e18",
+    "fredSeries": "IRLTLT01GBM156N",
+    "durationYears": 7,
+    "baseYield": 0.03,
+    "basePrice": 99,
+    "proxyTicker": "IGLT.L",
+    "maxStalenessSeconds": 86400,
+    "maxDailyChangeBps": 300
+  },
+  "SwissGov": {
+    "type": "BOND",
+    "unit": "USD_1e18",
+    "fredSeries": "IRLTLT01CHM156N",
+    "durationYears": 7,
+    "baseYield": 0.01,
+    "basePrice": 101,
+    "proxyTicker": "CSBGC.SW",
+    "maxStalenessSeconds": 86400,
+    "maxDailyChangeBps": 300
+  },
+  "ScandiGov": {
+    "type": "BOND",
+    "unit": "USD_1e18",
+    "fredSeries": "IRLTLT01SEM156N",
+    "durationYears": 6,
+    "baseYield": 0.027,
+    "basePrice": 100,
+    "proxyTicker": "EUNP",
+    "maxStalenessSeconds": 86400,
+    "maxDailyChangeBps": 300
+  },
+  "CNY": {
+    "type": "FX",
+    "unit": "USD_1e18",
+    "pythId": "0x23c3dfe90d4ab9ccc6bb0b2d248464a0810e0aa29b334a3d4a4f5b91aee9f1ce",
+    "chainlinkFeed": "0x139C8512Cde1778e9b9a8F06B0b5d2e08CafA7eC",
+    "fallbackTicker": "CNYUSD=X",
+    "invert": true,
+    "maxStalenessSeconds": 3600,
+    "maxDailyChangeBps": 1000
+  },
+  "JPY": {
+    "type": "FX",
+    "unit": "USD_1e18",
+    "pythId": "0x70b7f21afb170c6a266cb14cbb157cc397fea9d0b31dea7c2a6cc7f2c78e092b",
+    "chainlinkFeed": "0xBcE206caE7f0ec07b545EddE332A47C2F75bbeb3",
+    "fallbackTicker": "JPYUSD=X",
+    "invert": true,
+    "maxStalenessSeconds": 3600,
+    "maxDailyChangeBps": 1000
+  },
+  "INR": {
+    "type": "FX",
+    "unit": "USD_1e18",
+    "pythId": null,
+    "chainlinkFeed": null,
+    "fallbackTicker": "INRUSD=X",
+    "invert": true,
+    "maxStalenessSeconds": 3600,
+    "maxDailyChangeBps": 1000
+  },
+  "KRW": {
+    "type": "FX",
+    "unit": "USD_1e18",
+    "pythId": null,
+    "chainlinkFeed": null,
+    "fallbackTicker": "KRWUSD=X",
+    "invert": true,
+    "maxStalenessSeconds": 3600,
+    "maxDailyChangeBps": 1000
+  },
+  "SGD": {
+    "type": "FX",
+    "unit": "USD_1e18",
+    "pythId": null,
+    "chainlinkFeed": "0x47E7b99bfAFbC3dAFEc3673e907Ede9474B9A911",
+    "fallbackTicker": "SGDUSD=X",
+    "invert": true,
+    "maxStalenessSeconds": 3600,
+    "maxDailyChangeBps": 1000
+  },
+  "HKD": {
+    "type": "FX",
+    "unit": "USD_1e18",
+    "pythId": null,
+    "chainlinkFeed": "0x3E9b3A1ACF66105864CE61B04c6165e3d07D83c0",
+    "fallbackTicker": "HKDUSD=X",
+    "invert": true,
+    "maxStalenessSeconds": 3600,
+    "maxDailyChangeBps": 1000
+  },
+  "ASEAN": {
+    "type": "INDEX",
+    "unit": "USD_1e18",
+    "fallbackTicker": "ASEAN.AS",
+    "maxStalenessSeconds": 7200,
+    "maxDailyChangeBps": 500,
+    "notes": "Proxy ASEAN FX basket"
+  },
+  "CGB": {
+    "type": "BOND",
+    "unit": "USD_1e18",
+    "fredSeries": "IRLTLT01CNM156N",
+    "durationYears": 7,
+    "baseYield": 0.028,
+    "basePrice": 102,
+    "proxyTicker": "3088.HK",
+    "maxStalenessSeconds": 86400,
+    "maxDailyChangeBps": 300
+  },
+  "JGB": {
+    "type": "BOND",
+    "unit": "USD_1e18",
+    "fredSeries": "IRLTLT01JPM156N",
+    "durationYears": 7,
+    "baseYield": 0.01,
+    "basePrice": 100,
+    "proxyTicker": "BJGB.L",
+    "maxStalenessSeconds": 86400,
+    "maxDailyChangeBps": 300
+  },
+  "G-SECS": {
+    "type": "BOND",
+    "unit": "USD_1e18",
+    "fredSeries": "IRLTLT01INM156N",
+    "durationYears": 7,
+    "baseYield": 0.065,
+    "basePrice": 99,
+    "proxyTicker": "INXX",
+    "maxStalenessSeconds": 86400,
+    "maxDailyChangeBps": 300
+  },
+  "KTB": {
+    "type": "BOND",
+    "unit": "USD_1e18",
+    "fredSeries": "IRLTLT01KRM156N",
+    "durationYears": 6,
+    "baseYield": 0.035,
+    "basePrice": 99,
+    "proxyTicker": "HKOR",
+    "maxStalenessSeconds": 86400,
+    "maxDailyChangeBps": 300
+  },
+  "SGS_HK": {
+    "type": "BOND",
+    "unit": "USD_1e18",
+    "fredSeries": "IRLTLT01SGM156N",
+    "durationYears": 5,
+    "baseYield": 0.027,
+    "basePrice": 100,
+    "proxyTicker": "ESGS",
+    "maxStalenessSeconds": 86400,
+    "maxDailyChangeBps": 300
+  },
+  "ASEANGov": {
+    "type": "BOND",
+    "unit": "USD_1e18",
+    "proxyTicker": "ALBAX",
+    "durationYears": 5,
+    "baseYield": 0.04,
+    "basePrice": 97,
+    "maxStalenessSeconds": 86400,
+    "maxDailyChangeBps": 300
+  }
+}

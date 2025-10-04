@@ -4,9 +4,20 @@
 
 This guide provides operational procedures for AsiaFlex token management, including mint/redeem operations, oracle updates, emergency procedures, and routine maintenance.
 
+## Test & Validation Checklist
+
+Before rolling changes across environments, run the following commands and confirm they complete without errors:
+
+- `npx hardhat compile`
+- `npm run typecheck`
+- `npm run build`
+- `npx hardhat test --grep "basket|feeder|transfer|mint"`
+- `node scripts/ops/mint-basket.ts --help`
+
 ## Daily Operations
 
 ### Morning Checklist
+
 1. **Reserve Reconciliation**
    - Verify custodial account balances
    - Check overnight transaction logs
@@ -28,6 +39,7 @@ This guide provides operational procedures for AsiaFlex token management, includ
    - Validate access control integrity
 
 ### Evening Checklist
+
 1. **Daily Reports**
    - Generate daily trading volume report
    - Update reserve attestation logs
@@ -43,6 +55,7 @@ This guide provides operational procedures for AsiaFlex token management, includ
 ### Standard Mint Process
 
 #### Prerequisites
+
 - Valid custodial deposit confirmation
 - Current AAXJ NAV price available
 - Daily mint limit not exceeded
@@ -51,23 +64,26 @@ This guide provides operational procedures for AsiaFlex token management, includ
 #### Step-by-Step Procedure
 
 1. **Verify Collateral Deposit**
+
    ```bash
    # Check custodial account for new deposits
    ./scripts/check-reserves.js --network mainnet
    ```
 
 2. **Generate Mint Attestation**
+
    ```typescript
    // Off-chain attestation generation
    const attestation = await generateMintAttestation({
      to: userAddress,
      amount: mintAmount,
      timestamp: Date.now(),
-     reserveHash: calculateReserveHash(currentReserves)
+     reserveHash: calculateReserveHash(currentReserves),
    });
    ```
 
 3. **Execute Mint Transaction**
+
    ```bash
    # Submit mint transaction
    npx hardhat run scripts/mint-tokens.ts --network mainnet \
@@ -83,6 +99,7 @@ This guide provides operational procedures for AsiaFlex token management, includ
    ```
 
 #### Error Handling
+
 - **Daily Limit Exceeded**: Wait for daily reset or increase limits via governance
 - **Invalid Attestation**: Regenerate with correct parameters
 - **Oracle Stale**: Update oracle price before retry
@@ -91,12 +108,14 @@ This guide provides operational procedures for AsiaFlex token management, includ
 ### Large Mint Operations (>$100K)
 
 #### Additional Requirements
+
 - Secondary verification of collateral
 - Multi-signature approval required
 - Enhanced monitoring during execution
 - Post-transaction audit
 
 #### Enhanced Procedure
+
 1. **Pre-approval Process**
    - Risk assessment for large mint
    - Multi-signature pre-approval
@@ -112,6 +131,7 @@ This guide provides operational procedures for AsiaFlex token management, includ
 ### Standard Redeem Process
 
 #### Prerequisites
+
 - Valid redeem request from authorized entity
 - Current AAXJ NAV price available
 - Sufficient token balance for burn
@@ -120,6 +140,7 @@ This guide provides operational procedures for AsiaFlex token management, includ
 #### Step-by-Step Procedure
 
 1. **Validate Redeem Request**
+
    ```bash
    # Verify user token balance and request validity
    npx hardhat run scripts/validate-redeem.ts --network mainnet \
@@ -128,16 +149,18 @@ This guide provides operational procedures for AsiaFlex token management, includ
    ```
 
 2. **Generate Redeem Attestation**
+
    ```typescript
    const redeemAttestation = await generateRedeemAttestation({
      from: userAddress,
      amount: redeemAmount,
      timestamp: Date.now(),
-     reserveHash: calculateReserveHash(currentReserves)
+     reserveHash: calculateReserveHash(currentReserves),
    });
    ```
 
 3. **Execute Redeem Transaction**
+
    ```bash
    # Submit redeem and burn transaction
    npx hardhat run scripts/redeem-tokens.ts --network mainnet \
@@ -155,30 +178,60 @@ This guide provides operational procedures for AsiaFlex token management, includ
    ```
 
 #### Post-Redeem Verification
+
 - Confirm token burn completed
 - Verify collateral withdrawal initiated
 - Update daily limit counters
 - Log transaction for audit trail
+
+## Transfer Operations
+
+### Basket & Legacy Token Transfers with Live Tracking
+
+Use the unified transfer runner to orchestrate on-chain transfers while capturing confirmations via WebSocket (fallback to polling when WSS is unavailable).
+
+```bash
+# Basket token transfer with WebSocket tracking and persisted addresses
+node scripts/ops/transfer.ts \
+  --network sepolia \
+  --basket EUFX \
+  --from 0xSender \
+  --to 0xBeneficiary \
+  --amount 1.5 \
+  --addresses scripts/deployments/sepolia.json \
+  --wss wss://sepolia.infura.io/ws/v3/YOUR_KEY
+
+# Legacy AsiaFlexToken transfer (no basket selection needed)
+node scripts/ops/transfer.ts --network sepolia --legacy --from 0xSender --to 0xBeneficiary --amount 500
+```
+
+Key behaviors:
+
+- Automatically discovers BasketManager, NAV Oracle, and token addresses from the shared deployments file, persisting any newly supplied overrides.
+- Streams `Transfer` events via WebSocket when available; falls back to ABI filter polling with exponential backoff.
+- Appends an immutable JSONL audit trail per network under `scripts/ops/ledger/transfers-<network>.jsonl`, recording the tx hash, event source (`wss` or `poll`), block number, and human-readable amounts.
+- Supports `--dry-run` to preview balances without submitting the transaction.
 
 ## Oracle Management
 
 ### Price Update Process
 
 #### Automated Updates
+
 ```typescript
 // Automated oracle update service
 class OracleUpdater {
   async updatePrice() {
     const currentPrice = await fetchAAXJPrice();
     const lastPrice = await oracle.getCurrentNAV();
-    
+
     // Validate deviation threshold
     const deviation = calculateDeviation(lastPrice, currentPrice);
     if (deviation > DEVIATION_THRESHOLD) {
       await this.escalateDeviation(deviation);
       return;
     }
-    
+
     // Submit price update
     await oracle.updateNAV(currentPrice);
   }
@@ -186,14 +239,20 @@ class OracleUpdater {
 ```
 
 #### Manual Price Updates
+
 ```bash
-# Manual oracle price update
-npx hardhat run scripts/update-oracle.ts --network mainnet \
-  --price 95.50 \
-  --force false
+# Dry-run median oracle updates using the feeder preset
+npm run ops:nav:dry -- --network sepolia --addresses scripts/deployments/sepolia.json --symbols EURUSD,USDJPY,XAUUSD
+
+# Commit median oracle updates (omit --commit for preview mode)
+npm run ops:nav:update -- --network sepolia --addresses scripts/deployments/sepolia.json --symbols EURUSD --commit
+
+# Direct script invocation (supports --dry-run and --addresses overrides)
+node scripts/ops/update-median-oracle.ts --network sepolia --assets EURUSD,XAUUSD --dry-run
 ```
 
 #### Emergency Price Updates
+
 ```bash
 # Emergency price update (bypasses some checks)
 npx hardhat run scripts/emergency-oracle-update.ts --network mainnet \
@@ -204,22 +263,24 @@ npx hardhat run scripts/emergency-oracle-update.ts --network mainnet \
 ### Oracle Monitoring
 
 #### Health Checks
+
 - Price staleness monitoring (< 1 hour)
 - Deviation alert system (> 1%)
 - Data source availability
 - Oracle updater connectivity
 
 #### Alerting Configuration
+
 ```yaml
 oracle_alerts:
   staleness:
-    threshold: 3600  # 1 hour
+    threshold: 3600 # 1 hour
     severity: HIGH
   deviation:
-    threshold: 100   # 1% in basis points
+    threshold: 100 # 1% in basis points
     severity: MEDIUM
   update_failure:
-    threshold: 2     # consecutive failures
+    threshold: 2 # consecutive failures
     severity: HIGH
 ```
 
@@ -228,12 +289,14 @@ oracle_alerts:
 ### Emergency Pause
 
 #### When to Pause
+
 - Security vulnerability detected
 - Oracle manipulation suspected
 - Significant market disruption
 - Large unauthorized transaction
 
 #### Pause Procedure
+
 ```bash
 # Emergency pause all operations
 npx hardhat run scripts/emergency-pause.ts --network mainnet \
@@ -241,6 +304,7 @@ npx hardhat run scripts/emergency-pause.ts --network mainnet \
 ```
 
 #### Communication Protocol
+
 1. **Immediate**: Notify core team via emergency channels
 2. **15 minutes**: Inform exchange partners
 3. **30 minutes**: Public communication via social media
@@ -249,12 +313,14 @@ npx hardhat run scripts/emergency-pause.ts --network mainnet \
 ### Emergency Unpause
 
 #### Prerequisites
+
 - Root cause identified and fixed
 - Security team approval
 - Multi-signature confirmation
 - Stakeholder notification complete
 
 #### Unpause Procedure
+
 ```bash
 # Resume operations after emergency
 npx hardhat run scripts/emergency-unpause.ts --network mainnet \
@@ -264,6 +330,7 @@ npx hardhat run scripts/emergency-unpause.ts --network mainnet \
 ### Circuit Breaker Management
 
 #### Temporary Limit Increases
+
 ```bash
 # Increase daily limits for high-demand periods
 npx hardhat run scripts/update-limits.ts --network mainnet \
@@ -273,6 +340,7 @@ npx hardhat run scripts/update-limits.ts --network mainnet \
 ```
 
 #### Emergency Limit Decreases
+
 ```bash
 # Reduce limits during market stress
 npx hardhat run scripts/emergency-limit-reduction.ts --network mainnet \
@@ -285,6 +353,7 @@ npx hardhat run scripts/emergency-limit-reduction.ts --network mainnet \
 ### Key Metrics Dashboard
 
 #### Operational Metrics
+
 - Total supply vs reserve ratio
 - Daily mint/redeem volumes
 - Circuit breaker utilization
@@ -292,6 +361,7 @@ npx hardhat run scripts/emergency-limit-reduction.ts --network mainnet \
 - Transaction success rates
 
 #### Security Metrics
+
 - Failed transaction patterns
 - Large transaction alerts
 - Access control violations
@@ -299,16 +369,17 @@ npx hardhat run scripts/emergency-limit-reduction.ts --network mainnet \
 
 ### Alert Escalation Matrix
 
-| Severity | Response Time | Notification |
-|----------|---------------|--------------|
-| LOW | 4 hours | Email |
-| MEDIUM | 1 hour | Email + Slack |
-| HIGH | 15 minutes | Email + Slack + SMS |
-| CRITICAL | 5 minutes | All channels + Phone |
+| Severity | Response Time | Notification         |
+| -------- | ------------- | -------------------- |
+| LOW      | 4 hours       | Email                |
+| MEDIUM   | 1 hour        | Email + Slack        |
+| HIGH     | 15 minutes    | Email + Slack + SMS  |
+| CRITICAL | 5 minutes     | All channels + Phone |
 
 ### Monitoring Scripts
 
 #### Health Check Script
+
 ```bash
 #!/bin/bash
 # Daily health check
@@ -319,20 +390,21 @@ npx hardhat run scripts/emergency-limit-reduction.ts --network mainnet \
 ```
 
 #### Alert Script
+
 ```typescript
 // Automated alert system
 class AlertSystem {
   async checkMetrics() {
     const metrics = await this.gatherMetrics();
-    
+
     if (metrics.reserveRatio < 1.0) {
-      await this.sendAlert('CRITICAL', 'Reserve ratio below 100%');
+      await this.sendAlert("CRITICAL", "Reserve ratio below 100%");
     }
-    
+
     if (metrics.oracleStaleness > 3600) {
-      await this.sendAlert('HIGH', 'Oracle price stale');
+      await this.sendAlert("HIGH", "Oracle price stale");
     }
-    
+
     // ... additional checks
   }
 }
@@ -341,18 +413,21 @@ class AlertSystem {
 ## Maintenance Procedures
 
 ### Weekly Maintenance
+
 - Review and update operational parameters
 - Security audit of recent transactions
 - Performance optimization analysis
 - Backup and disaster recovery testing
 
 ### Monthly Maintenance
+
 - Comprehensive security review
 - Oracle data source validation
 - Multi-signature key rotation check
 - Reserve attestation audit
 
 ### Quarterly Maintenance
+
 - Full security audit
 - Disaster recovery drill
 - Parameter optimization review
@@ -361,6 +436,7 @@ class AlertSystem {
 ## Runbook Commands
 
 ### Quick Reference
+
 ```bash
 # Check system status
 npm run status:check
@@ -369,12 +445,12 @@ npm run status:check
 npm run emergency:pause
 
 # Update oracle price
-npm run oracle:update --price 95.50
+npm run ops:nav:update -- --symbols EUR,GBP --commit
 
 # Mint tokens
 npm run mint --to 0x... --amount 1000
 
-# Redeem tokens  
+# Redeem tokens
 npm run redeem --from 0x... --amount 1000
 
 # Check reserves
@@ -385,10 +461,12 @@ npm run reports:daily
 ```
 
 ### Environment Variables
+
 ```bash
 # Required for operations
 export PRIVATE_KEY="0x..."
 export ETHERSCAN_API_KEY="..."
 export TREASURY_SIGNER="0x..."
-export ORACLE_API_KEY="..."
+export EXCHANGERATE_API_KEY="..."
+export GOLD_API_KEY="..."
 ```

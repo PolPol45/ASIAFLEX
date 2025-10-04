@@ -18,6 +18,8 @@ interface IAsiaFlexToken {
     error DailyCapsExceeded(uint256 requested, uint256 remaining);
     error InvalidAttestation(bytes32 provided, bytes32 expected);
     error AccountBlacklisted(address account);
+    error AttestationRequired(address caller);
+    error DailyNetInflowExceeded(uint256 requested, uint256 remaining);
 
     // Treasury functions
     function mint(address to, uint256 amount, bytes32 attestationHash) external;
@@ -28,6 +30,7 @@ interface IAsiaFlexToken {
     function setMaxDailyNetInflows(uint256 newCap) external;
     function getRemainingDailyMint() external view returns (uint256);
     function getRemainingDailyNetInflows() external view returns (uint256);
+    function getRedeemQueueLength(address account) external view returns (uint256);
     
     // Blacklist functions
     function setBlacklisted(address account, bool blacklisted) external;

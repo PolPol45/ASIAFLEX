@@ -3,6 +3,7 @@ import "@nomicfoundation/hardhat-toolbox";
 import "@typechain/hardhat";
 import "hardhat-gas-reporter";
 import "solidity-coverage";
+import "hardhat-storage-layout";
 import "./tasks";
 
 // Load environment variables
@@ -49,6 +50,10 @@ const POLYGON_RPC_URL = sanitizeRpcUrl(process.env.POLYGON_RPC_URL);
 const DEPLOYER_PRIVATE_KEY = normalizePrivateKey(process.env.PRIVATE_KEY);
 const ENABLE_MAINNET_FORK = process.env.ENABLE_MAINNET_FORK === "true";
 
+const requestedMochaTimeout = process.env.MOCHA_TIMEOUT ? Number(process.env.MOCHA_TIMEOUT) : undefined;
+const mochaTimeout =
+  Number.isFinite(requestedMochaTimeout) && requestedMochaTimeout !== 0 ? requestedMochaTimeout : 60_000;
+
 const config: HardhatUserConfig = {
   solidity: {
     version: "0.8.26",
@@ -56,11 +61,6 @@ const config: HardhatUserConfig = {
       optimizer: {
         enabled: true,
         runs: 200,
-      },
-      outputSelection: {
-        "*": {
-          "*": ["storageLayout"],
-        },
       },
     },
   },
@@ -115,12 +115,9 @@ const config: HardhatUserConfig = {
   typechain: {
     outDir: "typechain-types",
     target: "ethers-v6",
-    alwaysGenerateOverloads: false,
-    externalArtifacts: ["node_modules/@openzeppelin/contracts/build/contracts/**/*.json"],
-    dontOverrideCompile: false,
   },
   mocha: {
-    timeout: 60000,
+    timeout: mochaTimeout,
   },
 };
 

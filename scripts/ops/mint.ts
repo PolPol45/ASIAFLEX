@@ -167,6 +167,13 @@ async function mint(params: MintParams) {
     }
   }
 
+  if (BigInt(params.amount) > remainingNetInflow) {
+    console.log(`⚠️  Warning: Amount exceeds daily net inflow cap`);
+    if (!params.dryRun) {
+      throw new Error("Amount exceeds daily net inflow cap");
+    }
+  }
+
   // Check supply cap
   const totalSupply = await token.totalSupply();
   const supplyCap = await token.supplyCap();

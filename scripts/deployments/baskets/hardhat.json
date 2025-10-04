@@ -1,0 +1,420 @@
+{
+  "network": "hardhat",
+  "chainId": "31337",
+  "timestamp": "2025-10-03T11:53:11.077Z",
+  "baseAsset": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+  "manager": "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9",
+  "oracle": "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
+  "baskets": [
+    {
+      "name": "EU Currency Basket",
+      "symbol": "EUFX",
+      "region": "eu",
+      "strategy": "fx",
+      "regionEnum": 0,
+      "strategyEnum": 0,
+      "basketId": 0,
+      "tokenAddress": "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707",
+      "nav": "2692675000000000000",
+      "navTimestamp": 1759492394,
+      "allocations": [
+        {
+          "assetId": "0xfff16d60be267153303bbfa66e593fb8d06e24ea5ef24b6acca5224c2ca6b907",
+          "assetLabel": "EUR",
+          "weightBps": 6360,
+          "isBond": false,
+          "accrualBps": 0,
+          "initialPrice": "1080000000000000000",
+          "updatedAt": 1759492394,
+          "decimals": 18
+        },
+        {
+          "assetId": "0x90832e2dc3221e4d56977c1aa8f6a6706b9ad6542fbbdaac13097d0fa5e42e67",
+          "assetLabel": "GBP",
+          "weightBps": 1360,
+          "isBond": false,
+          "accrualBps": 0,
+          "initialPrice": "1250000000000000000",
+          "updatedAt": 1759492394,
+          "decimals": 18
+        },
+        {
+          "assetId": "0xc9d84274fd58aa177cabff54611546051b74ad658b939babaad6282500300d36",
+          "assetLabel": "CHF",
+          "weightBps": 910,
+          "isBond": false,
+          "accrualBps": 0,
+          "initialPrice": "1120000000000000000",
+          "updatedAt": 1759492394,
+          "decimals": 18
+        },
+        {
+          "assetId": "0x002619e57850f6a501d624da07b69a45616ebf4852fe267ab242b306675e6bc4",
+          "assetLabel": "SEK/NOK",
+          "weightBps": 450,
+          "isBond": false,
+          "accrualBps": 0,
+          "initialPrice": "95000000000000000",
+          "updatedAt": 1759492394,
+          "decimals": 18
+        },
+        {
+          "assetId": "0xdbd17891fc491ac6717dd01ab1f90f82509f1f2e91cd5066f68805860fbdeb72",
+          "assetLabel": "GOLD",
+          "weightBps": 920,
+          "isBond": false,
+          "accrualBps": 0,
+          "initialPrice": "18800000000000000000",
+          "updatedAt": 1759492394,
+          "decimals": 18
+        }
+      ]
+    },
+    {
+      "name": "EU Bond Basket",
+      "symbol": "EUBND",
+      "region": "eu",
+      "strategy": "bond",
+      "regionEnum": 0,
+      "strategyEnum": 1,
+      "basketId": 1,
+      "tokenAddress": "0x0DCd1Bf9A1b36cE34237eEaFef220932846BCD82",
+      "nav": "93641955056000000000",
+      "navTimestamp": 1759492394,
+      "allocations": [
+        {
+          "assetId": "0x5759c4a54adb8327920b9f052a751e29986e4046b922bf8757c3d13ef7b12da4",
+          "assetLabel": "Bund",
+          "weightBps": 3636,
+          "isBond": true,
+          "accrualBps": 20,
+          "initialPrice": "102500000000000000000",
+          "updatedAt": 1759492394,
+          "decimals": 18
+        },
+        {
+          "assetId": "0x82be75a18ba689f23f4b15ba0a3c8adb55c3acda61e764931799903c442564d0",
+          "assetLabel": "BTP",
+          "weightBps": 1818,
+          "isBond": true,
+          "accrualBps": 35,
+          "initialPrice": "99400000000000000000",
+          "updatedAt": 1759492394,
+          "decimals": 18
+        },
+        {
+          "assetId": "0x7a5bc7d40b98bf7837d696b1681caf7413f6b210ce64b4e17f4e23f9af6fe334",
+          "assetLabel": "Gilt",
+          "weightBps": 1818,
+          "isBond": true,
+          "accrualBps": 25,
+          "initialPrice": "98750000000000000000",
+          "updatedAt": 1759492394,
+          "decimals": 18
+        },
+        {
+          "assetId": "0x7ef45cc30793ebf120d3af250ec7c99890c2f7566f5a3d07588a34597ab45497",
+          "assetLabel": "SwissGov",
+          "weightBps": 909,
+          "isBond": true,
+          "accrualBps": 15,
+          "initialPrice": "101900000000000000000",
+          "updatedAt": 1759492394,
+          "decimals": 18
+        },
+        {
+          "assetId": "0x1ab4f0a836267c3da78df9067bca5ed48749f1d8cb179dbf93171f3d8972ecf0",
+          "assetLabel": "ScandiGov",
+          "weightBps": 909,
+          "isBond": true,
+          "accrualBps": 18,
+          "initialPrice": "100800000000000000000",
+          "updatedAt": 1759492394,
+          "decimals": 18
+        },
+        {
+          "assetId": "0xdbd17891fc491ac6717dd01ab1f90f82509f1f2e91cd5066f68805860fbdeb72",
+          "assetLabel": "GOLD",
+          "weightBps": 910,
+          "isBond": false,
+          "accrualBps": 0,
+          "initialPrice": "18800000000000000000",
+          "updatedAt": 1759492394,
+          "decimals": 18
+        }
+      ]
+    },
+    {
+      "name": "Asia Currency Basket",
+      "symbol": "ASFX",
+      "region": "asia",
+      "strategy": "fx",
+      "regionEnum": 1,
+      "strategyEnum": 0,
+      "basketId": 3,
+      "tokenAddress": "0x4ed7c70F96B99c776995fB64377f0d4aB3B0e1C1",
+      "nav": "1843305540000000000",
+      "navTimestamp": 1759492394,
+      "allocations": [
+        {
+          "assetId": "0xfaaa9c7b2f09d6a1b0971574d43ca62c3e40723167c09830ec33f06cec921381",
+          "assetLabel": "CNY",
+          "weightBps": 3180,
+          "isBond": false,
+          "accrualBps": 0,
+          "initialPrice": "140000000000000000",
+          "updatedAt": 1759492394,
+          "decimals": 18
+        },
+        {
+          "assetId": "0xfe13aafd831cb225dfce3f6431b34b5b17426b6bff4fccabe4bbe0fe4adc0452",
+          "assetLabel": "JPY",
+          "weightBps": 1820,
+          "isBond": false,
+          "accrualBps": 0,
+          "initialPrice": "9100000000000000",
+          "updatedAt": 1759492394,
+          "decimals": 18
+        },
+        {
+          "assetId": "0xaad766fbc07fb357bed9fd8b03b935f2f71fe29fc48f08274bc2a01d7f642afc",
+          "assetLabel": "INR",
+          "weightBps": 1360,
+          "isBond": false,
+          "accrualBps": 0,
+          "initialPrice": "12000000000000000",
+          "updatedAt": 1759492394,
+          "decimals": 18
+        },
+        {
+          "assetId": "0xc7914cfda800b414621b0ce0d8fed732cabbb831d6afcd8b2a73fb1ca78e443c",
+          "assetLabel": "KRW",
+          "weightBps": 910,
+          "isBond": false,
+          "accrualBps": 0,
+          "initialPrice": "740000000000000",
+          "updatedAt": 1759492394,
+          "decimals": 18
+        },
+        {
+          "assetId": "0xf6dedb8ccef86e7bb2856e4ab08ba68b3836b63d2d51ded70563ca3cdb80b41a",
+          "assetLabel": "SGD/HKD",
+          "weightBps": 910,
+          "isBond": false,
+          "accrualBps": 0,
+          "initialPrice": "740000000000000000",
+          "updatedAt": 1759492394,
+          "decimals": 18
+        },
+        {
+          "assetId": "0xaabd93c9071e410cf7502aa00d2ea238eb10866b597b9032a6c3dfa002464239",
+          "assetLabel": "ASEAN",
+          "weightBps": 910,
+          "isBond": false,
+          "accrualBps": 0,
+          "initialPrice": "190000000000000000",
+          "updatedAt": 1759492394,
+          "decimals": 18
+        },
+        {
+          "assetId": "0xdbd17891fc491ac6717dd01ab1f90f82509f1f2e91cd5066f68805860fbdeb72",
+          "assetLabel": "GOLD",
+          "weightBps": 910,
+          "isBond": false,
+          "accrualBps": 0,
+          "initialPrice": "18800000000000000000",
+          "updatedAt": 1759492394,
+          "decimals": 18
+        }
+      ]
+    },
+    {
+      "name": "Asia Bond Basket",
+      "symbol": "ASBND",
+      "region": "asia",
+      "strategy": "bond",
+      "regionEnum": 1,
+      "strategyEnum": 1,
+      "basketId": 4,
+      "tokenAddress": "0x84eA74d481Ee0A5332c457a4d796187F6Ba67fEB",
+      "nav": "93095219612000000000",
+      "navTimestamp": 1759492394,
+      "allocations": [
+        {
+          "assetId": "0x0ed030791870f576fe65337a4da98d6fc339f6181a3b166169780c4ee947dd82",
+          "assetLabel": "CGB",
+          "weightBps": 2728,
+          "isBond": true,
+          "accrualBps": 30,
+          "initialPrice": "102500000000000000000",
+          "updatedAt": 1759492394,
+          "decimals": 18
+        },
+        {
+          "assetId": "0x54b17f23dae39730b6d4c3479dcce16ecc30fa8ecd504443d2d2a8200d58aba0",
+          "assetLabel": "JGB",
+          "weightBps": 2273,
+          "isBond": true,
+          "accrualBps": 12,
+          "initialPrice": "98200000000000000000",
+          "updatedAt": 1759492394,
+          "decimals": 18
+        },
+        {
+          "assetId": "0x9dbb4f0d68ecdc9e93273b9de456ce16c337ac64d965f0b1fffc976c4e6b8f08",
+          "assetLabel": "G-Secs",
+          "weightBps": 1364,
+          "isBond": true,
+          "accrualBps": 40,
+          "initialPrice": "101100000000000000000",
+          "updatedAt": 1759492394,
+          "decimals": 18
+        },
+        {
+          "assetId": "0x59a27cac2e0643231861b6dc73870174ac18a4e9aff271d689ca145cdb0a3320",
+          "assetLabel": "KTB",
+          "weightBps": 909,
+          "isBond": true,
+          "accrualBps": 25,
+          "initialPrice": "99400000000000000000",
+          "updatedAt": 1759492394,
+          "decimals": 18
+        },
+        {
+          "assetId": "0x8ed6131c233859320db65938d05b1f54a04726c763b0c48fb288b2b9cc5a6ed2",
+          "assetLabel": "SGS/HK",
+          "weightBps": 909,
+          "isBond": true,
+          "accrualBps": 20,
+          "initialPrice": "100800000000000000000",
+          "updatedAt": 1759492394,
+          "decimals": 18
+        },
+        {
+          "assetId": "0xebcc6e3bf51689e3d7916b47ec88e9e46f407c7cd0f1e45df57a3f9960f2ba73",
+          "assetLabel": "ASEANGov",
+          "weightBps": 909,
+          "isBond": true,
+          "accrualBps": 28,
+          "initialPrice": "97750000000000000000",
+          "updatedAt": 1759492394,
+          "decimals": 18
+        },
+        {
+          "assetId": "0xdbd17891fc491ac6717dd01ab1f90f82509f1f2e91cd5066f68805860fbdeb72",
+          "assetLabel": "GOLD",
+          "weightBps": 908,
+          "isBond": false,
+          "accrualBps": 0,
+          "initialPrice": "18800000000000000000",
+          "updatedAt": 1759492394,
+          "decimals": 18
+        }
+      ]
+    },
+    {
+      "name": "EuroAsia Mix Basket",
+      "symbol": "EAMIX",
+      "region": "euroasia",
+      "strategy": "mix",
+      "regionEnum": 2,
+      "strategyEnum": 2,
+      "basketId": 8,
+      "tokenAddress": "0x99bbA657f2BbC93c02D617f8bA121cB8Fc104Acf",
+      "nav": "2377542000000000000",
+      "navTimestamp": 1759492394,
+      "allocations": [
+        {
+          "assetId": "0xfff16d60be267153303bbfa66e593fb8d06e24ea5ef24b6acca5224c2ca6b907",
+          "assetLabel": "EUR",
+          "weightBps": 3000,
+          "isBond": false,
+          "accrualBps": 0,
+          "initialPrice": "1080000000000000000",
+          "updatedAt": 1759492394,
+          "decimals": 18
+        },
+        {
+          "assetId": "0x90832e2dc3221e4d56977c1aa8f6a6706b9ad6542fbbdaac13097d0fa5e42e67",
+          "assetLabel": "GBP",
+          "weightBps": 700,
+          "isBond": false,
+          "accrualBps": 0,
+          "initialPrice": "1250000000000000000",
+          "updatedAt": 1759492394,
+          "decimals": 18
+        },
+        {
+          "assetId": "0xc9d84274fd58aa177cabff54611546051b74ad658b939babaad6282500300d36",
+          "assetLabel": "CHF",
+          "weightBps": 300,
+          "isBond": false,
+          "accrualBps": 0,
+          "initialPrice": "1120000000000000000",
+          "updatedAt": 1759492394,
+          "decimals": 18
+        },
+        {
+          "assetId": "0xfaaa9c7b2f09d6a1b0971574d43ca62c3e40723167c09830ec33f06cec921381",
+          "assetLabel": "CNY",
+          "weightBps": 2000,
+          "isBond": false,
+          "accrualBps": 0,
+          "initialPrice": "140000000000000000",
+          "updatedAt": 1759492394,
+          "decimals": 18
+        },
+        {
+          "assetId": "0xfe13aafd831cb225dfce3f6431b34b5b17426b6bff4fccabe4bbe0fe4adc0452",
+          "assetLabel": "JPY",
+          "weightBps": 1500,
+          "isBond": false,
+          "accrualBps": 0,
+          "initialPrice": "9100000000000000",
+          "updatedAt": 1759492394,
+          "decimals": 18
+        },
+        {
+          "assetId": "0xaad766fbc07fb357bed9fd8b03b935f2f71fe29fc48f08274bc2a01d7f642afc",
+          "assetLabel": "INR",
+          "weightBps": 700,
+          "isBond": false,
+          "accrualBps": 0,
+          "initialPrice": "12000000000000000",
+          "updatedAt": 1759492394,
+          "decimals": 18
+        },
+        {
+          "assetId": "0xc7914cfda800b414621b0ce0d8fed732cabbb831d6afcd8b2a73fb1ca78e443c",
+          "assetLabel": "KRW",
+          "weightBps": 500,
+          "isBond": false,
+          "accrualBps": 0,
+          "initialPrice": "740000000000000",
+          "updatedAt": 1759492394,
+          "decimals": 18
+        },
+        {
+          "assetId": "0xc241cc1f9752d2d53d1ab67189223a3f330e48b75f73ebf86f50b2c78fe8df88",
+          "assetLabel": "SGD",
+          "weightBps": 300,
+          "isBond": false,
+          "accrualBps": 0,
+          "initialPrice": "740000000000000000",
+          "updatedAt": 1759492394,
+          "decimals": 18
+        },
+        {
+          "assetId": "0xdbd17891fc491ac6717dd01ab1f90f82509f1f2e91cd5066f68805860fbdeb72",
+          "assetLabel": "GOLD",
+          "weightBps": 1000,
+          "isBond": false,
+          "accrualBps": 0,
+          "initialPrice": "18800000000000000000",
+          "updatedAt": 1759492394,
+          "decimals": 18
+        }
+      ]
+    }
+  ]
+}
