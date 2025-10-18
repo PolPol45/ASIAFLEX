@@ -1,0 +1,30 @@
+{
+  "type": "transfer",
+  "network": "hardhat",
+  "timestamp": "2025-10-04T10:25:30.380Z",
+  "basket": {
+    "id": "0x5dc5315dfbd2c41d2c18163b5252a2625fab054805c6298bd76950e8ef61bb90",
+    "symbol": "EUFX",
+    "name": "EU Currency Basket",
+    "token": "0x36b58F5C1969B7b6591D752ea6F5486D069010AB",
+    "nav": "2692675000000000000",
+    "navTimestamp": 1759573612
+  },
+  "params": {
+    "from": "0x23618e81E3f5cdF7f54C3d65f7FBc0aBf5B21E8f",
+    "to": "0xa0Ee7A142d267C1f36714E4a8F75612F20a79720",
+    "amount": "5000000000000000000",
+    "decimals": 18,
+    "dryRun": false,
+    "addressesPath": "/workspaces/ASIAFLEX/scripts/deployments/hardhat-cli.json"
+  },
+  "transaction": {
+    "hash": "0xaf790de2c2c5381b0d4724003a3559e0af889b11c02d4e0b893b5363389a7cb7",
+    "blockNumber": 154,
+    "gasUsed": "51583"
+  },
+  "results": {
+    "senderBalance": "37137790487154966715",
+    "recipientBalance": "5000000000000000000"
+  }
+}

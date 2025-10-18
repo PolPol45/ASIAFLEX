@@ -1,3 +1,4 @@
+import "hardhat/register";
 import fs from "fs";
 import path from "path";
 import hre from "hardhat";
@@ -10,6 +11,7 @@ import {
   regionToEnum,
   strategyToEnum,
 } from "./basketDescriptors";
+import { mergeBasketsIntoMain } from "../helpers/addresses";
 
 const { ethers } = hre;
 
@@ -192,6 +194,8 @@ export async function deployBaskets(): Promise<BasketDeploymentResult> {
   console.log(`👤 Deployer: ${deployer}`);
 
   const network = await ethers.provider.getNetwork();
+  const networkLabel = network.name || network.chainId.toString();
+  console.log(`🌐 Network: ${networkLabel} (${network.chainId})`);
 
   const baseAsset = await deployBaseAsset(deployer);
   const baseAssetAddress = await baseAsset.getAddress();
@@ -230,6 +234,9 @@ export async function deployBaskets(): Promise<BasketDeploymentResult> {
   };
 
   const snapshotPath = saveSnapshot(snapshot);
+
+  const basePath = path.join(__dirname, "../deployments", `${networkLabel}.json`);
+  mergeBasketsIntoMain(basePath, snapshotPath);
 
   return {
     snapshot,

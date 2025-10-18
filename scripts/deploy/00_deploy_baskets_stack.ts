@@ -1,9 +1,9 @@
+import "hardhat/register";
 import hre from "hardhat";
 import { deployBaskets } from "./10_register_baskets";
 
 async function main() {
-  const [deployer] = await hre.ethers.getSigners();
-  console.log(`👤 Deployer: ${await deployer.getAddress()}`);
+  console.log(`🌐 HRE network: ${hre.network.name}`);
 
   const deployment = await deployBaskets();
 

@@ -9,5 +9,5 @@
     "strict": true,
     "types": ["node", "chai", "mocha", "@types/node", "hardhat"]
   },
-  "include": ["hardhat.config.ts", "scripts", "test", "tasks", "typechain-types", "contracts", "types"]
+  "include": ["hardhat.config.ts", "scripts", "test", "tasks", "typechain-types", "contracts", "types", "playground"]
 }

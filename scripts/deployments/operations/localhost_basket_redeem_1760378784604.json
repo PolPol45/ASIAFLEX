@@ -1,0 +1,51 @@
+{
+  "type": "basket_redeem",
+  "network": "localhost",
+  "timestamp": "2025-10-13T18:06:24.604Z",
+  "basket": {
+    "symbol": "EAMIX",
+    "name": "EuroAsia Mix Basket",
+    "region": "euroasia",
+    "strategy": "mix",
+    "basketId": "0x17da899ffe78c376814e9ad4d0f154616e60b7c7ea1fe49f3bd0ca0936baf67b"
+  },
+  "params": {
+    "account": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+    "holder": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+    "notionalInput": "10",
+    "notionalWei": "10000000000000000000",
+    "controllerNotional": "1769064244211876656",
+    "nav": "2377542000000000000",
+    "deadline": "1760382384",
+    "proofHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "nonce": "0",
+    "signer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+    "signature": "0x4cb2e6398f14bcbace50698ce22e9bf35db568452dcd350252a6aaa19afd77cd6309ced7c4dca37e31afcf1bcc32737ec99bc17a08c72bf915c6892bb2da58b11c",
+    "slippageBps": 100,
+    "desiredShares": "4206024541311993647",
+    "plannedShares": "4206024541311993648",
+    "toleranceShares": "4248084786725113583",
+    "digest": "0x7b9921fa5ad6dfb5fc58ab5ecd06f2b6adf4f0ae8383697bcbe5acf6830d527c"
+  },
+  "nav": {
+    "value": "2377542000000000000",
+    "timestamp": 1760374782
+  },
+  "results": {
+    "burnedShares": "4206024541311993648",
+    "redeemedValueUsd": "10000000000000000001",
+    "balances": {
+      "before": "32060245413119936472",
+      "after": "27854220871807942824"
+    },
+    "transaction": {
+      "hash": "0xb5d05e185a274468629fe90cf11fd50edf3647fbb49ccfb2de5b4ba1748bf3d9",
+      "blockNumber": 66,
+      "gasUsed": "126059"
+    }
+  },
+  "meta": {
+    "addressesPath": "/workspaces/ASIAFLEX/scripts/deployments/localhost.json",
+    "snapshotPath": null
+  }
+}

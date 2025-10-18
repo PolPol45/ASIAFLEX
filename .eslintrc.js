@@ -20,5 +20,23 @@ module.exports = {
     "prefer-const": "error",
     "no-var": "error",
   },
-  ignorePatterns: ["node_modules/", "dist/", "artifacts/", "cache/", "typechain-types/", "coverage/"],
+  overrides: [
+    {
+      files: ["test/**/*.js"],
+      excludedFiles: ["**/*.ts"],
+      rules: {
+        "prettier/prettier": "off",
+      },
+    },
+  ],
+  ignorePatterns: [
+    "node_modules/",
+    "dist/",
+    "artifacts/",
+    "cache/",
+    "typechain/",
+    "typechain-types/",
+    "coverage/",
+    "ASIAFLEX/",
+  ],
 };

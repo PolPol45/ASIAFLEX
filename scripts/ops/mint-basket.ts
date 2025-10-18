@@ -4,7 +4,7 @@ import path from "path";
 import { ethers } from "hardhat";
 
 import type { BasketManager, BasketToken, BasketTreasuryController, NAVOracleAdapter } from "../../typechain-types";
-import { loadAddresses } from "../helpers/addresses";
+import { loadAddresses, saveAddress } from "../helpers/addresses";
 import { basketTreasuryDomain, signMintRedeem, type MintRedeemRequest } from "../helpers/eip712";
 import { BASKETS, basketKey, type BasketDescriptor } from "../deploy/basketDescriptors";
 import { promptsEnabled, prompt } from "./utils/prompt";
@@ -32,6 +32,7 @@ type MintBasketInputs = {
   dryRun: boolean;
   addressesPath: string;
   snapshotPath?: string;
+  snapshot?: BasketDeployment;
 };
 
 const TRUE_VALUES = new Set(["true", "1", "yes", "y", "on"]);
@@ -80,6 +81,7 @@ function printHelp(): void {
   console.log("  --account <address>         Operator/controller address (defaults to first signer)");
   console.log("  --signer <address>          Treasury signer for proof generation");
   console.log("  --nav <decimal>             Override NAV price (18 decimals)");
+  console.log("  --seed-nav <decimal>        Seed NAV locally (solo hardhat)");
   console.log("  --slippage <bps>            Max slippage in basis points (default 100)");
   console.log("  --dry-run                   Preview mint without sending transaction");
   console.log("  --addresses <path>          Deployment file override");
@@ -277,7 +279,7 @@ async function resolveInputs(args: ParsedArgs): Promise<MintBasketInputs> {
   const positional = Array.isArray(args._) ? (args._ as string[]) : [];
 
   const basketIdOverride = pickStringArg(args, ["basket-id"], ["BASKET_ID"]);
-  let basketInput = pickStringArg(args, ["basket", "basket-symbol"], ["BASKET_SYMBOL", "BASKET"]) ?? positional[0];
+  const basketInput = pickStringArg(args, ["basket", "basket-symbol"], ["BASKET_SYMBOL", "BASKET"]) ?? positional[0];
 
   let descriptor: BasketDescriptor | undefined;
   let basketId = basketIdOverride;
@@ -370,6 +372,7 @@ async function resolveInputs(args: ParsedArgs): Promise<MintBasketInputs> {
 
   const navInput = pickStringArg(args, ["nav"], ["BASKET_NAV"]);
   const navWeiOverride = pickStringArg(args, ["nav-wei"], ["BASKET_NAV_WEI"]);
+  const seedNavInput = pickStringArg(args, ["seed-nav"], ["BASKET_SEED_NAV"]);
 
   let nav: bigint | undefined;
   let navTimestamp: number | undefined;
@@ -391,9 +394,42 @@ async function resolveInputs(args: ParsedArgs): Promise<MintBasketInputs> {
     }
   }
 
+  if ((!nav || nav === 0n) && seedNavInput) {
+    if (network.name !== "hardhat" && network.chainId !== 31337n) {
+      throw new Error("--seed-nav è disponibile solo sulla rete hardhat/localhost.");
+    }
+    const seedNavWei = parseDecimalToWei(seedNavInput, "--seed-nav");
+    const medianOracleAddress =
+      addresses.contracts?.MedianOracle ?? snapshot.medianOracle ?? snapshot.oracle ?? undefined;
+    if (!medianOracleAddress) {
+      throw new Error(
+        "MedianOracle non configurato nello snapshot/addresses. Esegui prima la pipeline di deploy register baskets."
+      );
+    }
+
+    const navOracleAddressForSeed = navOracleAddress ?? snapshot.navOracle;
+    const [defaultSigner] = await ethers.getSigners();
+    const assetId = ethers.keccak256(ethers.toUtf8Bytes(descriptor.symbol.toUpperCase()));
+    const timestamp = BigInt(Math.floor(Date.now() / 1000));
+
+    const medianOracle = await ethers.getContractAt("MedianOracle", medianOracleAddress, defaultSigner);
+    await (await medianOracle.updatePrice(assetId, seedNavWei, timestamp, 18, "CLI", false)).wait();
+
+    if (navOracleAddressForSeed) {
+      const navOracleContract = await ethers.getContractAt("NAVOracleAdapter", navOracleAddressForSeed, defaultSigner);
+      await (await navOracleContract.updateNAV(basketId as `0x${string}`, seedNavWei)).wait();
+    }
+
+    nav = seedNavWei;
+    navTimestamp = Number(timestamp);
+    console.log(
+      `🌱 NAV seed completato per ${descriptor.symbol}: ${ethers.formatUnits(seedNavWei, 18)} USD (timestamp ${navTimestamp}).`
+    );
+  }
+
   if (!nav || nav === 0n) {
     throw new Error(
-      "NAV non disponibile. Specifica --nav <decimale> o --nav-wei <uint256> o assicurati che l'oracolo sia aggiornato."
+      "NAV non presente in oracolo. Esegui feeder commit oppure usa --seed-nav (hardhat) o --nav/--nav-wei."
     );
   }
 
@@ -427,6 +463,7 @@ async function resolveInputs(args: ParsedArgs): Promise<MintBasketInputs> {
     dryRun,
     addressesPath,
     snapshotPath,
+    snapshot,
   };
 }
 
@@ -436,7 +473,8 @@ async function mintBasket(inputs: MintBasketInputs) {
 
   const { basketId, descriptor } = inputs;
 
-  const { data: addresses } = loadAddresses(networkLabel, inputs.addressesPath);
+  const { data: addressesData } = loadAddresses(networkLabel, inputs.addressesPath);
+  let addresses = addressesData;
   const treasuryAddress = addresses.contracts?.BasketTreasuryController;
   if (!treasuryAddress) {
     throw new Error(`Nessun BasketTreasuryController registrato nel file di indirizzi (${inputs.addressesPath}).`);
@@ -457,7 +495,40 @@ async function mintBasket(inputs: MintBasketInputs) {
   )) as BasketTreasuryController;
   const manager = (await ethers.getContractAt("BasketManager", managerAddress, operatorSigner)) as BasketManager;
 
-  const tokenAddress = await manager.basketTokenOf(basketId as `0x${string}`);
+  const basketSymbol = descriptor.symbol.toUpperCase();
+  const snapshotToken = inputs.snapshot?.baskets?.find(
+    (entry) => entry.symbol?.toUpperCase() === basketSymbol
+  )?.tokenAddress;
+
+  let tokenAddress =
+    addresses.BasketTokens?.[basketSymbol] ??
+    (addresses.contracts?.[`BasketTokens.${basketSymbol}`] as string | undefined) ??
+    snapshotToken;
+
+  if (!tokenAddress || !ethers.isAddress(tokenAddress)) {
+    try {
+      tokenAddress = await manager.basketTokenOf(basketId as `0x${string}`);
+    } catch (error) {
+      throw new Error(
+        `Impossibile determinare il BasketToken per ${descriptor.symbol}: ${(error as Error).message ?? error}`
+      );
+    }
+
+    if (!tokenAddress || tokenAddress === ethers.ZeroAddress) {
+      throw new Error(`BasketToken non registrato per ${descriptor.symbol}. Rieseguire lo script di deploy/register.`);
+    }
+
+    addresses = saveAddress(networkLabel, ["BasketTokens", basketSymbol], tokenAddress, inputs.addressesPath);
+  }
+
+  tokenAddress = ethers.getAddress(tokenAddress);
+  const tokenCode = await ethers.provider.getCode(tokenAddress);
+  if (!tokenCode || tokenCode === "0x") {
+    throw new Error(
+      `Nessun contratto BasketToken trovato all'indirizzo ${tokenAddress}. Verificare deploy e snapshot aggiornati.`
+    );
+  }
+
   const token = (await ethers.getContractAt("BasketToken", tokenAddress)) as BasketToken;
 
   const controllerRole = await treasury.CONTROLLER_ROLE();

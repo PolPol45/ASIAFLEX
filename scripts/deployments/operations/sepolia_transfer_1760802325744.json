@@ -1,0 +1,26 @@
+{
+  "type": "transfer",
+  "network": "sepolia",
+  "timestamp": "2025-10-18T15:45:25.744Z",
+  "basket": {
+    "id": "legacy",
+    "token": "0xe77d246615ca4A9c877c54d2660d9435b5bD9719"
+  },
+  "params": {
+    "from": "0xF4569BC729C62a2eD036F0A3fA66EDf842F14574",
+    "to": "0x000000000000000000000000000000000000dEaD",
+    "amount": "50000000000000000",
+    "decimals": 18,
+    "dryRun": false,
+    "addressesPath": "/workspaces/ASIAFLEX/scripts/deployments/sepolia.json"
+  },
+  "transaction": {
+    "hash": "0x32b109520febba7b5c2733568681008a0b1adcfe3b99e9560b274fb4424f686f",
+    "blockNumber": 9439202,
+    "gasUsed": "41023"
+  },
+  "results": {
+    "senderBalance": "950000000000000000",
+    "recipientBalance": "150000000000000000"
+  }
+}

@@ -1,0 +1,208 @@
+diff --git a/node_modules/hardhat/internal/cli/cli.js b/node_modules/hardhat/internal/cli/cli.js
+index ae960b7..e4d9539 100644
+--- a/node_modules/hardhat/internal/cli/cli.js
++++ b/node_modules/hardhat/internal/cli/cli.js
+@@ -96,6 +96,77 @@ function showViaIRWarning(resolvedConfig) {
+ Learn more at https://hardhat.org/solc-viair`));
+     }
+ }
++const PRICE_FEEDER_MARKER = "scripts/ops/price-feeder.ts";
++function sanitizePriceFeederArgs(rawArgs) {
++    const scriptIndex = rawArgs.findIndex((arg) => {
++        if (arg === PRICE_FEEDER_MARKER) {
++            return true;
++        }
++        if (arg.includes(PRICE_FEEDER_MARKER)) {
++            return true;
++        }
++        return false;
++    });
++    if (scriptIndex === -1) {
++        return rawArgs;
++    }
++    const sanitized = rawArgs.slice(0, scriptIndex + 1);
++    let symbols = process.env.FEEDER_SYMBOLS;
++    let addresses = process.env.FEEDER_ADDRESSES;
++    let commitFlag;
++    for (let i = scriptIndex + 1; i < rawArgs.length; i++) {
++        const arg = rawArgs[i];
++        if (arg === "--") {
++            continue;
++        }
++        if (arg === "--symbols") {
++            const value = rawArgs[i + 1];
++            if (value !== undefined) {
++                symbols = value;
++                i += 1;
++            }
++            continue;
++        }
++        if (arg.startsWith("--symbols=")) {
++            symbols = arg.slice("--symbols=".length);
++            continue;
++        }
++        if (arg === "--addresses") {
++            const value = rawArgs[i + 1];
++            if (value !== undefined) {
++                addresses = value;
++                i += 1;
++            }
++            continue;
++        }
++        if (arg.startsWith("--addresses=")) {
++            addresses = arg.slice("--addresses=".length);
++            continue;
++        }
++        if (arg === "--commit") {
++            commitFlag = true;
++            continue;
++        }
++        if (arg === "--dry") {
++            commitFlag = false;
++            continue;
++        }
++        sanitized.push(arg);
++    }
++    if (symbols !== undefined) {
++        process.env.FEEDER_SYMBOLS = symbols;
++    }
++    if (addresses !== undefined) {
++        process.env.FEEDER_ADDRESSES = addresses;
++    }
++    if (commitFlag === true) {
++        process.env.FEEDER_COMMIT_FLAG = "1";
++    }
++    else if (commitFlag === false) {
++        delete process.env.FEEDER_COMMIT_FLAG;
++    }
++    return sanitized;
++}
+ async function main() {
+     // We first accept this argument anywhere, so we know if the user wants
+     // stack traces before really parsing the arguments.
+@@ -104,7 +175,8 @@ async function main() {
+     try {
+         const envVariableArguments = (0, env_variables_1.getEnvHardhatArguments)(hardhat_params_1.HARDHAT_PARAM_DEFINITIONS, process.env);
+         const argumentsParser = new ArgumentsParser_1.ArgumentsParser();
+-        const { hardhatArguments, scopeOrTaskName, allUnparsedCLAs } = argumentsParser.parseHardhatArguments(hardhat_params_1.HARDHAT_PARAM_DEFINITIONS, envVariableArguments, process.argv.slice(2));
++        const sanitizedArgv = sanitizePriceFeederArgs(process.argv.slice(2));
++        const { hardhatArguments, scopeOrTaskName, allUnparsedCLAs } = argumentsParser.parseHardhatArguments(hardhat_params_1.HARDHAT_PARAM_DEFINITIONS, envVariableArguments, sanitizedArgv);
+         if (hardhatArguments.verbose) {
+             reporter_1.Reporter.setVerbose(true);
+             debug_1.default.enable("hardhat*");
+diff --git a/node_modules/hardhat/src/internal/cli/cli.ts b/node_modules/hardhat/src/internal/cli/cli.ts
+index 48de457..87ec7e1 100644
+--- a/node_modules/hardhat/src/internal/cli/cli.ts
++++ b/node_modules/hardhat/src/internal/cli/cli.ts
+@@ -112,6 +112,96 @@ Learn more at https://hardhat.org/solc-viair`
+   }
+ }
+ 
++const PRICE_FEEDER_MARKER = "scripts/ops/price-feeder.ts";
++
++function sanitizePriceFeederArgs(rawArgs: string[]): string[] {
++  const scriptIndex = rawArgs.findIndex((arg) => {
++    if (arg === PRICE_FEEDER_MARKER) {
++      return true;
++    }
++
++    if (arg.includes(PRICE_FEEDER_MARKER)) {
++      return true;
++    }
++
++    return false;
++  });
++
++  if (scriptIndex === -1) {
++    return rawArgs;
++  }
++
++  const sanitized: string[] = rawArgs.slice(0, scriptIndex + 1);
++
++  let symbols = process.env.FEEDER_SYMBOLS;
++  let addresses = process.env.FEEDER_ADDRESSES;
++  let commitFlag: boolean | undefined;
++
++  for (let i = scriptIndex + 1; i < rawArgs.length; i++) {
++    const arg = rawArgs[i];
++
++    if (arg === "--") {
++      continue;
++    }
++
++    if (arg === "--symbols") {
++      const value = rawArgs[i + 1];
++      if (value !== undefined) {
++        symbols = value;
++        i += 1;
++      }
++      continue;
++    }
++
++    if (arg.startsWith("--symbols=")) {
++      symbols = arg.slice("--symbols=".length);
++      continue;
++    }
++
++    if (arg === "--addresses") {
++      const value = rawArgs[i + 1];
++      if (value !== undefined) {
++        addresses = value;
++        i += 1;
++      }
++      continue;
++    }
++
++    if (arg.startsWith("--addresses=")) {
++      addresses = arg.slice("--addresses=".length);
++      continue;
++    }
++
++    if (arg === "--commit") {
++      commitFlag = true;
++      continue;
++    }
++
++    if (arg === "--dry") {
++      commitFlag = false;
++      continue;
++    }
++
++    sanitized.push(arg);
++  }
++
++  if (symbols !== undefined) {
++    process.env.FEEDER_SYMBOLS = symbols;
++  }
++
++  if (addresses !== undefined) {
++    process.env.FEEDER_ADDRESSES = addresses;
++  }
++
++  if (commitFlag === true) {
++    process.env.FEEDER_COMMIT_FLAG = "1";
++  } else if (commitFlag === false) {
++    delete process.env.FEEDER_COMMIT_FLAG;
++  }
++
++  return sanitized;
++}
++
+ async function main() {
+   // We first accept this argument anywhere, so we know if the user wants
+   // stack traces before really parsing the arguments.
+@@ -127,11 +217,13 @@ async function main() {
+ 
+     const argumentsParser = new ArgumentsParser();
+ 
++    const sanitizedArgv = sanitizePriceFeederArgs(process.argv.slice(2));
++
+     const { hardhatArguments, scopeOrTaskName, allUnparsedCLAs } =
+       argumentsParser.parseHardhatArguments(
+         HARDHAT_PARAM_DEFINITIONS,
+         envVariableArguments,
+-        process.argv.slice(2)
++        sanitizedArgv
+       );
+ 
+     if (hardhatArguments.verbose) {

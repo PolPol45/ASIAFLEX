@@ -1,5 +1,6 @@
 node_modules
 .env
+.env*
 
 # Hardhat files
 /cache
@@ -13,10 +14,18 @@ node_modules
 /coverage
 /coverage.json
 
+# Build outputs
+/dist
+/storage-layout/
+
 # Hardhat Ignition default folder for deployments against a local node
 ignition/deployments/chain-31337
 
-# Generated JavaScript artifacts
-test/**/*.js
-test/**/*.js.map
-playground/out/
+# Generated artifacts & logs
+playground/**/out/**
+scripts/ops/ledger/*.jsonl
+**/*.csv
+reports/**
+reports/archive/**
+scripts/ops/.env.nav-watch
+/dist/**

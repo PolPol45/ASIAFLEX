@@ -1,0 +1,51 @@
+{
+  "type": "basket_redeem",
+  "network": "localhost",
+  "timestamp": "2025-10-13T18:05:43.756Z",
+  "basket": {
+    "symbol": "ASFX",
+    "name": "Asia Currency Basket",
+    "region": "asia",
+    "strategy": "fx",
+    "basketId": "0xf3d16a7ffc07ed4c87276971f507e5211d86cd89d3ad127567373e45be1d7492"
+  },
+  "params": {
+    "account": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+    "holder": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+    "notionalInput": "4",
+    "notionalWei": "4000000000000000000",
+    "controllerNotional": "1177240879866401149",
+    "nav": "1843305540000000000",
+    "deadline": "1760382343",
+    "proofHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "nonce": "0",
+    "signer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+    "signature": "0x3476443d2319e44a851b0b1fd9b03d73c3e9021fc517bd0e29d95777f9e9db94129f6de9c3d154a4d8de217e2bfaee65232ad2d67e8fbf9ea99ea53a107ce8961b",
+    "slippageBps": 100,
+    "desiredShares": "2170014635772211697",
+    "plannedShares": "2170014635772211697",
+    "toleranceShares": "2191714782129933813",
+    "digest": "0x06f9c53e0ffcf061b0ce4de15cade4de45719fbc6fd2a405483849f07589a5a7"
+  },
+  "nav": {
+    "value": "1843305540000000000",
+    "timestamp": 1760374776
+  },
+  "results": {
+    "burnedShares": "2170014635772211697",
+    "redeemedValueUsd": "3999999999999999999",
+    "balances": {
+      "before": "8500731788610584872",
+      "after": "6330717152838373175"
+    },
+    "transaction": {
+      "hash": "0xb8bfcd86f42ed4ba84f9b27fa8d21765fc1e4399cc62db2487468c1bd84b62d3",
+      "blockNumber": 64,
+      "gasUsed": "126059"
+    }
+  },
+  "meta": {
+    "addressesPath": "/workspaces/ASIAFLEX/scripts/deployments/localhost.json",
+    "snapshotPath": null
+  }
+}

@@ -1,0 +1,48 @@
+{
+  "type": "basket_mint",
+  "network": "hardhat",
+  "timestamp": "2025-10-06T07:18:23.640Z",
+  "basket": {
+    "symbol": "EUFX",
+    "name": "EU Currency Basket",
+    "region": "eu",
+    "strategy": "fx",
+    "basketId": "0x5dc5315dfbd2c41d2c18163b5252a2625fab054805c6298bd76950e8ef61bb90"
+  },
+  "params": {
+    "account": "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65",
+    "beneficiary": "0x23618e81E3f5cdF7f54C3d65f7FBc0aBf5B21E8f",
+    "depositInput": "100",
+    "depositWei": "100000000000000000000",
+    "nav": "2692675000000000000",
+    "deadline": "1759738703",
+    "proofHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "nonce": "0",
+    "signer": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+    "signature": "0xd90dc357363cb06dbe2f9f587f50b4c53f998242d6bcd87ebe8297868ce0cb647c6f334a153c97aa948909a0652506a34359fb6e049b6038295452e1e17ad73b1c",
+    "slippageBps": 50,
+    "minTokensOut": "36952101534719191881",
+    "digest": "0xcf67def202e90097a9569eb4a6dbd4f6d71b142fffbdf5521bd962e12f45c9fc"
+  },
+  "nav": {
+    "value": "2692675000000000000",
+    "timestamp": 1759735120
+  },
+  "results": {
+    "mintedShares": "37137790487154966715",
+    "mintedValueUsd": "99999999999999999999",
+    "balances": {
+      "before": "0",
+      "after": "37137790487154966715"
+    },
+    "transaction": {
+      "hash": "0x385ba99507eabb63c98efa654a642331c1d4125eef30cb0b9ba1958c727fc986",
+      "blockNumber": 31,
+      "gasUsed": "224083"
+    }
+  },
+  "meta": {
+    "addressesPath": "/tmp/mint-cli-E5SAWH/addresses.json",
+    "snapshotPath": null
+  }
+}

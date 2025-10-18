@@ -1,0 +1,15 @@
+{
+  "network": "hardhat",
+  "contracts": {
+    "BasketManager": "0x851356ae760d987E095750cCeb3bC6014560891C",
+    "NAVOracleAdapter": "0xc6e7DF5E7b4f2A278906862b61205850344D4e7d",
+    "BasketTreasuryController": "0xFD471836031dc5108809D173A067e8486B9047A3",
+    "BasketToken_EUFX": "0xf4B146FbA71F41E0592668ffbF264F1D186b2Ca8"
+  },
+  "addresses": {
+    "BasketManager": "0x851356ae760d987E095750cCeb3bC6014560891C",
+    "NAVOracleAdapter": "0xc6e7DF5E7b4f2A278906862b61205850344D4e7d",
+    "BasketTreasuryController": "0xFD471836031dc5108809D173A067e8486B9047A3",
+    "BasketToken_EUFX": "0xf4B146FbA71F41E0592668ffbF264F1D186b2Ca8"
+  }
+}

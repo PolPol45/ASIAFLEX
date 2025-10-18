@@ -1,0 +1,70 @@
+{
+  "schema": "e2e_quick.v1",
+  "ts": "2025-10-18T15:45:30.478Z",
+  "network": "sepolia",
+  "commit": true,
+  "params": {
+    "steps": [
+      "mint",
+      "transfer",
+      "redeem",
+      "burn"
+    ],
+    "label": "2025-10-18_15-44",
+    "recipient": "0x000000000000000000000000000000000000dEaD",
+    "amounts": {
+      "mint": "0.10",
+      "transfer": "0.05",
+      "redeem": "0.05",
+      "burn": "0.02"
+    },
+    "gas": {
+      "maxFeeGwei": "15",
+      "priorityFeeGwei": "1.5",
+      "maxFeeWei": "15000000000",
+      "priorityFeeWei": "1500000000"
+    },
+    "timeoutMs": 600000,
+    "mode": "proc"
+  },
+  "overrides": {
+    "maxFeePerGas": "15000000000",
+    "maxPriorityFeePerGas": "1500000000"
+  },
+  "steps": [
+    {
+      "name": "mint",
+      "mode": "proc",
+      "status": "OK",
+      "startedAt": "2025-10-18T15:44:52.108Z",
+      "endedAt": "2025-10-18T15:45:14.534Z",
+      "durationMs": 22426,
+      "exitCode": 0,
+      "stdout": "🪙 Executing mint operation on sepolia\n👤 Signer: 0xF4569BC729C62a2eD036F0A3fA66EDf842F14574\n🎯 To: 0x000000000000000000000000000000000000dEaD\n💰 Amount: 0.1 AFX\n🔐 Attestation Hash: 0x0000000000000000000000000000000000000000000000000000000000000000\nℹ️  NAV già allineato al valore live (92.89).\n\n💹 NAV attuale (0x5dc5315dfbd2c41d2c18163b5252a2625fab054805c6298bd76950e8ef61bb90): $92.89 per share\n💵 Valore stimato per 0.1 shares: $9.29 (ultimo aggiornamento: 2025-10-18T14:36:12.000Z)\n\n🔍 Pre-flight checks:\n   Treasury Role: ✅\n   Contract Paused: ✅\n   Remaining Daily Mint: 9999.0 AFX\n   Remaining Daily Net Inflow: 49999.0 AFX\n   Remaining Supply Cap: 999999.0 AFX\n   Recipient Blacklisted: ✅\n\n🚀 Executing mint...\n📤 Transaction sent: 0xbd8019b6fd8f05a3d9aaa3c21fba5697f12eb1c45287e4c729b8c536c3ec4f8b\n✅ Transaction confirmed in block 9439201\n📊 New recipient balance: 0.1 AFX\n📊 New total supply: 1.1 AFX\n📝 Operation saved to /workspaces/ASIAFLEX/scripts/deployments/operations/sepolia_mint_1760802314255.json\n"
+    },
+    {
+      "name": "transfer",
+      "mode": "proc",
+      "status": "OK",
+      "startedAt": "2025-10-18T15:45:14.534Z",
+      "endedAt": "2025-10-18T15:45:25.785Z",
+      "durationMs": 11251,
+      "exitCode": 0,
+      "stdout": "\n🚚 AsiaFlex Legacy Transfer\n   Network:      sepolia\n   Token:        0xe77d246615ca4A9c877c54d2660d9435b5bD9719\n   NAV Oracle:   0x98338A60C8567b183d86f84b72cCbb569a3FE2BA\n\n👥 Partecipanti\n   Mittente:     0xF4569BC729C62a2eD036F0A3fA66EDf842F14574\n   Destinatario: 0x000000000000000000000000000000000000dEaD\n   Dry-run:      no\n\n💰 Parametri\n   Token name:   AsiaFlexToken (AFX)\n   Decimals:     18\n   Amount:       0.05 AFX\n   NAV share:    n/d\n\n🚀 Invio transazione...\n   Hash: 0x32b109520febba7b5c2733568681008a0b1adcfe3b99e9560b274fb4424f686f\n✅ Confermata nel blocco 9439202\n   Tracking evento Transfer → via poll (captured)\n\n📊 Saldi aggiornati\n   Mittente:    0.95 AFX\n   Destinatario:0.15 AFX\n📝 Operation saved to /workspaces/ASIAFLEX/scripts/deployments/operations/sepolia_transfer_1760802325744.json\n🔒 Transfer executed (details omitted for security).\n"
+    },
+    {
+      "name": "redeem",
+      "mode": "proc",
+      "status": "ERROR",
+      "startedAt": "2025-10-18T15:45:25.785Z",
+      "endedAt": "2025-10-18T15:45:30.478Z",
+      "durationMs": 4693,
+      "exitCode": 1,
+      "stdout": "🪙 Executing redeem operation on sepolia\n👤 Caller: 0xF4569BC729C62a2eD036F0A3fA66EDf842F14574\n👤 User (from): 0x000000000000000000000000000000000000dEaD\n💰 Amount: 0.05 AFX\n🔐 Reserve Hash: 0x0000000000000000000000000000000000000000000000000000000000000000\n🕒 Request Timestamp: 1760802325 (2025-10-18T15:45:25.000Z)\nℹ️  NAV già allineato al valore live (92.89).\n\n💹 NAV attuale (0x5dc5315dfbd2c41d2c18163b5252a2625fab054805c6298bd76950e8ef61bb90): $92.89 per share\n💵 Valore stimato da bruciare (0.05 shares): $4.64 (ultimo aggiornamento: 2025-10-18T14:36:12.000Z)\n\n🔍 Pre-flight checks:\n   TreasuryController Paused: ✅\n",
+      "stderr": "❌ Script failed: ProviderError: execution reverted\n    at HttpProvider.request (/workspaces/ASIAFLEX/node_modules/hardhat/src/internal/core/providers/http.ts:116:21)\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async staticCallResult (/workspaces/ASIAFLEX/node_modules/ethers/src.ts/contract/contract.ts:337:22)\n    at async staticCall (/workspaces/ASIAFLEX/node_modules/ethers/src.ts/contract/contract.ts:303:24)\n    at async Proxy.verifyRedeemSignature (/workspaces/ASIAFLEX/node_modules/ethers/src.ts/contract/contract.ts:351:41)\n    at async redeem (/workspaces/ASIAFLEX/scripts/ops/redeem.ts:225:28)\n    at async main (/workspaces/ASIAFLEX/scripts/ops/redeem.ts:321:3)\n",
+      "error": "❌ Script failed: ProviderError: execution reverted\n    at HttpProvider.request (/workspaces/ASIAFLEX/node_modules/hardhat/src/internal/core/providers/http.ts:116:21)\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async staticCallResult (/workspaces/ASIAFLEX/node_modules/ethers/src.ts/contract/contract.ts:337:22)\n    at async staticCall (/workspaces/ASIAFLEX/node_modules/ethers/src.ts/contract/contract.ts:303:24)\n    at async Proxy.verifyRedeemSignature (/workspaces/ASIAFLEX/node_modules/ethers/src.ts/contract/contract.ts:351:41)\n    at async redeem (/workspaces/ASIAFLEX/scripts/ops/redeem.ts:225:28)\n    at async main (/workspaces/ASIAFLEX/scripts/ops/redeem.ts:321:3)\n"
+    }
+  ],
+  "status": "ERROR",
+  "error": "❌ Script failed: ProviderError: execution reverted\n    at HttpProvider.request (/workspaces/ASIAFLEX/node_modules/hardhat/src/internal/core/providers/http.ts:116:21)\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async staticCallResult (/workspaces/ASIAFLEX/node_modules/ethers/src.ts/contract/contract.ts:337:22)\n    at async staticCall (/workspaces/ASIAFLEX/node_modules/ethers/src.ts/contract/contract.ts:303:24)\n    at async Proxy.verifyRedeemSignature (/workspaces/ASIAFLEX/node_modules/ethers/src.ts/contract/contract.ts:351:41)\n    at async redeem (/workspaces/ASIAFLEX/scripts/ops/redeem.ts:225:28)\n    at async main (/workspaces/ASIAFLEX/scripts/ops/redeem.ts:321:3)\n"
+}

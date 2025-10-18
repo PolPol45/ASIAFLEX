@@ -1,0 +1,86 @@
+{
+  "schema": "run.v1",
+  "ts": "2025-10-18T15:09:12.918Z",
+  "updated": 20,
+  "skipped": 0,
+  "fallbackUsed": 0,
+  "checkerAlerts": 0,
+  "googleAlerts": 0,
+  "inverseAlerts": 0,
+  "symbols": {
+    "CHFUSD": {
+      "provider": "Yahoo",
+      "usedProvider": "Yahoo",
+      "price": 1.261,
+      "path": "dashed",
+      "ok": true,
+      "googlePrice": 1.25549199,
+      "diffPct": 0.43871327287400763
+    },
+    "JPYUSD": {
+      "provider": "Yahoo",
+      "usedProvider": "Yahoo",
+      "price": 0.0066,
+      "path": "dashed",
+      "ok": true,
+      "googlePrice": 0.00663988579,
+      "diffPct": 0.6006999406536514
+    },
+    "NOKUSD": {
+      "provider": "Yahoo",
+      "usedProvider": "Yahoo",
+      "price": 0.0995,
+      "path": "dashed",
+      "ok": true,
+      "googlePrice": 0.0993857958,
+      "diffPct": 0.11490998193527502
+    },
+    "SEKUSD": {
+      "provider": "Yahoo",
+      "usedProvider": "Yahoo",
+      "price": 0.106,
+      "path": "dashed",
+      "ok": true,
+      "googlePrice": 0.1057776,
+      "diffPct": 0.2102524542058031
+    },
+    "CNYUSD": {
+      "provider": "Yahoo",
+      "usedProvider": "Yahoo",
+      "price": 0.1403,
+      "path": "dashed",
+      "ok": true,
+      "googlePrice": 0.1403105,
+      "diffPct": 0.0074834028814640555
+    },
+    "XAUUSD": {
+      "provider": "Yahoo",
+      "usedProvider": "Yahoo",
+      "price": 4213.3,
+      "path": "override-XAU",
+      "ok": true,
+      "googlePrice": 4267.89990234375,
+      "diffPct": 1.2793154383439467
+    }
+  },
+  "providerOrder": [
+    "Yahoo",
+    "Polygon",
+    "Cache"
+  ],
+  "byProvider": {
+    "Yahoo": 26,
+    "Polygon": 0,
+    "Cache": 0
+  },
+  "cycleMs": 308109,
+  "fallbackRatio": 0,
+  "avgDiffFx": 0.27441181051004027,
+  "avgDiffXAU": 1.2793154383439467,
+  "latestTx": "0xb4b3c12ad38731e7b3a94fe9e390cc9c711f1c55750b83d26836c41a7575dd77",
+  "providerRates": {
+    "Yahoo": 0.0844,
+    "Polygon": 0,
+    "Cache": 0
+  }
+}

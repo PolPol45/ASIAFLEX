@@ -1,0 +1,29 @@
+{
+  "stooq::EURUSD": {
+    "value": {
+      "symbol": "EURUSD",
+      "decimals": 5,
+      "ts": 1760639380,
+      "value": "116727"
+    },
+    "expiresAt": 1760632242450
+  },
+  "stooq::USDJPY": {
+    "value": {
+      "symbol": "USDJPY",
+      "decimals": 3,
+      "ts": 1760639380,
+      "value": "150579"
+    },
+    "expiresAt": 1760632242937
+  },
+  "stooq::AAXJ.US": {
+    "value": {
+      "symbol": "AAXJ.US",
+      "decimals": 1,
+      "ts": 1760638425,
+      "value": "931"
+    },
+    "expiresAt": 1760632243103
+  }
+}

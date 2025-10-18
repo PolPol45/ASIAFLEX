@@ -242,6 +242,8 @@ The CLI will:
   npm run ops:nav:update -- --network sepolia --addresses scripts/deployments/sepolia.json --symbols EURUSD --commit
   ```
 
+  > **Note:** If you prefer to call the feeder via `npx hardhat run`, remember to insert `--` before the feeder flags (for example `npx hardhat run --network sepolia scripts/ops/price-feeder.ts -- --symbols EURUSD --commit`) so Hardhat treats them as script arguments.
+
 - **Basket transfer with live tracking**
 
   ```bash

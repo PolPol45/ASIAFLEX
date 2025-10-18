@@ -1,0 +1,30 @@
+{
+  "type": "transfer",
+  "network": "localhost",
+  "timestamp": "2025-10-13T17:46:37.225Z",
+  "basket": {
+    "id": "0x754682102b571f02c32b12270f1a6cd2bf71322f8654379e315bb2743047ec9b",
+    "symbol": "ASBND",
+    "name": "Asia Bond Basket",
+    "token": "0x851356ae760d987E095750cCeb3bC6014560891C",
+    "nav": "92863595000000000000",
+    "navTimestamp": 1760374779
+  },
+  "params": {
+    "from": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+    "to": "0x0000000000000000000000000000000000000001",
+    "amount": "1000000000000000000",
+    "decimals": 18,
+    "dryRun": false,
+    "addressesPath": "/workspaces/ASIAFLEX/scripts/deployments/localhost.json"
+  },
+  "transaction": {
+    "hash": "0x74ce6ef21018ad5073e40040f3f165e4dde4c89e6263a80545bc4f094e7ec578",
+    "blockNumber": 57,
+    "gasUsed": "51355"
+  },
+  "results": {
+    "senderBalance": "1153696505072843668",
+    "recipientBalance": "1000000000000000000"
+  }
+}

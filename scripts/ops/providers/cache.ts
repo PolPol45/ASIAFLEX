@@ -140,7 +140,7 @@ export async function withRetry<T>(
       attempt += 1;
       const status = (error as ProviderHttpError).status;
       const retryable = typeof status === "number" && (status === 429 || status >= 500);
-      const code = (error as NodeJS.ErrnoException).code;
+      const code = (error as { code?: string }).code;
       const networkRetryable = !!code && ["ECONNRESET", "ETIMEDOUT", "EAI_AGAIN"].includes(code);
       const customDecision = shouldRetry ? shouldRetry(error) : false;
       const shouldAttempt = retryable || networkRetryable || customDecision;

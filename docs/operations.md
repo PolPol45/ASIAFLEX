@@ -4,6 +4,11 @@
 
 This guide provides operational procedures for AsiaFlex token management, including mint/redeem operations, oracle updates, emergency procedures, and routine maintenance.
 
+> **Status & roadmap**
+>
+> - **Shipped operations:** Basket-first demos and local runbooks (`npm run dev:demo`, `scripts/ops/*`), signed mint/redeem flows via `TreasuryController`, and NAV seeding helpers.
+> - **Planned operations:** Full BasketManager mainnet rollout, multi-asset pricing automation, and expanded incident-response tooling.
+
 ## Test & Validation Checklist
 
 Before rolling changes across environments, run the following commands and confirm they complete without errors:
@@ -212,6 +217,22 @@ Key behaviors:
 - Appends an immutable JSONL audit trail per network under `scripts/ops/ledger/transfers-<network>.jsonl`, recording the tx hash, event source (`wss` or `poll`), block number, and human-readable amounts.
 - Supports `--dry-run` to preview balances without submitting the transaction.
 
+### Localhost Basket Snapshot — 13 Oct 2025
+
+The latest end-to-end rehearsal (deploy → mint → transfer → redeem) on the Hardhat network produced the following balances for the primary operator wallet (`0xf39F…266`):
+
+| Basket | Shares After Redeem   | Base Notional Burned | Redeem Tx Hash                                                       |
+| ------ | --------------------- | -------------------- | -------------------------------------------------------------------- |
+| EUFX   | 1.497261438439470044  | 10                   | `0xef64256ef1a7e0e4933cadc9420e3340656f6b3602ff83a8d36bb46a36ac6862` |
+| EUBND  | 1.533631991814096034  | 10                   | `0xaae585046b5352b80ba5f98084e0ecd0b46bbca53922d838cc98621b950781e8` |
+| ASFX   | 6.330717152838373175  | 4                    | `0xb8bfcd86f42ed4ba84f9b27fa8d21765fc1e4399cc62db2487468c1bd84b62d3` |
+| ASBND  | 1.099854092446022546  | 5                    | `0xcd2a4a2900230d9806e15a262e8f781610ab7190e940919c1163a17a4dc74b43` |
+| EAMIX  | 27.854220871807942824 | 10                   | `0xb5d05e185a274468629fe90cf11fd50edf3647fbb49ccfb2de5b4ba1748bf3d9` |
+
+Each basket transfer was recorded in `scripts/ledger/transfers-localhost.jsonl`; the most recent entries include the EUFX (5 shares), EUBND (0.5 shares), ASFX (50 shares), ASBND (1 share), and EAMIX (10 shares) dispatches to the sink account (`0x0000…001`).
+
+> **Controller quirk:** the current `BasketTreasuryController` implementation interprets `request.notional` as share-scaled units rather than raw base-asset amounts. The new `scripts/ops/redeem-basket.ts` helper compensates by converting the requested base notional into a share-aligned payload and records both the operator’s desired amount and the adjusted controller notional. Consider patching `BasketTreasuryController` (or `BasketManager.quoteRedeem` usage) before promoting this workflow beyond localhost.
+
 ## Oracle Management
 
 ### Price Update Process
@@ -250,6 +271,46 @@ npm run ops:nav:update -- --network sepolia --addresses scripts/deployments/sepo
 # Direct script invocation (supports --dry-run and --addresses overrides)
 node scripts/ops/update-median-oracle.ts --network sepolia --assets EURUSD,XAUUSD --dry-run
 ```
+
+#### Continuous NAV Watcher
+
+```bash
+# Esegue il feeder ogni 5 minuti (default) e invia gli update
+NETWORK=localhost npm run ops:nav:watch -- --addresses scripts/deployments/localhost.json --symbols EUFX,EUBND,ASFX,ASBND,EAMIX
+
+# Parametri utili:
+#   --interval 600000   intervallo personalizzato (ms)
+#   --jitter 60000      jitter random per evitare sincronizzazioni
+#   --dry               modalità preview senza commit
+```
+
+Lo script `scripts/ops/nav-watch.ts` gestisce loop, backoff esponenziale e log dei cicli. On-chain viene scritto solo quando si passa `--commit` (default nel comando npm); in caso di errore termina con exit code ≠ 0 dopo il tentativo in modalità `--once`, oppure continua a riprovare rispettando il backoff configurato.
+
+**Variabili d'ambiente principali**
+
+- `EXCHANGERATE_API_KEY`: chiave server-side per https://www.exchangerate-api.com/ (tier Pro consigliato per <5 min TTL).
+- `GOLD_API_KEY`: token GoldAPI (aggiungi il prefisso `Bearer` una sola volta).
+- `FEEDER_ADDRESSES`: file JSON con gli indirizzi del deployment (es. `scripts/deployments/sepolia.json`).
+- `FEEDER_SYMBOLS`: lista asset da aggiornare (se vuota usa `scripts/ops/assets.map.ts`).
+- `FEEDER_COMMIT_FLAG`: imposta `1` per abilitare i commit, lascia non impostata per dry-run permanente.
+- `NAV_WATCH_INTERVAL_MS` / `NAV_WATCH_JITTER_MS`: controllano frequenza e jitter delle esecuzioni.
+
+Puoi partire da `scripts/ops/.env.nav-watch.example`, personalizzarlo, e poi puntare il watcher al file con `DOTENV_CONFIG_PATH=scripts/ops/.env.nav-watch`. Esempio:
+
+```bash
+cp scripts/ops/.env.nav-watch.example scripts/ops/.env.nav-watch
+$EDITOR scripts/ops/.env.nav-watch
+DOTENV_CONFIG_PATH=scripts/ops/.env.nav-watch npm run ops:nav:watch -- --network sepolia --addresses scripts/deployments/sepolia.json --symbols EURUSD,USDJPY,XAUUSD,AAXJ.US
+```
+
+> **Heads up:** When invoking the feeder through Hardhat (`npx hardhat run ...`), always insert `--` before any script-specific flags so that Hardhat forwards them instead of trying to parse them itself.
+
+**Esecuzione continuativa (production)**
+
+- Systemd: crea `/etc/systemd/system/asiaflex-nav-watch.service` con `WorkingDirectory=/opt/asiaflex`, `Environment="DOTENV_CONFIG_PATH=/opt/asiaflex/scripts/ops/.env.nav-watch"`, `ExecStart=/usr/bin/npm run ops:nav:watch`, `Restart=always`, poi attiva con `systemctl enable --now asiaflex-nav-watch`.
+- PM2: `pm2 start npm --name asiaflex-nav-watch -- run ops:nav:watch -- --network sepolia` e aggiungi `--env DOTENV_CONFIG_PATH=...` oppure usa `pm2 start ecosystem.config.js` per più istanze.
+- Logging: in systemd usa `journalctl -u asiaflex-nav-watch -f`; con PM2 puoi usare `pm2 logs asiaflex-nav-watch`.
+- Replica safe: abilita jitter (`NAV_WATCH_JITTER_MS`) e fissa `NODE_ENV=production` per evitare rebuild non necessari.
 
 #### Emergency Price Updates
 

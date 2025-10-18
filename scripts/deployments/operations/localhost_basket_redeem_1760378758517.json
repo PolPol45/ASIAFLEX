@@ -1,0 +1,51 @@
+{
+  "type": "basket_redeem",
+  "network": "localhost",
+  "timestamp": "2025-10-13T18:05:58.517Z",
+  "basket": {
+    "symbol": "ASBND",
+    "name": "Asia Bond Basket",
+    "region": "asia",
+    "strategy": "bond",
+    "basketId": "0x754682102b571f02c32b12270f1a6cd2bf71322f8654379e315bb2743047ec9b"
+  },
+  "params": {
+    "account": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+    "holder": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+    "notionalInput": "5",
+    "notionalWei": "5000000000000000000",
+    "controllerNotional": "579801079495373",
+    "nav": "92863595000000000000",
+    "deadline": "1760382358",
+    "proofHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "nonce": "0",
+    "signer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+    "signature": "0xb3e6b4d388c78f823fb43acc145265e2ff9e8fc97bedf7f6ff1809757029430721f7494b72b8245f15105942d38972ca43e16da8059e77cbe9e082902ee8599d1c",
+    "slippageBps": 100,
+    "desiredShares": "53842412626821091",
+    "plannedShares": "53842412626821122",
+    "toleranceShares": "54380836753089301",
+    "digest": "0xea15703dec6d2afd4ce409f9a7c2a27d8fe115cc96fe6a017d6afe84d77c82ab"
+  },
+  "nav": {
+    "value": "92863595000000000000",
+    "timestamp": 1760374779
+  },
+  "results": {
+    "burnedShares": "53842412626821122",
+    "redeemedValueUsd": "5000000000000002810",
+    "balances": {
+      "before": "1153696505072843668",
+      "after": "1099854092446022546"
+    },
+    "transaction": {
+      "hash": "0xcd2a4a2900230d9806e15a262e8f781610ab7190e940919c1163a17a4dc74b43",
+      "blockNumber": 65,
+      "gasUsed": "126059"
+    }
+  },
+  "meta": {
+    "addressesPath": "/workspaces/ASIAFLEX/scripts/deployments/localhost.json",
+    "snapshotPath": null
+  }
+}

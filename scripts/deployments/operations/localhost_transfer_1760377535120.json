@@ -1,0 +1,30 @@
+{
+  "type": "transfer",
+  "network": "localhost",
+  "timestamp": "2025-10-13T17:45:35.120Z",
+  "basket": {
+    "id": "0xf3d16a7ffc07ed4c87276971f507e5211d86cd89d3ad127567373e45be1d7492",
+    "symbol": "ASFX",
+    "name": "Asia Currency Basket",
+    "token": "0x9E545E3C0baAB3E08CdfD552C960A1050f373042",
+    "nav": "1843305540000000000",
+    "navTimestamp": 1760374776
+  },
+  "params": {
+    "from": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+    "to": "0x0000000000000000000000000000000000000001",
+    "amount": "50000000000000000000",
+    "decimals": 18,
+    "dryRun": false,
+    "addressesPath": "/workspaces/ASIAFLEX/scripts/deployments/localhost.json"
+  },
+  "transaction": {
+    "hash": "0x3c0256390d040c3a642a5ea4bf409a008f301c5cf1801e4a8c94f53c1ed65ae7",
+    "blockNumber": 53,
+    "gasUsed": "51367"
+  },
+  "results": {
+    "senderBalance": "58500731788610584872",
+    "recipientBalance": "50000000000000000000"
+  }
+}

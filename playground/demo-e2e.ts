@@ -1,5 +1,5 @@
 // playground/demo-e2e.ts
-import { ethers } from "hardhat";
+import hre from "hardhat";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -18,7 +18,7 @@ async function runDemo() {
 
   console.log("📈 NAV seeded at", formatWei(nav));
 
-  const chainId = (await ethers.provider.getNetwork()).chainId;
+  const chainId = (await hre.ethers.provider.getNetwork()).chainId;
   const domain = basketTreasuryDomain(chainId, await treasury.getAddress());
 
   const mintRequest: MintRedeemRequest = {
@@ -27,7 +27,7 @@ async function runDemo() {
     notional: toWei("1000"),
     nav,
     deadline: BigInt(Math.floor(Date.now() / 1000) + 3600),
-    proofHash: ethers.ZeroHash,
+    proofHash: hre.ethers.ZeroHash,
     nonce: 1n,
   };
 
@@ -43,7 +43,7 @@ async function runDemo() {
     notional: toWei("250"),
     nav,
     deadline: BigInt(Math.floor(Date.now() / 1000) + 7200),
-    proofHash: ethers.ZeroHash,
+    proofHash: hre.ethers.ZeroHash,
     nonce: 2n,
   };
 
@@ -55,7 +55,7 @@ async function runDemo() {
   const redeemedNotional = await manager.quoteRedeem(basketId, mintedShares - remainingShares);
 
   console.log("🔥 Redeemed notional:", formatWei(redeemedNotional));
-  console.log("� Remaining shares:", formatWei(remainingShares));
+  console.log("🪙 Remaining shares:", formatWei(remainingShares));
 
   const observation = await navOracle.getObservation(basketId);
 

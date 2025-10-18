@@ -1,0 +1,22 @@
+{
+  "type": "mint",
+  "network": "sepolia",
+  "timestamp": "2025-10-18T14:41:37.194Z",
+  "signer": "0xF4569BC729C62a2eD036F0A3fA66EDf842F14574",
+  "params": {
+    "to": "0xF4569BC729C62a2eD036F0A3fA66EDf842F14574",
+    "amount": "100000000000000000",
+    "attestationHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "signer": "0xF4569BC729C62a2eD036F0A3fA66EDf842F14574",
+    "dryRun": false
+  },
+  "transaction": {
+    "hash": "0xc25f4ac412354cb438a8e09d73d5d00dc0395bcafc167f1fdaa7dbd4891ced3b",
+    "blockNumber": 9438883,
+    "gasUsed": "67829"
+  },
+  "results": {
+    "recipientBalance": "200000000000000000",
+    "totalSupply": "200000000000000000"
+  }
+}

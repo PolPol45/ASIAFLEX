@@ -1,0 +1,343 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const hardhat_1 = require("hardhat");
+const chai_1 = require("chai");
+const mintWithAttestation = (token, signer, to, amount, attestation) => {
+  const instance = signer ? token.connect(signer) : token;
+  return instance["mint(address,uint256,bytes32)"](to, amount, attestation);
+};
+const legacyMint = (token, signer, to, amount) => {
+  const instance = signer ? token.connect(signer) : token;
+  return instance["mint(address,uint256)"](to, amount);
+};
+describe("AsiaFlexToken", function () {
+  let token;
+  let owner;
+  let treasury;
+  let pauser;
+  let capsManager;
+  let blacklistManager;
+  let user1;
+  let user2;
+  const INITIAL_SUPPLY_CAP = hardhat_1.ethers.parseEther("1000000"); // 1M tokens
+  const INITIAL_MAX_DAILY_MINT = hardhat_1.ethers.parseEther("10000"); // 10K tokens
+  const INITIAL_MAX_DAILY_NET_INFLOWS = hardhat_1.ethers.parseEther("50000"); // 50K tokens
+  beforeEach(async function () {
+    [owner, treasury, pauser, capsManager, blacklistManager, user1, user2] = await hardhat_1.ethers.getSigners();
+    const AsiaFlexTokenFactory = await hardhat_1.ethers.getContractFactory("AsiaFlexToken");
+    token = await AsiaFlexTokenFactory.deploy(
+      "AsiaFlexToken",
+      "AFX",
+      INITIAL_SUPPLY_CAP,
+      INITIAL_MAX_DAILY_MINT,
+      INITIAL_MAX_DAILY_NET_INFLOWS
+    );
+    // Setup roles
+    const TREASURY_ROLE = await token.TREASURY_ROLE();
+    const PAUSER_ROLE = await token.PAUSER_ROLE();
+    const CAPS_MANAGER_ROLE = await token.CAPS_MANAGER_ROLE();
+    const BLACKLIST_MANAGER_ROLE = await token.BLACKLIST_MANAGER_ROLE();
+    const ATTESTATION_BYPASS_ROLE = await token.ATTESTATION_BYPASS_ROLE();
+    await token.grantRole(TREASURY_ROLE, treasury.address);
+    await token.grantRole(PAUSER_ROLE, pauser.address);
+    await token.grantRole(CAPS_MANAGER_ROLE, capsManager.address);
+    await token.grantRole(BLACKLIST_MANAGER_ROLE, blacklistManager.address);
+    await token.grantRole(ATTESTATION_BYPASS_ROLE, treasury.address);
+  });
+  describe("Deployment", function () {
+    it("Should have correct initial values", async function () {
+      (0, chai_1.expect)(await token.name()).to.equal("AsiaFlexToken");
+      (0, chai_1.expect)(await token.symbol()).to.equal("AFX");
+      (0, chai_1.expect)(await token.decimals()).to.equal(18);
+      (0, chai_1.expect)(await token.totalSupply()).to.equal(0);
+      (0, chai_1.expect)(await token.supplyCap()).to.equal(INITIAL_SUPPLY_CAP);
+      (0, chai_1.expect)(await token.maxDailyMint()).to.equal(INITIAL_MAX_DAILY_MINT);
+      (0, chai_1.expect)(await token.maxDailyNetInflows()).to.equal(INITIAL_MAX_DAILY_NET_INFLOWS);
+      (0, chai_1.expect)(await token.paused()).to.be.false;
+    });
+    it("Should grant admin role to deployer", async function () {
+      const DEFAULT_ADMIN_ROLE = await token.DEFAULT_ADMIN_ROLE();
+      (0, chai_1.expect)(await token.hasRole(DEFAULT_ADMIN_ROLE, owner.address)).to.be.true;
+    });
+    it("Should grant initial roles to deployer", async function () {
+      const TREASURY_ROLE = await token.TREASURY_ROLE();
+      const PAUSER_ROLE = await token.PAUSER_ROLE();
+      const CAPS_MANAGER_ROLE = await token.CAPS_MANAGER_ROLE();
+      const BLACKLIST_MANAGER_ROLE = await token.BLACKLIST_MANAGER_ROLE();
+      (0, chai_1.expect)(await token.hasRole(TREASURY_ROLE, owner.address)).to.be.true;
+      (0, chai_1.expect)(await token.hasRole(PAUSER_ROLE, owner.address)).to.be.true;
+      (0, chai_1.expect)(await token.hasRole(CAPS_MANAGER_ROLE, owner.address)).to.be.true;
+      (0, chai_1.expect)(await token.hasRole(BLACKLIST_MANAGER_ROLE, owner.address)).to.be.true;
+    });
+  });
+  describe("Minting", function () {
+    const mintAmount = hardhat_1.ethers.parseEther("1000");
+    const attestationHash = hardhat_1.ethers.keccak256(hardhat_1.ethers.toUtf8Bytes("test-attestation"));
+    it("Should allow TREASURY_ROLE to mint tokens", async function () {
+      await (0, chai_1.expect)(mintWithAttestation(token, treasury, user1.address, mintAmount, attestationHash))
+        .to.emit(token, "Mint")
+        .withArgs(user1.address, mintAmount, attestationHash);
+      (0, chai_1.expect)(await token.balanceOf(user1.address)).to.equal(mintAmount);
+      (0, chai_1.expect)(await token.totalSupply()).to.equal(mintAmount);
+    });
+    it("Should revert when non-treasury tries to mint", async function () {
+      await (0, chai_1.expect)(
+        mintWithAttestation(token, user1, user1.address, mintAmount, attestationHash)
+      ).to.be.revertedWithCustomError(token, "AccessControlUnauthorizedAccount");
+    });
+    it("Should revert when minting exceeds supply cap", async function () {
+      const extendedDailyCap = INITIAL_SUPPLY_CAP + 1n;
+      await token.connect(capsManager).setMaxDailyMint(extendedDailyCap);
+      const largeAmount = INITIAL_SUPPLY_CAP + 1n;
+      await (0, chai_1.expect)(
+        mintWithAttestation(token, treasury, user1.address, largeAmount, attestationHash)
+      ).to.be.revertedWithCustomError(token, "InsufficientReserves");
+    });
+    it("Should revert when minting exceeds daily cap", async function () {
+      const largeAmount = INITIAL_MAX_DAILY_MINT + 1n;
+      await (0, chai_1.expect)(
+        mintWithAttestation(token, treasury, user1.address, largeAmount, attestationHash)
+      ).to.be.revertedWithCustomError(token, "DailyCapsExceeded");
+    });
+    it("Should track daily mint amounts correctly", async function () {
+      const halfDaily = INITIAL_MAX_DAILY_MINT / 2n;
+      await mintWithAttestation(token, treasury, user1.address, halfDaily, attestationHash);
+      (0, chai_1.expect)(await token.getRemainingDailyMint()).to.equal(halfDaily);
+      await mintWithAttestation(token, treasury, user2.address, halfDaily, attestationHash);
+      (0, chai_1.expect)(await token.getRemainingDailyMint()).to.equal(0);
+    });
+    it("Should reset daily caps after 24 hours", async function () {
+      await mintWithAttestation(token, treasury, user1.address, INITIAL_MAX_DAILY_MINT, attestationHash);
+      (0, chai_1.expect)(await token.getRemainingDailyMint()).to.equal(0);
+      // Fast forward 24 hours + 1 second
+      await hardhat_1.ethers.provider.send("evm_increaseTime", [86401]);
+      await hardhat_1.ethers.provider.send("evm_mine", []);
+      (0, chai_1.expect)(await token.getRemainingDailyMint()).to.equal(INITIAL_MAX_DAILY_MINT);
+    });
+    it("Should revert when minting to blacklisted address", async function () {
+      await token.connect(blacklistManager).setBlacklisted(user1.address, true);
+      await (0, chai_1.expect)(
+        mintWithAttestation(token, treasury, user1.address, mintAmount, attestationHash)
+      ).to.be.revertedWithCustomError(token, "AccountBlacklisted");
+    });
+    it("Should revert when contract is paused", async function () {
+      await token.connect(pauser).pause();
+      await (0, chai_1.expect)(
+        mintWithAttestation(token, treasury, user1.address, mintAmount, attestationHash)
+      ).to.be.revertedWithCustomError(token, "EnforcedPause");
+    });
+    it("Should support legacy mint function", async function () {
+      await (0, chai_1.expect)(legacyMint(token, treasury, user1.address, mintAmount))
+        .to.emit(token, "Mint")
+        .withArgs(user1.address, mintAmount, hardhat_1.ethers.ZeroHash);
+    });
+    it("Should revert legacy mint when caller lacks attestation bypass role", async function () {
+      const bypassRole = await token.ATTESTATION_BYPASS_ROLE();
+      await token.revokeRole(bypassRole, treasury.address);
+      await (0, chai_1.expect)(legacyMint(token, treasury, user1.address, mintAmount)).to.be.revertedWithCustomError(
+        token,
+        "AttestationRequired"
+      );
+    });
+    it("Should enforce daily net inflow cap", async function () {
+      const limitedNetInflow = hardhat_1.ethers.parseEther("500");
+      await token.connect(capsManager).setMaxDailyNetInflows(limitedNetInflow);
+      const overCapAmount = limitedNetInflow + 1n;
+      await (0, chai_1.expect)(
+        mintWithAttestation(token, treasury, user1.address, overCapAmount, attestationHash)
+      ).to.be.revertedWithCustomError(token, "DailyNetInflowExceeded");
+    });
+    it("Should reduce remaining daily net inflow after mint", async function () {
+      await mintWithAttestation(token, treasury, user1.address, mintAmount, attestationHash);
+      const remainingNetInflow = await token.getRemainingDailyNetInflows();
+      (0, chai_1.expect)(remainingNetInflow).to.equal(INITIAL_MAX_DAILY_NET_INFLOWS - mintAmount);
+    });
+  });
+  describe("Burning", function () {
+    const mintAmount = hardhat_1.ethers.parseEther("1000");
+    const burnAmount = hardhat_1.ethers.parseEther("500");
+    const attestationHash = hardhat_1.ethers.keccak256(hardhat_1.ethers.toUtf8Bytes("test-attestation"));
+    beforeEach(async function () {
+      await mintWithAttestation(token, treasury, user1.address, mintAmount, attestationHash);
+    });
+    it("Should allow TREASURY_ROLE to burn tokens", async function () {
+      await (0, chai_1.expect)(token.connect(treasury).burn(user1.address, burnAmount, attestationHash))
+        .to.emit(token, "Burn")
+        .withArgs(user1.address, burnAmount, attestationHash);
+      (0, chai_1.expect)(await token.balanceOf(user1.address)).to.equal(mintAmount - burnAmount);
+      (0, chai_1.expect)(await token.totalSupply()).to.equal(mintAmount - burnAmount);
+    });
+    it("Should revert when non-treasury tries to burn", async function () {
+      await (0, chai_1.expect)(
+        token.connect(user1).burn(user1.address, burnAmount, attestationHash)
+      ).to.be.revertedWithCustomError(token, "AccessControlUnauthorizedAccount");
+    });
+    it("Should revert when burning more than balance", async function () {
+      const largeAmount = mintAmount + 1n;
+      await (0, chai_1.expect)(
+        token.connect(treasury).burn(user1.address, largeAmount, attestationHash)
+      ).to.be.revertedWithCustomError(token, "ERC20InsufficientBalance");
+    });
+    it("Should revert when burning from blacklisted address", async function () {
+      await token.connect(blacklistManager).setBlacklisted(user1.address, true);
+      await (0, chai_1.expect)(
+        token.connect(treasury).burn(user1.address, burnAmount, attestationHash)
+      ).to.be.revertedWithCustomError(token, "AccountBlacklisted");
+    });
+    it("Should support legacy burnFrom function", async function () {
+      await (0, chai_1.expect)(token.connect(treasury).burnFrom(user1.address, burnAmount))
+        .to.emit(token, "Burn")
+        .withArgs(user1.address, burnAmount, hardhat_1.ethers.ZeroHash);
+    });
+  });
+  describe("Circuit Breakers", function () {
+    it("Should allow caps manager to update daily mint cap", async function () {
+      const newCap = hardhat_1.ethers.parseEther("20000");
+      await (0, chai_1.expect)(token.connect(capsManager).setMaxDailyMint(newCap))
+        .to.emit(token, "DailyCapUpdated")
+        .withArgs(INITIAL_MAX_DAILY_MINT, newCap);
+      (0, chai_1.expect)(await token.maxDailyMint()).to.equal(newCap);
+    });
+    it("Should allow caps manager to update daily net inflows cap", async function () {
+      const newCap = hardhat_1.ethers.parseEther("100000");
+      await (0, chai_1.expect)(token.connect(capsManager).setMaxDailyNetInflows(newCap))
+        .to.emit(token, "DailyNetInflowCapUpdated")
+        .withArgs(INITIAL_MAX_DAILY_NET_INFLOWS, newCap);
+      (0, chai_1.expect)(await token.maxDailyNetInflows()).to.equal(newCap);
+    });
+    it("Should allow caps manager to update supply cap", async function () {
+      const newCap = hardhat_1.ethers.parseEther("2000000");
+      await token.connect(capsManager).setSupplyCap(newCap);
+      (0, chai_1.expect)(await token.supplyCap()).to.equal(newCap);
+    });
+    it("Should revert when setting supply cap below current supply", async function () {
+      const mintAmount = hardhat_1.ethers.parseEther("1000");
+      await mintWithAttestation(token, treasury, user1.address, mintAmount, hardhat_1.ethers.ZeroHash);
+      const lowCap = mintAmount - 1n;
+      await (0, chai_1.expect)(token.connect(capsManager).setSupplyCap(lowCap)).to.be.revertedWithCustomError(
+        token,
+        "SupplyCapBelowCurrentSupply"
+      );
+    });
+    it("Should revert when non-caps manager tries to update caps", async function () {
+      const newCap = hardhat_1.ethers.parseEther("20000");
+      await (0, chai_1.expect)(token.connect(user1).setMaxDailyMint(newCap)).to.be.revertedWithCustomError(
+        token,
+        "AccessControlUnauthorizedAccount"
+      );
+    });
+  });
+  describe("Blacklist", function () {
+    it("Should allow blacklist manager to blacklist addresses", async function () {
+      await (0, chai_1.expect)(token.connect(blacklistManager).setBlacklisted(user1.address, true))
+        .to.emit(token, "BlacklistUpdated")
+        .withArgs(user1.address, true);
+      (0, chai_1.expect)(await token.isBlacklisted(user1.address)).to.be.true;
+    });
+    it("Should allow blacklist manager to remove from blacklist", async function () {
+      await token.connect(blacklistManager).setBlacklisted(user1.address, true);
+      await (0, chai_1.expect)(token.connect(blacklistManager).setBlacklisted(user1.address, false))
+        .to.emit(token, "BlacklistUpdated")
+        .withArgs(user1.address, false);
+      (0, chai_1.expect)(await token.isBlacklisted(user1.address)).to.be.false;
+    });
+    it("Should revert transfers from blacklisted addresses", async function () {
+      const mintAmount = hardhat_1.ethers.parseEther("1000");
+      await mintWithAttestation(token, treasury, user1.address, mintAmount, hardhat_1.ethers.ZeroHash);
+      await token.connect(blacklistManager).setBlacklisted(user1.address, true);
+      await (0, chai_1.expect)(
+        token.connect(user1).transfer(user2.address, hardhat_1.ethers.parseEther("100"))
+      ).to.be.revertedWithCustomError(token, "AccountBlacklisted");
+    });
+    it("Should revert transfers to blacklisted addresses", async function () {
+      const mintAmount = hardhat_1.ethers.parseEther("1000");
+      await mintWithAttestation(token, treasury, user1.address, mintAmount, hardhat_1.ethers.ZeroHash);
+      await token.connect(blacklistManager).setBlacklisted(user2.address, true);
+      await (0, chai_1.expect)(
+        token.connect(user1).transfer(user2.address, hardhat_1.ethers.parseEther("100"))
+      ).to.be.revertedWithCustomError(token, "AccountBlacklisted");
+    });
+    it("Should revert when non-blacklist manager tries to update blacklist", async function () {
+      await (0, chai_1.expect)(token.connect(user1).setBlacklisted(user2.address, true)).to.be.revertedWithCustomError(
+        token,
+        "AccessControlUnauthorizedAccount"
+      );
+    });
+  });
+  describe("Pause", function () {
+    it("Should allow pauser to pause contract", async function () {
+      await (0, chai_1.expect)(token.connect(pauser).pause()).to.emit(token, "Paused").withArgs(pauser.address);
+      (0, chai_1.expect)(await token.paused()).to.be.true;
+    });
+    it("Should allow pauser to unpause contract", async function () {
+      await token.connect(pauser).pause();
+      await (0, chai_1.expect)(token.connect(pauser).unpause()).to.emit(token, "Unpaused").withArgs(pauser.address);
+      (0, chai_1.expect)(await token.paused()).to.be.false;
+    });
+    it("Should revert transfers when paused", async function () {
+      const mintAmount = hardhat_1.ethers.parseEther("1000");
+      await mintWithAttestation(token, treasury, user1.address, mintAmount, hardhat_1.ethers.ZeroHash);
+      await token.connect(pauser).pause();
+      await (0, chai_1.expect)(
+        token.connect(user1).transfer(user2.address, hardhat_1.ethers.parseEther("100"))
+      ).to.be.revertedWithCustomError(token, "EnforcedPause");
+    });
+    it("Should revert when non-pauser tries to pause", async function () {
+      await (0, chai_1.expect)(token.connect(user1).pause()).to.be.revertedWithCustomError(
+        token,
+        "AccessControlUnauthorizedAccount"
+      );
+    });
+  });
+  describe("EIP712 Permit", function () {
+    it("Should support permit functionality", async function () {
+      const mintAmount = hardhat_1.ethers.parseEther("1000");
+      await mintWithAttestation(token, treasury, user1.address, mintAmount, hardhat_1.ethers.ZeroHash);
+      // const _spender = user2.address;
+      // const _value = ethers.parseEther("100");
+      // const _deadline = Math.floor(Date.now() / 1000) + 3600; // 1 hour from now
+      // Note: This is a simplified test. In practice, you'd need to sign the permit message
+      // For now, we just test that the permit function exists and can be called
+      const nonce = await token.nonces(user1.address);
+      (0, chai_1.expect)(nonce).to.equal(0);
+    });
+  });
+  describe("Legacy Compatibility", function () {
+    it("Should support legacy reserves functions", async function () {
+      const reserveAmount = hardhat_1.ethers.parseEther("100000");
+      await token.connect(treasury).setReserves(reserveAmount);
+      (0, chai_1.expect)(await token.reserves()).to.equal(reserveAmount);
+    });
+    it("Should support legacy price functions", async function () {
+      const price = hardhat_1.ethers.parseEther("105.50"); // $105.50
+      await token.connect(treasury).setPrice(price);
+      (0, chai_1.expect)(await token.getPrice()).to.equal(price);
+    });
+    it("Should support legacy mintByUSD function", async function () {
+      const price = hardhat_1.ethers.parseEther("100"); // $100 per token
+      const usdAmount = hardhat_1.ethers.parseEther("1000"); // $1000
+      const expectedTokens = hardhat_1.ethers.parseEther("10"); // 10 tokens
+      await token.connect(treasury).setPrice(price);
+      await (0, chai_1.expect)(token.connect(treasury).mintByUSD(user1.address, usdAmount))
+        .to.emit(token, "Mint")
+        .withArgs(user1.address, expectedTokens, hardhat_1.ethers.ZeroHash);
+      (0, chai_1.expect)(await token.balanceOf(user1.address)).to.equal(expectedTokens);
+    });
+    it("Should support legacy redeem request/process flow", async function () {
+      const mintAmount = hardhat_1.ethers.parseEther("1000");
+      const redeemAmount = hardhat_1.ethers.parseEther("500");
+      await mintWithAttestation(token, treasury, user1.address, mintAmount, hardhat_1.ethers.ZeroHash);
+      await (0, chai_1.expect)(token.connect(user1).redeemRequest(redeemAmount))
+        .to.emit(token, "RedeemRequested")
+        .withArgs(user1.address, redeemAmount);
+      (0, chai_1.expect)(await token.pendingRedeems(user1.address)).to.equal(redeemAmount);
+      const currentBlock = await hardhat_1.ethers.provider.getBlockNumber();
+      await (0, chai_1.expect)(token.connect(treasury).processRedeem(user1.address, currentBlock))
+        .to.emit(token, "RedeemProcessed")
+        .withArgs(user1.address, redeemAmount);
+      (0, chai_1.expect)(await token.balanceOf(user1.address)).to.equal(mintAmount - redeemAmount);
+      (0, chai_1.expect)(await token.pendingRedeems(user1.address)).to.equal(0);
+      (0, chai_1.expect)(await token.getRedeemQueueLength(user1.address)).to.equal(0);
+    });
+  });
+});

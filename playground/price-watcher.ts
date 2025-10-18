@@ -1,8 +1,11 @@
-import { ethers } from "hardhat";
+import hre from "hardhat";
 import * as fs from "fs";
 import * as path from "path";
 
-import type { NAVOracleAdapter } from "../typechain-types";
+import type { NAVOracleAdapter } from "../typechain-types/contracts/NAVOracleAdapter";
+import { NAVOracleAdapter__factory } from "../typechain-types/factories/contracts/NAVOracleAdapter__factory";
+
+const { ethers } = hre;
 
 interface NAVRecord {
   timestamp: string;
@@ -15,7 +18,7 @@ interface NAVRecord {
 
 class PriceWatcher {
   private oracleAddress: string;
-  private oraclePromise: Promise<NAVOracleAdapter>;
+  private oracle: NAVOracleAdapter;
   private basketId: `0x${string}`;
   private basketLabel: string;
   private interval: number;
@@ -25,7 +28,7 @@ class PriceWatcher {
 
   constructor(oracleAddress: string, basketInput: string, intervalSeconds: number = 30) {
     this.oracleAddress = oracleAddress;
-    this.oraclePromise = ethers.getContractAt("NAVOracleAdapter", oracleAddress) as Promise<NAVOracleAdapter>;
+    this.oracle = NAVOracleAdapter__factory.connect(oracleAddress, hre.ethers.provider);
 
     if (basketInput.startsWith("0x")) {
       this.basketId = basketInput as `0x${string}`;
@@ -53,8 +56,7 @@ class PriceWatcher {
 
   async readNAV(): Promise<NAVRecord | null> {
     try {
-      const oracle = await this.oraclePromise;
-      const observation = await oracle.getObservation(this.basketId);
+      const observation = await this.oracle.getObservation(this.basketId);
 
       if (observation.nav === 0n) {
         return null;
@@ -86,7 +88,7 @@ class PriceWatcher {
             }
           }
         }
-      } catch (error) {
+      } catch {
         // Ignore errors when reading previous value
       }
 
@@ -172,7 +174,7 @@ class PriceWatcher {
         });
         console.log("└─────────────────────┴──────────────┴────────────┴────────────┘");
       }
-    } catch (error) {
+    } catch {
       // Ignore errors when displaying history
     }
 

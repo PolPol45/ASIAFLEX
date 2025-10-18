@@ -1,0 +1,387 @@
+{
+  "network": "sepolia",
+  "chainId": "11155111",
+  "timestamp": "2025-10-13T19:54:15.035Z",
+  "baseAsset": "0x16fee35C5b5cd67b770Ed99578886ABfF359b2fd",
+  "manager": "0x5888DC8C44b71A22Af0bD3330872313f0a206a1b",
+  "medianOracle": "0xc76302601F155961ab31687D31Fa645dC4E80893",
+  "navOracle": "0x98338A60C8567b183d86f84b72cCbb569a3FE2BA",
+  "baskets": [
+    {
+      "name": "EU Currency Basket",
+      "symbol": "EUFX",
+      "region": "eu",
+      "strategy": "fx",
+      "regionEnum": 0,
+      "strategyEnum": 0,
+      "basketId": "0x5dc5315dfbd2c41d2c18163b5252a2625fab054805c6298bd76950e8ef61bb90",
+      "tokenAddress": "0x5Cd86D10E1041d1245d9216ffC0d19F395728A98",
+      "nav": "2692675000000000000",
+      "navTimestamp": 1760385073,
+      "allocations": [
+        {
+          "assetId": "EUR",
+          "assetLabel": "EUR",
+          "weightBps": 6360,
+          "isBond": false,
+          "accrualBps": 0,
+          "mockPrice": "1.08",
+          "decimals": 18
+        },
+        {
+          "assetId": "GBP",
+          "assetLabel": "GBP",
+          "weightBps": 1360,
+          "isBond": false,
+          "accrualBps": 0,
+          "mockPrice": "1.25",
+          "decimals": 18
+        },
+        {
+          "assetId": "CHF",
+          "assetLabel": "CHF",
+          "weightBps": 910,
+          "isBond": false,
+          "accrualBps": 0,
+          "mockPrice": "1.12",
+          "decimals": 18
+        },
+        {
+          "assetId": "SEK/NOK",
+          "assetLabel": "SEK/NOK",
+          "weightBps": 450,
+          "isBond": false,
+          "accrualBps": 0,
+          "mockPrice": "0.095",
+          "decimals": 18
+        },
+        {
+          "assetId": "GOLD",
+          "assetLabel": "GOLD",
+          "weightBps": 920,
+          "isBond": false,
+          "accrualBps": 0,
+          "mockPrice": "18.80",
+          "decimals": 18
+        }
+      ]
+    },
+    {
+      "name": "EU Bond Basket",
+      "symbol": "EUBND",
+      "region": "eu",
+      "strategy": "bond",
+      "regionEnum": 0,
+      "strategyEnum": 1,
+      "basketId": "0xe2bc9c5713615770244d9ca0e35a52e4d712196b7828b54634601119a1e7dc5a",
+      "tokenAddress": "0x362BfA471D45A80aBaf079902D1459f8c1C1dd54",
+      "nav": "93428900000000000000",
+      "navTimestamp": 1760385109,
+      "allocations": [
+        {
+          "assetId": "Bund",
+          "assetLabel": "Bund",
+          "weightBps": 3636,
+          "isBond": true,
+          "accrualBps": 20,
+          "mockPrice": "102.50",
+          "decimals": 18
+        },
+        {
+          "assetId": "BTP",
+          "assetLabel": "BTP",
+          "weightBps": 1818,
+          "isBond": true,
+          "accrualBps": 35,
+          "mockPrice": "99.40",
+          "decimals": 18
+        },
+        {
+          "assetId": "Gilt",
+          "assetLabel": "Gilt",
+          "weightBps": 1818,
+          "isBond": true,
+          "accrualBps": 25,
+          "mockPrice": "98.75",
+          "decimals": 18
+        },
+        {
+          "assetId": "SwissGov",
+          "assetLabel": "SwissGov",
+          "weightBps": 909,
+          "isBond": true,
+          "accrualBps": 15,
+          "mockPrice": "101.90",
+          "decimals": 18
+        },
+        {
+          "assetId": "ScandiGov",
+          "assetLabel": "ScandiGov",
+          "weightBps": 909,
+          "isBond": true,
+          "accrualBps": 18,
+          "mockPrice": "100.80",
+          "decimals": 18
+        },
+        {
+          "assetId": "GOLD",
+          "assetLabel": "GOLD",
+          "weightBps": 910,
+          "isBond": false,
+          "accrualBps": 0,
+          "mockPrice": "18.80",
+          "decimals": 18
+        }
+      ]
+    },
+    {
+      "name": "Asia Currency Basket",
+      "symbol": "ASFX",
+      "region": "asia",
+      "strategy": "fx",
+      "regionEnum": 1,
+      "strategyEnum": 0,
+      "basketId": "0xf3d16a7ffc07ed4c87276971f507e5211d86cd89d3ad127567373e45be1d7492",
+      "tokenAddress": "0x15b847791312F9641bBaBD88a0D166a5a3c95d10",
+      "nav": "1843305540000000000",
+      "navTimestamp": 1760385145,
+      "allocations": [
+        {
+          "assetId": "CNY",
+          "assetLabel": "CNY",
+          "weightBps": 3180,
+          "isBond": false,
+          "accrualBps": 0,
+          "mockPrice": "0.14",
+          "decimals": 18
+        },
+        {
+          "assetId": "JPY",
+          "assetLabel": "JPY",
+          "weightBps": 1820,
+          "isBond": false,
+          "accrualBps": 0,
+          "mockPrice": "0.0091",
+          "decimals": 18
+        },
+        {
+          "assetId": "INR",
+          "assetLabel": "INR",
+          "weightBps": 1360,
+          "isBond": false,
+          "accrualBps": 0,
+          "mockPrice": "0.012",
+          "decimals": 18
+        },
+        {
+          "assetId": "KRW",
+          "assetLabel": "KRW",
+          "weightBps": 910,
+          "isBond": false,
+          "accrualBps": 0,
+          "mockPrice": "0.00074",
+          "decimals": 18
+        },
+        {
+          "assetId": "SGD/HKD",
+          "assetLabel": "SGD/HKD",
+          "weightBps": 910,
+          "isBond": false,
+          "accrualBps": 0,
+          "mockPrice": "0.74",
+          "decimals": 18
+        },
+        {
+          "assetId": "ASEAN",
+          "assetLabel": "ASEAN",
+          "weightBps": 910,
+          "isBond": false,
+          "accrualBps": 0,
+          "mockPrice": "0.19",
+          "decimals": 18
+        },
+        {
+          "assetId": "GOLD",
+          "assetLabel": "GOLD",
+          "weightBps": 910,
+          "isBond": false,
+          "accrualBps": 0,
+          "mockPrice": "18.80",
+          "decimals": 18
+        }
+      ]
+    },
+    {
+      "name": "Asia Bond Basket",
+      "symbol": "ASBND",
+      "region": "asia",
+      "strategy": "bond",
+      "regionEnum": 1,
+      "strategyEnum": 1,
+      "basketId": "0x754682102b571f02c32b12270f1a6cd2bf71322f8654379e315bb2743047ec9b",
+      "tokenAddress": "0xE4046D7EA97455885bB386f9B8472a41c3E1D087",
+      "nav": "92863595000000000000",
+      "navTimestamp": 1760385218,
+      "allocations": [
+        {
+          "assetId": "CGB",
+          "assetLabel": "CGB",
+          "weightBps": 2728,
+          "isBond": true,
+          "accrualBps": 30,
+          "mockPrice": "102.50",
+          "decimals": 18
+        },
+        {
+          "assetId": "JGB",
+          "assetLabel": "JGB",
+          "weightBps": 2273,
+          "isBond": true,
+          "accrualBps": 12,
+          "mockPrice": "98.20",
+          "decimals": 18
+        },
+        {
+          "assetId": "G-Secs",
+          "assetLabel": "G-Secs",
+          "weightBps": 1364,
+          "isBond": true,
+          "accrualBps": 40,
+          "mockPrice": "101.10",
+          "decimals": 18
+        },
+        {
+          "assetId": "KTB",
+          "assetLabel": "KTB",
+          "weightBps": 909,
+          "isBond": true,
+          "accrualBps": 25,
+          "mockPrice": "99.40",
+          "decimals": 18
+        },
+        {
+          "assetId": "SGS/HK",
+          "assetLabel": "SGS/HK",
+          "weightBps": 909,
+          "isBond": true,
+          "accrualBps": 20,
+          "mockPrice": "100.80",
+          "decimals": 18
+        },
+        {
+          "assetId": "ASEANGov",
+          "assetLabel": "ASEANGov",
+          "weightBps": 909,
+          "isBond": true,
+          "accrualBps": 28,
+          "mockPrice": "97.75",
+          "decimals": 18
+        },
+        {
+          "assetId": "GOLD",
+          "assetLabel": "GOLD",
+          "weightBps": 908,
+          "isBond": false,
+          "accrualBps": 0,
+          "mockPrice": "18.80",
+          "decimals": 18
+        }
+      ]
+    },
+    {
+      "name": "EuroAsia Mix Basket",
+      "symbol": "EAMIX",
+      "region": "euroasia",
+      "strategy": "mix",
+      "regionEnum": 2,
+      "strategyEnum": 2,
+      "basketId": "0x17da899ffe78c376814e9ad4d0f154616e60b7c7ea1fe49f3bd0ca0936baf67b",
+      "tokenAddress": "0x3EC118655Ac1825E003D443863d8f36711907D5c",
+      "nav": "2377542000000000000",
+      "navTimestamp": 1760385255,
+      "allocations": [
+        {
+          "assetId": "EUR",
+          "assetLabel": "EUR",
+          "weightBps": 3000,
+          "isBond": false,
+          "accrualBps": 0,
+          "mockPrice": "1.08",
+          "decimals": 18
+        },
+        {
+          "assetId": "GBP",
+          "assetLabel": "GBP",
+          "weightBps": 700,
+          "isBond": false,
+          "accrualBps": 0,
+          "mockPrice": "1.25",
+          "decimals": 18
+        },
+        {
+          "assetId": "CHF",
+          "assetLabel": "CHF",
+          "weightBps": 300,
+          "isBond": false,
+          "accrualBps": 0,
+          "mockPrice": "1.12",
+          "decimals": 18
+        },
+        {
+          "assetId": "CNY",
+          "assetLabel": "CNY",
+          "weightBps": 2000,
+          "isBond": false,
+          "accrualBps": 0,
+          "mockPrice": "0.14",
+          "decimals": 18
+        },
+        {
+          "assetId": "JPY",
+          "assetLabel": "JPY",
+          "weightBps": 1500,
+          "isBond": false,
+          "accrualBps": 0,
+          "mockPrice": "0.0091",
+          "decimals": 18
+        },
+        {
+          "assetId": "INR",
+          "assetLabel": "INR",
+          "weightBps": 700,
+          "isBond": false,
+          "accrualBps": 0,
+          "mockPrice": "0.012",
+          "decimals": 18
+        },
+        {
+          "assetId": "KRW",
+          "assetLabel": "KRW",
+          "weightBps": 500,
+          "isBond": false,
+          "accrualBps": 0,
+          "mockPrice": "0.00074",
+          "decimals": 18
+        },
+        {
+          "assetId": "SGD",
+          "assetLabel": "SGD",
+          "weightBps": 300,
+          "isBond": false,
+          "accrualBps": 0,
+          "mockPrice": "0.74",
+          "decimals": 18
+        },
+        {
+          "assetId": "GOLD",
+          "assetLabel": "GOLD",
+          "weightBps": 1000,
+          "isBond": false,
+          "accrualBps": 0,
+          "mockPrice": "18.80",
+          "decimals": 18
+        }
+      ]
+    }
+  ]
+}

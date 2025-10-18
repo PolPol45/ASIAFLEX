@@ -1,0 +1,68 @@
+{
+  "schema": "inverse.v1",
+  "ts": "2025-10-18T14:53:10.637Z",
+  "alerts": [],
+  "tested": 6,
+  "items": [
+    {
+      "symbol": "CHFUSD",
+      "path": "dashed",
+      "provider": "Yahoo",
+      "providerPrice": 1.261,
+      "ok": true,
+      "googlePrice": 1.261862,
+      "diffPct": 0.06831174882832991,
+      "threshold": 1
+    },
+    {
+      "symbol": "CNYUSD",
+      "path": "dashed",
+      "provider": "Yahoo",
+      "providerPrice": 0.1403,
+      "ok": true,
+      "googlePrice": 0.1403105,
+      "diffPct": 0.0074834028814640555,
+      "threshold": 1
+    },
+    {
+      "symbol": "JPYUSD",
+      "path": "dashed",
+      "provider": "Yahoo",
+      "providerPrice": 0.0066,
+      "ok": true,
+      "googlePrice": 0.00663988579,
+      "diffPct": 0.6006999406536514,
+      "threshold": 1
+    },
+    {
+      "symbol": "NOKUSD",
+      "path": "dashed",
+      "provider": "Yahoo",
+      "providerPrice": 0.0995,
+      "ok": true,
+      "googlePrice": 0.0993857958,
+      "diffPct": 0.11490998193527502,
+      "threshold": 1
+    },
+    {
+      "symbol": "SEKUSD",
+      "path": "dashed",
+      "provider": "Yahoo",
+      "providerPrice": 0.106,
+      "ok": true,
+      "googlePrice": 0.105730543,
+      "diffPct": 0.2548525642207292,
+      "threshold": 1
+    },
+    {
+      "symbol": "XAUUSD",
+      "path": "override-XAU",
+      "provider": "Yahoo",
+      "providerPrice": 4213.3,
+      "ok": true,
+      "googlePrice": 4267.89990234375,
+      "diffPct": 1.2793154383439467,
+      "threshold": 1.5
+    }
+  ]
+}

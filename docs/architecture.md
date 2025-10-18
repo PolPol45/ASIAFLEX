@@ -4,6 +4,11 @@
 
 AsiaFlex is designed as a centralized, fully collateralized digital token with blockchain transparency. The architecture combines enterprise-grade smart contracts with off-chain reserve management.
 
+> **Status & roadmap**
+>
+> - **Shipped:** `AsiaFlexToken`, `TreasuryController`, `NAVOracleAdapter`, proof-of-reserve attestation helpers, and basket-first fixtures/scripts (`deployBasketE2EFixture`, `playground/demo-e2e.ts`, `playground/price-watcher.ts`).
+> - **In progress:** Production-grade `BasketManager` rollout, extended multi-basket issuance, and live oracle aggregation across FX/bond feeds.
+
 ## Contract Architecture
 
 ```mermaid

@@ -1,0 +1,48 @@
+{
+  "type": "basket_mint",
+  "network": "hardhat",
+  "timestamp": "2025-10-04T10:25:30.348Z",
+  "basket": {
+    "symbol": "EUFX",
+    "name": "EU Currency Basket",
+    "region": "eu",
+    "strategy": "fx",
+    "basketId": "0x5dc5315dfbd2c41d2c18163b5252a2625fab054805c6298bd76950e8ef61bb90"
+  },
+  "params": {
+    "account": "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65",
+    "beneficiary": "0x23618e81E3f5cdF7f54C3d65f7FBc0aBf5B21E8f",
+    "depositInput": "100",
+    "depositWei": "100000000000000000000",
+    "nav": "2692675000000000000",
+    "deadline": "1759577130",
+    "proofHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "nonce": "0",
+    "signer": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+    "signature": "0x77b96b459b5dca52d31da168a7d12b59e069c42cc81f535bab16c338e09546bd25c50c937a0bde7f0bb25de64feeacede18ebe8bf9ca14d3d81863a0c5bdf7cc1c",
+    "slippageBps": 50,
+    "minTokensOut": "36952101534719191881",
+    "digest": "0x7faad171be2c3a0832732981b33e081d77445c52f00b0d57735119887ef47552"
+  },
+  "nav": {
+    "value": "2692675000000000000",
+    "timestamp": 1759573610
+  },
+  "results": {
+    "mintedShares": "37137790487154966715",
+    "mintedValueUsd": "99999999999999999999",
+    "balances": {
+      "before": "5000000000000000000",
+      "after": "42137790487154966715"
+    },
+    "transaction": {
+      "hash": "0x97f2d72fad46e437ffa344af00f2d369b6c00fab58e8a2dbb3d2d6c4ac1b6466",
+      "blockNumber": 152,
+      "gasUsed": "135250"
+    }
+  },
+  "meta": {
+    "addressesPath": "/workspaces/ASIAFLEX/scripts/deployments/hardhat-cli.json",
+    "snapshotPath": null
+  }
+}

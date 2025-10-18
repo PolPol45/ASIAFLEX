@@ -1,0 +1,6 @@
+
+> asiaflex@1.0.1 ops:nav:watch
+> ts-node --transpile-only scripts/ops/nav-watch.ts --commit --once --dry --network sepolia
+
+[2025-10-16T12:51:43.890Z] Processed 3 assets → updated: 3 (dry-run), degraded: 0, skipped: 0
+✅ NAV watch terminato.

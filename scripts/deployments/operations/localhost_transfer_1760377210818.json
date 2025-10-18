@@ -1,0 +1,30 @@
+{
+  "type": "transfer",
+  "network": "localhost",
+  "timestamp": "2025-10-13T17:40:10.818Z",
+  "basket": {
+    "id": "0xe2bc9c5713615770244d9ca0e35a52e4d712196b7828b54634601119a1e7dc5a",
+    "symbol": "EUBND",
+    "name": "EU Bond Basket",
+    "token": "0xE6E340D132b5f46d1e472DebcD681B2aBc16e57E",
+    "nav": "93428900000000000000",
+    "navTimestamp": 1760374773
+  },
+  "params": {
+    "from": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+    "to": "0x0000000000000000000000000000000000000001",
+    "amount": "500000000000000000",
+    "decimals": 18,
+    "dryRun": false,
+    "addressesPath": "/workspaces/ASIAFLEX/scripts/deployments/localhost.json"
+  },
+  "transaction": {
+    "hash": "0x1cf566953f1294d9f8018106f5d71b53394fdf6368c4a4a618db86b6a3e19c28",
+    "blockNumber": 50,
+    "gasUsed": "51355"
+  },
+  "results": {
+    "senderBalance": "1640665254541153754",
+    "recipientBalance": "500000000000000000"
+  }
+}

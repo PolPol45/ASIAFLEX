@@ -1,0 +1,51 @@
+{
+  "type": "basket_redeem",
+  "network": "localhost",
+  "timestamp": "2025-10-13T18:05:28.587Z",
+  "basket": {
+    "symbol": "EUBND",
+    "name": "EU Bond Basket",
+    "region": "eu",
+    "strategy": "bond",
+    "basketId": "0xe2bc9c5713615770244d9ca0e35a52e4d712196b7828b54634601119a1e7dc5a"
+  },
+  "params": {
+    "account": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+    "holder": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+    "notionalInput": "10",
+    "notionalWei": "10000000000000000000",
+    "controllerNotional": "1145611932999936",
+    "nav": "93428900000000000000",
+    "deadline": "1760382328",
+    "proofHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "nonce": "0",
+    "signer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+    "signature": "0xcc8f96608ff138b44440e841da26a901962f965ef8c006710c4e534ec1e75092056b6046e1a472b7532c1604689397011fd652bff235ab05ea7bb790e7a9b53c1c",
+    "slippageBps": 100,
+    "desiredShares": "107033262727057687",
+    "plannedShares": "107033262727057720",
+    "toleranceShares": "108103595354328263",
+    "digest": "0xed2cd51ea68d87615e3457d79d680303b3d96dceecab14f9bd96e5c3cda498ac"
+  },
+  "nav": {
+    "value": "93428900000000000000",
+    "timestamp": 1760374773
+  },
+  "results": {
+    "burnedShares": "107033262727057720",
+    "redeemedValueUsd": "10000000000000003016",
+    "balances": {
+      "before": "1640665254541153754",
+      "after": "1533631991814096034"
+    },
+    "transaction": {
+      "hash": "0xaae585046b5352b80ba5f98084e0ecd0b46bbca53922d838cc98621b950781e8",
+      "blockNumber": 63,
+      "gasUsed": "126047"
+    }
+  },
+  "meta": {
+    "addressesPath": "/workspaces/ASIAFLEX/scripts/deployments/localhost.json",
+    "snapshotPath": null
+  }
+}

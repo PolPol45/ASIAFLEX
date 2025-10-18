@@ -1,0 +1,49 @@
+{
+  "type": "basket_redeem",
+  "network": "localhost",
+  "timestamp": "2025-10-13T17:59:51.584Z",
+  "basket": {
+    "symbol": "EUFX",
+    "name": "EU Currency Basket",
+    "region": "eu",
+    "strategy": "fx",
+    "basketId": "0x5dc5315dfbd2c41d2c18163b5252a2625fab054805c6298bd76950e8ef61bb90"
+  },
+  "params": {
+    "account": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+    "holder": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+    "notionalInput": "10",
+    "notionalWei": "10000000000000000000",
+    "nav": "2692675000000000000",
+    "deadline": "1760381991",
+    "proofHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "nonce": "0",
+    "signer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+    "signature": "0xebf962a6977518ebf1405bec9e7c5b35f7225ea58f20585f02572fbe0295af0d6d955d7ae5cefbe119f2236093b62bb691940b657abae3f9720719a89a7704a11c",
+    "slippageBps": 100,
+    "expectedShares": "3713779048715496671",
+    "toleranceShares": "3750916839202651637",
+    "digest": "0x635e1837182ba7e6d71936d1a7c4ca7e570f97c8266b4b2b0ed71476cfa45b99"
+  },
+  "nav": {
+    "value": "2692675000000000000",
+    "timestamp": 1760374770
+  },
+  "results": {
+    "burnedShares": "26926750000000000000",
+    "redeemedValueUsd": "72504986556250000000",
+    "balances": {
+      "before": "32137790487154966715",
+      "after": "5211040487154966715"
+    },
+    "transaction": {
+      "hash": "0x6d49384c759da2a73b003de5c1aff1d12b121b787c2f28618c5700b7478b604c",
+      "blockNumber": 60,
+      "gasUsed": "126035"
+    }
+  },
+  "meta": {
+    "addressesPath": "/workspaces/ASIAFLEX/scripts/deployments/localhost.json",
+    "snapshotPath": null
+  }
+}

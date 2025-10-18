@@ -72,8 +72,9 @@ async function resolveMintParams(): Promise<MintParams> {
   let amount: string;
   try {
     amount = ethers.parseEther(amountInput).toString();
-  } catch (error) {
-    throw new Error(`Importo non valido: ${amountInput}`);
+  } catch (parseError) {
+    const detail = parseError instanceof Error ? parseError.message : String(parseError);
+    throw new Error(`Importo non valido: ${amountInput}. Dettagli: ${detail}`);
   }
 
   if (!to) {

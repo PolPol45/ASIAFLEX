@@ -1,11 +1,19 @@
 {
   "network": "hardhat",
-  "timestamp": "2025-10-02T09:09:31.037Z",
+  "timestamp": "2025-10-06T09:16:11.521Z",
   "addresses": {
     "AsiaFlexToken": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
-    "NAVOracleAdapter": "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
+    "NAVOracleAdapter": "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9",
     "TreasuryController": "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",
-    "TimelockController": "0x5FbDB2315678afecb367f032d93F642f64180aa3"
+    "TimelockController": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+    "MedianOracle": "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
+    "BasketManager": "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707",
+    "BasketTreasuryController": "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",
+    "BasketTokens.EUFX": "0x0165878A594ca255338adfa4d48449f69242Eb8F",
+    "BasketTokens.EUBND": "0x8A791620dd6260079BF849Dc5567aDC3F2FdC318",
+    "BasketTokens.ASFX": "0xA51c1fc2f0D1a1b8494Ed1FE312d7C3a78Ed91C0",
+    "BasketTokens.ASBND": "0x0B306BF915C4d645ff596e518fAf3F9669b97016",
+    "BasketTokens.EAMIX": "0x68B1D87F95878fE05B998F19b66F4baba5De1aed"
   },
   "config": {
     "token": {
@@ -41,5 +49,27 @@
       "treasuryManager": ["0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"]
     }
   },
-  "chainId": "31337"
+  "chainId": "31337",
+  "contracts": {
+    "MedianOracle": "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
+    "NAVOracleAdapter": "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9",
+    "BasketManager": "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707",
+    "BasketTreasuryController": "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",
+    "BasketTokens.EUFX": "0x0165878A594ca255338adfa4d48449f69242Eb8F",
+    "BasketTokens.EUBND": "0x8A791620dd6260079BF849Dc5567aDC3F2FdC318",
+    "BasketTokens.ASFX": "0xA51c1fc2f0D1a1b8494Ed1FE312d7C3a78Ed91C0",
+    "BasketTokens.ASBND": "0x0B306BF915C4d645ff596e518fAf3F9669b97016",
+    "BasketTokens.EAMIX": "0x68B1D87F95878fE05B998F19b66F4baba5De1aed"
+  },
+  "BasketTokens": {
+    "EUFX": "0x0165878A594ca255338adfa4d48449f69242Eb8F",
+    "EUBND": "0x8A791620dd6260079BF849Dc5567aDC3F2FdC318",
+    "ASFX": "0xA51c1fc2f0D1a1b8494Ed1FE312d7C3a78Ed91C0",
+    "ASBND": "0x0B306BF915C4d645ff596e518fAf3F9669b97016",
+    "EAMIX": "0x68B1D87F95878fE05B998F19b66F4baba5De1aed"
+  },
+  "MedianOracle": "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
+  "NAVOracleAdapter": "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9",
+  "BasketManager": "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707",
+  "BasketTreasuryController": "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9"
 }

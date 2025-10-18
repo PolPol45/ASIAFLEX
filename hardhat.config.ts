@@ -45,9 +45,9 @@ const normalizePrivateKey = (key?: string): string | undefined => {
 };
 
 const MAINNET_RPC_URL = sanitizeRpcUrl(process.env.MAINNET_RPC_URL);
-const SEPOLIA_RPC_URL = sanitizeRpcUrl(process.env.SEPOLIA_RPC_URL);
+const SEPOLIA_RPC_URL = sanitizeRpcUrl(process.env.SEPOLIA_RPC_URL ?? process.env.RPC_URL_SEPOLIA);
 const POLYGON_RPC_URL = sanitizeRpcUrl(process.env.POLYGON_RPC_URL);
-const DEPLOYER_PRIVATE_KEY = normalizePrivateKey(process.env.PRIVATE_KEY);
+const DEPLOYER_PRIVATE_KEY = normalizePrivateKey(process.env.PRIVATE_KEY ?? process.env.FEEDER_PRIVATE_KEY);
 const ENABLE_MAINNET_FORK = process.env.ENABLE_MAINNET_FORK === "true";
 
 const requestedMochaTimeout = process.env.MOCHA_TIMEOUT ? Number(process.env.MOCHA_TIMEOUT) : undefined;

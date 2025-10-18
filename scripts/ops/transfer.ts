@@ -5,7 +5,7 @@ import hre from "hardhat";
 import type { Log, WebSocketProvider } from "ethers";
 import type { AsiaFlexToken, BasketManager, BasketToken, NAVOracleAdapter } from "../../typechain-types";
 import { BASKETS, basketKey, type BasketDescriptor } from "../deploy/basketDescriptors";
-import { loadAddresses, saveAddress } from "../helpers/addresses";
+import { loadAddresses, saveAddress, assertContractAt } from "../helpers/addresses";
 import { loadBasketDeployment, type BasketDeployment } from "./utils/baskets";
 import { getSignerOrImpersonate, logAvailableAccounts } from "./utils/signer";
 import { prompt, promptsEnabled } from "./utils/prompt";
@@ -368,6 +368,10 @@ async function resolveTransferInputs(args: ParsedArgs): Promise<TransferInputs> 
     const candidates: string[] = [];
     if (descriptor?.symbol) {
       const symbolUpper = descriptor.symbol.toUpperCase();
+      const tokenFromMap = addresses.BasketTokens?.[symbolUpper];
+      if (tokenFromMap) {
+        return tokenFromMap;
+      }
       candidates.push(`BasketToken_${symbolUpper}`);
       candidates.push(`BasketToken-${symbolUpper}`);
       candidates.push(`BasketToken${symbolUpper}`);
@@ -579,12 +583,13 @@ async function trackTransferEvent(
 async function transferBasketShares(inputs: TransferInputs): Promise<void> {
   const network = await ethers.provider.getNetwork();
   const networkLabel = network.name || network.chainId.toString();
+  const addressOverridePath = inputs.addressesOverride ?? inputs.addressesPath;
 
   if (inputs.managerAddress && !inputs.legacy) {
-    saveAddress(networkLabel, "BasketManager", inputs.managerAddress, inputs.addressesOverride);
+    saveAddress(networkLabel, "BasketManager", inputs.managerAddress, addressOverridePath);
   }
   if (inputs.navOracleAddress) {
-    saveAddress(networkLabel, "NAVOracleAdapter", inputs.navOracleAddress, inputs.addressesOverride);
+    saveAddress(networkLabel, "NAVOracleAdapter", inputs.navOracleAddress, addressOverridePath);
   }
 
   let manager: BasketManager | undefined;
@@ -592,12 +597,40 @@ async function transferBasketShares(inputs: TransferInputs): Promise<void> {
     if (!inputs.managerAddress) {
       throw new Error("BasketManager non disponibile per il basket selezionato.");
     }
-    manager = (await ethers.getContractAt("BasketManager", inputs.managerAddress)) as BasketManager;
+    manager = await assertContractAt<BasketManager>(inputs.managerAddress, "BasketManager");
   }
 
   let tokenAddress = inputs.tokenAddress;
   if (!tokenAddress && manager) {
-    tokenAddress = await manager.basketTokenOf(inputs.basketId);
+    const basketLabel = inputs.descriptor?.symbol ?? inputs.basketId;
+    try {
+      tokenAddress = await manager.basketTokenOf(inputs.basketId);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      const net = await ethers.provider.getNetwork();
+      if (message && message.includes("BAD_DATA")) {
+        throw new Error(
+          `❌ BAD_DATA dal BasketManager ${inputs.managerAddress} su ${net.name} (${net.chainId}). ` +
+            "Riesegui il deploy dello stack basket-first e rilancia la merge dello snapshot."
+        );
+      }
+      throw new Error(
+        `❌ impossibile risolvere BasketToken tramite BasketManager (${inputs.managerAddress}) ` +
+          `su ${net.name} (${net.chainId}). Verifica che lo snapshot sia aggiornato e che il basket ${basketLabel} esista.
+Dettagli: ${message}`
+      );
+    }
+
+    if (!tokenAddress || tokenAddress === ethers.ZeroAddress) {
+      const net = await ethers.provider.getNetwork();
+      throw new Error(
+        `❌ BasketToken non registrato per ${basketLabel} su ${inputs.managerAddress} (${net.name} / ${net.chainId}). ` +
+          "Riesegui il deploy dello stack basket-first e riallinea lo snapshot con mergeBasketsIntoMain."
+      );
+    }
+
+    const saveKey = inputs.descriptor?.symbol?.toUpperCase() ?? inputs.basketId;
+    saveAddress(networkLabel, ["BasketTokens", saveKey], tokenAddress, addressOverridePath);
   }
 
   if (!tokenAddress || tokenAddress === ethers.ZeroAddress) {
@@ -629,12 +662,12 @@ async function transferBasketShares(inputs: TransferInputs): Promise<void> {
     throw new Error("La quantità da trasferire deve essere positiva.");
   }
 
-  const tokenKey = inputs.legacy
-    ? "AsiaFlexToken"
-    : inputs.descriptor?.symbol
-      ? `BasketToken_${inputs.descriptor.symbol.toUpperCase()}`
-      : `BasketToken:${inputs.basketId}`;
-  saveAddress(networkLabel, tokenKey, tokenAddress, inputs.addressesOverride);
+  if (inputs.legacy) {
+    saveAddress(networkLabel, "AsiaFlexToken", tokenAddress, addressOverridePath);
+  } else {
+    const flagBasket = inputs.descriptor?.symbol?.toUpperCase() ?? inputs.basketId;
+    saveAddress(networkLabel, ["BasketTokens", flagBasket], tokenAddress, addressOverridePath);
+  }
 
   const navObservation = !inputs.legacy
     ? await fetchNavObservation(inputs.basketId, inputs.navOracleAddress)

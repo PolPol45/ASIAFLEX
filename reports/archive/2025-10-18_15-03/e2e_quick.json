@@ -1,0 +1,59 @@
+{
+  "schema": "e2e_quick.v1",
+  "ts": "2025-10-18T15:03:52.467Z",
+  "network": "sepolia",
+  "commit": true,
+  "params": {
+    "steps": [
+      "mint",
+      "transfer",
+      "redeem",
+      "burn"
+    ],
+    "label": "2025-10-18_15-03",
+    "amounts": {
+      "mint": "0.10",
+      "transfer": "0.05",
+      "redeem": "0.05",
+      "burn": "0.02"
+    },
+    "gas": {
+      "maxFeeGwei": "15",
+      "priorityFeeGwei": "1.5",
+      "maxFeeWei": "15000000000",
+      "priorityFeeWei": "1500000000"
+    },
+    "timeoutMs": 600000,
+    "mode": "proc"
+  },
+  "overrides": {
+    "maxFeePerGas": "15000000000",
+    "maxPriorityFeePerGas": "1500000000"
+  },
+  "steps": [
+    {
+      "name": "mint",
+      "mode": "proc",
+      "status": "OK",
+      "startedAt": "2025-10-18T15:03:37.378Z",
+      "endedAt": "2025-10-18T15:03:49.750Z",
+      "durationMs": 12372,
+      "exitCode": 0,
+      "stdout": "🪙 Executing mint operation on sepolia\n👤 Signer: 0xF4569BC729C62a2eD036F0A3fA66EDf842F14574\n🎯 To: 0xF4569BC729C62a2eD036F0A3fA66EDf842F14574\n💰 Amount: 0.1 AFX\n🔐 Attestation Hash: 0x0000000000000000000000000000000000000000000000000000000000000000\nℹ️  NAV già allineato al valore live (92.89).\n\n💹 NAV attuale (0x5dc5315dfbd2c41d2c18163b5252a2625fab054805c6298bd76950e8ef61bb90): $92.89 per share\n💵 Valore stimato per 0.1 shares: $9.29 (ultimo aggiornamento: 2025-10-18T14:36:12.000Z)\n\n🔍 Pre-flight checks:\n   Treasury Role: ✅\n   Contract Paused: ✅\n   Remaining Daily Mint: 9999.5 AFX\n   Remaining Daily Net Inflow: 49999.5 AFX\n   Remaining Supply Cap: 999999.5 AFX\n   Recipient Blacklisted: ✅\n\n🚀 Executing mint...\n📤 Transaction sent: 0xae6dea55c13682e66c66e633fa251cd40d60ce7bdb737afd8ff8528e766a42f9\n✅ Transaction confirmed in block 9438994\n📊 New recipient balance: 0.6 AFX\n📊 New total supply: 0.6 AFX\n📝 Operation saved to /workspaces/ASIAFLEX/scripts/deployments/operations/sepolia_mint_1760799829731.json\n"
+    },
+    {
+      "name": "transfer",
+      "mode": "proc",
+      "status": "ERROR",
+      "startedAt": "2025-10-18T15:03:49.750Z",
+      "endedAt": "2025-10-18T15:03:52.467Z",
+      "durationMs": 2717,
+      "exitCode": 1,
+      "stdout": "Usage: node scripts/ops/transfer.ts --network <net> --basket EUFX --from 0x... --to 0x... --amount 1.5 --addresses scripts/deployments/<net>.json [--wss wss://...]\n   Per il token legacy usa: --legacy --token 0xAsiaFlexTokenAddress\n",
+      "stderr": "❌ Mittente e destinatario coincidono. Specifica indirizzi distinti.\n",
+      "error": "❌ Mittente e destinatario coincidono. Specifica indirizzi distinti.\n"
+    }
+  ],
+  "status": "ERROR",
+  "error": "❌ Mittente e destinatario coincidono. Specifica indirizzi distinti.\n"
+}

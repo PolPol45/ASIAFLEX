@@ -1,0 +1,48 @@
+{
+  "type": "basket_mint",
+  "network": "localhost",
+  "timestamp": "2025-10-13T17:39:39.488Z",
+  "basket": {
+    "symbol": "EUBND",
+    "name": "EU Bond Basket",
+    "region": "eu",
+    "strategy": "bond",
+    "basketId": "0xe2bc9c5713615770244d9ca0e35a52e4d712196b7828b54634601119a1e7dc5a"
+  },
+  "params": {
+    "account": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+    "beneficiary": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+    "depositInput": "100",
+    "depositWei": "100000000000000000000",
+    "nav": "93428900000000000000",
+    "deadline": "1760380779",
+    "proofHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "nonce": "0",
+    "signer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+    "signature": "0x523a10cb9100eaeb3923c1f55cf59397320bf5cf5a7dfd38c42f3335d618a59968f2cea3bef2686c9ee9871de83b0fe395ce77b1129abf451ce1cd409a6eb1741b",
+    "slippageBps": 100,
+    "minTokensOut": "1059629300997871108",
+    "digest": "0x14d0d670069908502c590849d56963694ccf4f0d79e824f8184c1b6fd30a5661"
+  },
+  "nav": {
+    "value": "93428900000000000000",
+    "timestamp": 1760374773
+  },
+  "results": {
+    "mintedShares": "1070332627270576877",
+    "mintedValueUsd": "99999999999999999983",
+    "balances": {
+      "before": "1070332627270576877",
+      "after": "2140665254541153754"
+    },
+    "transaction": {
+      "hash": "0x4dc4c1c7b316b5ed09318480bda775a20d35b6963ca658f1143fca49bdb2b2df",
+      "blockNumber": 49,
+      "gasUsed": "135250"
+    }
+  },
+  "meta": {
+    "addressesPath": "/workspaces/ASIAFLEX/scripts/deployments/localhost.json",
+    "snapshotPath": null
+  }
+}
