@@ -1,0 +1,49 @@
+{
+  "network": "sepolia",
+  "chainId": 11155111,
+  "timestamp": "2025-10-21T07:30:00.000Z",
+  "deployer": "0x0000000000000000000000000000000000000000",
+  "addresses": {
+    "AsiaFlexToken": "0x0000000000000000000000000000000000000000",
+    "NAVOracleAdapter": "0x0000000000000000000000000000000000000000",
+    "TreasuryController": "0x0000000000000000000000000000000000000000",
+    "ProofOfReserve": "0x0000000000000000000000000000000000000000"
+  },
+  "config": {
+    "token": {
+      "name": "AsiaFlex Token",
+      "symbol": "AFX",
+      "supplyCap": "1000000000000000000000000",
+      "maxDailyMint": "10000000000000000000000",
+      "maxDailyNetInflows": "50000000000000000000000"
+    },
+    "oracle": {
+      "initialNAV": "100000000000000000000",
+      "stalenessThreshold": 86400,
+      "deviationThreshold": 1000
+    },
+    "treasury": {
+      "signer": "0x0000000000000000000000000000000000000000",
+      "requestExpiration": 3600
+    }
+  },
+  "roles": {
+    "admin": ["0x0000000000000000000000000000000000000000"],
+    "treasury": ["0x0000000000000000000000000000000000000000"],
+    "pauser": ["0x0000000000000000000000000000000000000000"],
+    "capsManager": ["0x0000000000000000000000000000000000000000"],
+    "blacklistManager": ["0x0000000000000000000000000000000000000000"],
+    "oracleUpdater": ["0x0000000000000000000000000000000000000000"],
+    "oracleManager": ["0x0000000000000000000000000000000000000000"],
+    "treasuryManager": ["0x0000000000000000000000000000000000000000"]
+  },
+  "verification": {
+    "verified": false,
+    "etherscanLinks": {
+      "AsiaFlexToken": "https://sepolia.etherscan.io/address/0x0000000000000000000000000000000000000000",
+      "NAVOracleAdapter": "https://sepolia.etherscan.io/address/0x0000000000000000000000000000000000000000",
+      "TreasuryController": "https://sepolia.etherscan.io/address/0x0000000000000000000000000000000000000000",
+      "ProofOfReserve": "https://sepolia.etherscan.io/address/0x0000000000000000000000000000000000000000"
+    }
+  }
+}
