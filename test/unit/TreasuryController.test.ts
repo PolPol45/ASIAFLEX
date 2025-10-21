@@ -17,6 +17,14 @@ describe("TreasuryController", function () {
   const MAX_DAILY_MINT = ethers.parseEther("10000");
   const MAX_DAILY_NET_INFLOWS = ethers.parseEther("50000");
 
+  const mintWithAttestation = (
+    contract: AsiaFlexToken,
+    signer: SignerWithAddress,
+    to: string,
+    amount: bigint,
+    attestation: string
+  ) => contract.connect(signer)["mint(address,uint256,bytes32)"](to, amount, attestation);
+
   beforeEach(async function () {
     [owner, treasurySigner, treasuryManager, user1, user2] = await ethers.getSigners();
 
@@ -49,7 +57,7 @@ describe("TreasuryController", function () {
 
   describe("Deployment", function () {
     it("Should have correct initial values", async function () {
-      expect(await treasury.asiaFlexToken()).to.equal(await token.getAddress());
+  expect(await treasury.ASIA_FLEX_TOKEN()).to.equal(await token.getAddress());
       expect(await treasury.getTreasurySigner()).to.equal(treasurySigner.address);
       expect(await treasury.getRequestExpiration()).to.equal(REQUEST_EXPIRATION);
       expect(await treasury.paused()).to.be.false;
@@ -179,9 +187,9 @@ describe("TreasuryController", function () {
 
     beforeEach(async function () {
       // Mint some tokens first
-      const mintAmount = ethers.parseEther("1000");
-      const mintHash = ethers.keccak256(ethers.toUtf8Bytes("mint-proof"));
-      await token.mint(user1.address, mintAmount, mintHash);
+  const mintAmount = ethers.parseEther("1000");
+  const mintHash = ethers.keccak256(ethers.toUtf8Bytes("mint-proof"));
+  await mintWithAttestation(token, owner, user1.address, mintAmount, mintHash);
     });
 
     async function createRedeemRequest(timestamp?: number) {
@@ -361,7 +369,7 @@ describe("TreasuryController", function () {
 
     it("Should allow admin to emergency burn when paused", async function () {
       // First mint some tokens
-      await token.mint(user1.address, emergencyAmount, emergencyHash);
+  await mintWithAttestation(token, owner, user1.address, emergencyAmount, emergencyHash);
 
       await treasury.connect(treasuryManager).pause();
 

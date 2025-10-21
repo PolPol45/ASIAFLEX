@@ -69,11 +69,15 @@ task("nav:update", "Updates NAV oracle data with staleness and deviation checks"
       const deviationThreshold = await oracle.getDeviationThreshold();
       const isStale = await oracle.isStale();
 
+  const stalenessSeconds = Number(stalenessThreshold);
+  const stalenessHours = stalenessSeconds / 3600;
+  const deviationPercent = Number(deviationThreshold) / 100;
+
       console.log(`\n📊 Current Oracle State:`);
       console.log(`   Current NAV: $${ethers.formatEther(currentNAV)}`);
       console.log(`   Last Update: ${new Date(Number(lastUpdateTimestamp) * 1000).toLocaleString()}`);
-      console.log(`   Staleness Threshold: ${stalenessThreshold / 3600} hours`);
-      console.log(`   Deviation Threshold: ${deviationThreshold / 100}%`);
+  console.log(`   Staleness Threshold: ${stalenessSeconds} seconds (${stalenessHours.toFixed(2)} hours)`);
+  console.log(`   Deviation Threshold: ${deviationPercent}%`);
       console.log(`   Status: ${isStale ? "🔴 STALE" : "🟢 FRESH"}`);
 
       // Check deviation
@@ -84,7 +88,7 @@ task("nav:update", "Updates NAV oracle data with staleness and deviation checks"
         currentDeviation = await oracle.getCurrentDeviation(newNavWei);
         console.log(`\n⚖️  Deviation Analysis:`);
         console.log(`   New NAV: $${taskArgs.nav}`);
-        console.log(`   Deviation: ${Number(currentDeviation) / 100}%`);
+  console.log(`   Deviation: ${Number(currentDeviation) / 100}%`);
         console.log(`   Within Threshold: ${isValidUpdate ? "✅" : "❌"}`);
 
         if (!isValidUpdate && !taskArgs.force) {

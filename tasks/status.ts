@@ -104,16 +104,21 @@ task("status", "Displays comprehensive status information for AsiaFlex contracts
         const deviationThreshold = await oracle.getDeviationThreshold();
         const isStale = await oracle.isStale();
 
+        const stalenessSeconds = Number(stalenessThreshold);
+        const stalenessHours = stalenessSeconds / 3600;
+        const deviationPercent = Number(deviationThreshold) / 100;
+
         console.log(`💰 Current NAV: ${ethers.formatEther(currentNAV)} USD`);
         console.log(`🕐 Last Update: ${new Date(Number(lastUpdateTimestamp) * 1000).toLocaleString()}`);
-        console.log(`⏰ Staleness Threshold: ${stalenessThreshold} seconds (${stalenessThreshold / 3600} hours)`);
-        console.log(`📊 Deviation Threshold: ${deviationThreshold / 100}%`);
+        console.log(`⏰ Staleness Threshold: ${stalenessSeconds} seconds (${stalenessHours.toFixed(2)} hours)`);
+        console.log(`📊 Deviation Threshold: ${deviationPercent}%`);
         console.log(`🚨 Status: ${isStale ? "🔴 STALE" : "🟢 FRESH"}`);
 
         if (isStale) {
           const timeSinceUpdate = await oracle.getTimeSinceLastUpdate();
+          const timeSinceSeconds = Number(timeSinceUpdate);
           console.log(
-            `⚠️  Data is ${timeSinceUpdate} seconds old (${Math.floor(Number(timeSinceUpdate) / 3600)} hours)`
+            `⚠️  Data is ${timeSinceSeconds} seconds old (${Math.floor(timeSinceSeconds / 3600)} hours)`
           );
         }
 
@@ -151,10 +156,13 @@ task("status", "Displays comprehensive status information for AsiaFlex contracts
         // Configuration
         const treasurySigner = await treasury.getTreasurySigner();
         const requestExpiration = await treasury.getRequestExpiration();
-        const asiaFlexTokenAddress = await treasury.asiaFlexToken();
+        const requestExpirationSeconds = Number(requestExpiration);
+        const asiaFlexTokenAddress = await treasury.ASIA_FLEX_TOKEN();
 
         console.log(`🔑 Treasury Signer: ${treasurySigner}`);
-        console.log(`⏰ Request Expiration: ${requestExpiration} seconds (${requestExpiration / 60} minutes)`);
+        console.log(
+          `⏰ Request Expiration: ${requestExpirationSeconds} seconds (${(requestExpirationSeconds / 60).toFixed(2)} minutes)`
+        );
         console.log(`🪙 AsiaFlex Token: ${asiaFlexTokenAddress}`);
 
         // Pause status

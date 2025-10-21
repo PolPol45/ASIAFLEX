@@ -13,7 +13,7 @@
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
-    "typeRoots": ["./node_modules/@types", "./types"],
+  "typeRoots": ["./node_modules/@types"],
     "baseUrl": "./",
     "paths": {
       "@/*": ["./src/*"],
@@ -29,7 +29,8 @@
     "./tasks/**/*",
     "./test/**/*",
     "./utils/**/*",
-    "./types/**/*",
+    "./playground/**/*",
+    "./typechain-types/**/*",
     "./hardhat.config.ts"
   ],
   "exclude": [
@@ -37,6 +38,6 @@
     "dist",
     "artifacts",
     "cache",
-    "typechain-types"
+    "types"
   ]
 }

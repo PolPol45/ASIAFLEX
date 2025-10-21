@@ -52,8 +52,9 @@ async function deployContracts() {
   // Deploy NAVOracleAdapter
   const NAVOracleAdapter = await ethers.getContractFactory("NAVOracleAdapter");
   const oracle = await NAVOracleAdapter.deploy(
-    3600, // max staleness (1 hour)
-    500 // max deviation (5%)
+    ethers.parseEther("100"), // initial NAV $100
+    3600, // staleness threshold (1 hour)
+    500 // deviation threshold (5%)
   );
   await oracle.waitForDeployment();
 
@@ -73,14 +74,21 @@ async function setupRoles(token: any, oracle: any, controller: any, treasury: an
   console.log("🔐 Setting up roles...");
 
   const TREASURY_ROLE = await token.TREASURY_ROLE();
-  const ORACLE_ROLE = await token.ORACLE_ROLE();
+  const PAUSER_ROLE = await token.PAUSER_ROLE();
+  const CAPS_MANAGER_ROLE = await token.CAPS_MANAGER_ROLE();
+  const ORACLE_UPDATER_ROLE = await oracle.ORACLE_UPDATER_ROLE();
+  const ORACLE_MANAGER_ROLE = await oracle.ORACLE_MANAGER_ROLE();
 
   // Grant treasury role to treasury account and controller
   await token.grantRole(TREASURY_ROLE, treasury.address);
   await token.grantRole(TREASURY_ROLE, await controller.getAddress());
 
-  // Grant oracle role to treasury for demo
-  await token.grantRole(ORACLE_ROLE, treasury.address);
+  // Grant additional roles needed for demo operations
+  await token.grantRole(PAUSER_ROLE, treasury.address);
+  await token.grantRole(CAPS_MANAGER_ROLE, treasury.address);
+
+  await oracle.grantRole(ORACLE_UPDATER_ROLE, treasury.address);
+  await oracle.grantRole(ORACLE_MANAGER_ROLE, treasury.address);
 
   console.log("✅ Roles configured");
 }
@@ -104,7 +112,7 @@ async function mintTokens(token: any, treasury: any, to: string, amount: string)
   const amountWei = ethers.parseEther(amount);
   const attestationHash = ethers.keccak256(ethers.toUtf8Bytes(`mint-${Date.now()}`));
 
-  const tx = await token.connect(treasury).mint(to, amountWei, attestationHash);
+  const tx = await token.connect(treasury)["mint(address,uint256,bytes32)"](to, amountWei, attestationHash);
   await tx.wait();
 
   console.log(`✅ Minted ${amount} AFX`);
@@ -160,15 +168,19 @@ async function setCaps(token: any, treasury: any) {
 
   const newSupplyCap = ethers.parseEther("2000000"); // 2M tokens
   const newDailyMintCap = ethers.parseEther("20000"); // 20K tokens
+  const newDailyNetInflowCap = ethers.parseEther("60000"); // 60K tokens
 
   const tx1 = await token.connect(treasury).setSupplyCap(newSupplyCap);
   await tx1.wait();
 
-  const tx2 = await token.connect(treasury).setDailyMintCap(newDailyMintCap);
+  const tx2 = await token.connect(treasury).setMaxDailyMint(newDailyMintCap);
   await tx2.wait();
 
+  const tx3 = await token.connect(treasury).setMaxDailyNetInflows(newDailyNetInflowCap);
+  await tx3.wait();
+
   console.log("✅ Caps updated");
-  return { supplyCapTx: tx1.hash, mintCapTx: tx2.hash };
+  return { supplyCapTx: tx1.hash, mintCapTx: tx2.hash, netInflowCapTx: tx3.hash };
 }
 
 async function getContractState(token: any, oracle: any, account1: any, account2: any) {
@@ -180,9 +192,9 @@ async function getContractState(token: any, oracle: any, account1: any, account2
 
   let navValue = "0";
   try {
-    const nav = await oracle.currentNAV();
-    navValue = ethers.formatEther(nav);
-  } catch (error) {
+  const [nav] = await oracle.getNAV();
+  navValue = ethers.formatEther(nav);
+  } catch (_err) {
     console.log("⚠️  Could not read NAV value");
   }
 
@@ -265,8 +277,8 @@ async function runDemo() {
     const capTxs = await setCaps(token, treasury);
     operations.push({
       type: "set_caps",
-      details: { newSupplyCap: "2000000", newMintCap: "20000" },
-      transactionHash: capTxs.supplyCapTx,
+      details: { newSupplyCap: "2000000", newMintCap: "20000", newNetInflowCap: "60000" },
+      transactionHashes: [capTxs.supplyCapTx, capTxs.mintCapTx, capTxs.netInflowCapTx],
     });
 
     // 10. Get final state

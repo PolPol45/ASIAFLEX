@@ -106,7 +106,7 @@ async function mint(params: MintParams) {
   const attestationHash = params.attestationHash || ethers.ZeroHash;
 
   try {
-    const tx = await token.mint(params.to, params.amount, attestationHash);
+  const tx = await token["mint(address,uint256,bytes32)"](params.to, params.amount, attestationHash);
     console.log(`📤 Transaction sent: ${tx.hash}`);
 
     const receipt = await tx.wait();

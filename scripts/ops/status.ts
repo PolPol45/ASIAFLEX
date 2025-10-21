@@ -54,23 +54,23 @@ async function getStatus(): Promise<void> {
     const supplyCap = await token.supplyCap();
 
     // Caps and limits
-    const dailyMintCap = await token.dailyMintCap();
-    const dailyBurnCap = await token.dailyBurnCap();
-    const dailyNetInflowCap = await token.dailyNetInflowCap();
+  const maxDailyMint = await token.maxDailyMint();
+  const maxDailyNetInflows = await token.maxDailyNetInflows();
 
     // Remaining amounts
-    const remainingDailyMint = await token.getRemainingDailyMint();
-    const remainingDailyBurn = await token.getRemainingDailyBurn();
-    const remainingDailyNetInflow = await token.getRemainingDailyNetInflows();
+  const remainingDailyMint = await token.getRemainingDailyMint();
+  const remainingDailyNetInflows = await token.getRemainingDailyNetInflows();
 
     // Contract state
     const isPaused = await token.paused();
     const reserves = await token.reserves();
 
     // Roles
-    const DEFAULT_ADMIN_ROLE = await token.DEFAULT_ADMIN_ROLE();
-    const TREASURY_ROLE = await token.TREASURY_ROLE();
-    const ORACLE_ROLE = await token.ORACLE_ROLE();
+  const DEFAULT_ADMIN_ROLE = await token.DEFAULT_ADMIN_ROLE();
+  const TREASURY_ROLE = await token.TREASURY_ROLE();
+  const PAUSER_ROLE = await token.PAUSER_ROLE();
+  const CAPS_MANAGER_ROLE = await token.CAPS_MANAGER_ROLE();
+  const BLACKLIST_MANAGER_ROLE = await token.BLACKLIST_MANAGER_ROLE();
 
     console.log("🏷️  TOKEN INFORMATION");
     console.log(`   Name: ${name} (${symbol})`);
@@ -83,15 +83,13 @@ async function getStatus(): Promise<void> {
     console.log(`   Supply Cap: ${ethers.formatEther(supplyCap)} ${symbol}`);
     console.log(`   Utilization: ${((Number(totalSupply) / Number(supplyCap)) * 100).toFixed(2)}%`);
 
-    console.log("\n📈 DAILY LIMITS");
-    console.log(`   Daily Mint Cap: ${ethers.formatEther(dailyMintCap)} ${symbol}`);
-    console.log(`   Daily Burn Cap: ${ethers.formatEther(dailyBurnCap)} ${symbol}`);
-    console.log(`   Daily Net Inflow Cap: ${ethers.formatEther(dailyNetInflowCap)} ${symbol}`);
+  console.log("\n📈 DAILY LIMITS");
+  console.log(`   Max Daily Mint: ${ethers.formatEther(maxDailyMint)} ${symbol}`);
+  console.log(`   Max Daily Net Inflows: ${ethers.formatEther(maxDailyNetInflows)} ${symbol}`);
 
-    console.log("\n⏰ REMAINING TODAY");
-    console.log(`   Remaining Mint: ${ethers.formatEther(remainingDailyMint)} ${symbol}`);
-    console.log(`   Remaining Burn: ${ethers.formatEther(remainingDailyBurn)} ${symbol}`);
-    console.log(`   Remaining Net Inflow: ${ethers.formatEther(remainingDailyNetInflow)} ${symbol}`);
+  console.log("\n⏰ REMAINING TODAY");
+  console.log(`   Remaining Mint: ${ethers.formatEther(remainingDailyMint)} ${symbol}`);
+  console.log(`   Remaining Net Inflow: ${ethers.formatEther(remainingDailyNetInflows)} ${symbol}`);
 
     console.log("\n🏦 RESERVES");
     console.log(`   Current Reserves: ${ethers.formatEther(reserves)} ${symbol}`);
@@ -99,25 +97,29 @@ async function getStatus(): Promise<void> {
     console.log("\n🔐 ACCESS CONTROL");
     console.log(`   Default Admin Role: ${DEFAULT_ADMIN_ROLE}`);
     console.log(`   Treasury Role: ${TREASURY_ROLE}`);
-    console.log(`   Oracle Role: ${ORACLE_ROLE}`);
+    console.log(`   Pauser Role: ${PAUSER_ROLE}`);
+    console.log(`   Caps Manager Role: ${CAPS_MANAGER_ROLE}`);
+    console.log(`   Blacklist Manager Role: ${BLACKLIST_MANAGER_ROLE}`);
 
     // NAV Oracle status (if available)
     if (deployment.addresses?.NAVOracleAdapter) {
       console.log("\n🔮 NAV ORACLE STATUS");
       try {
-        const oracle = await ethers.getContractAt("NAVOracleAdapter", deployment.addresses.NAVOracleAdapter);
-        const currentNAV = await oracle.currentNAV();
-        const lastUpdate = await oracle.lastUpdateTimestamp();
-        const maxStaleness = await oracle.maxStaleness();
-        const maxDeviation = await oracle.maxDeviation();
-        const isStale = await oracle.isStale();
+  const oracle = await ethers.getContractAt("NAVOracleAdapter", deployment.addresses.NAVOracleAdapter);
+  const [currentNAV, lastUpdate] = await oracle.getNAV();
+  const stalenessThreshold = await oracle.stalenessThreshold();
+  const deviationThreshold = await oracle.deviationThreshold();
+  const isStale = await oracle.isStale();
 
-        console.log(`   Address: ${await oracle.getAddress()}`);
-        console.log(`   Current NAV: $${ethers.formatEther(currentNAV)}`);
-        console.log(`   Last Update: ${new Date(Number(lastUpdate) * 1000).toISOString()}`);
-        console.log(`   Max Staleness: ${maxStaleness} seconds`);
-        console.log(`   Max Deviation: ${maxDeviation / 100n}%`);
-        console.log(`   Is Stale: ${isStale ? "🔴 YES" : "🟢 NO"}`);
+  const stalenessSeconds = Number(stalenessThreshold);
+  const deviationPercent = Number(deviationThreshold) / 100;
+
+  console.log(`   Address: ${await oracle.getAddress()}`);
+  console.log(`   Current NAV: $${ethers.formatEther(currentNAV)}`);
+  console.log(`   Last Update: ${new Date(Number(lastUpdate) * 1000).toISOString()}`);
+  console.log(`   Staleness Threshold: ${stalenessSeconds} seconds (${(stalenessSeconds / 3600).toFixed(2)} hours)`);
+  console.log(`   Deviation Threshold: ${deviationPercent}%`);
+  console.log(`   Is Stale: ${isStale ? "🔴 YES" : "🟢 NO"}`);
       } catch (error) {
         console.log(`   ❌ Error querying oracle: ${error instanceof Error ? error.message : String(error)}`);
       }
@@ -146,12 +148,10 @@ async function getStatus(): Promise<void> {
           : null,
       },
       limits: {
-        dailyMintCap: dailyMintCap.toString(),
-        dailyBurnCap: dailyBurnCap.toString(),
-        dailyNetInflowCap: dailyNetInflowCap.toString(),
+        maxDailyMint: maxDailyMint.toString(),
+        maxDailyNetInflows: maxDailyNetInflows.toString(),
         remainingDailyMint: remainingDailyMint.toString(),
-        remainingDailyBurn: remainingDailyBurn.toString(),
-        remainingDailyNetInflow: remainingDailyNetInflow.toString(),
+        remainingDailyNetInflows: remainingDailyNetInflows.toString(),
       },
     };
 

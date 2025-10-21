@@ -38,12 +38,10 @@ class PriceWatcher {
 
   async readNAV(): Promise<NAVRecord | null> {
     try {
-      const oracle = await ethers.getContractAt("NAVOracleAdapter", this.oracleAddress);
+  const oracle = await ethers.getContractAt("NAVOracleAdapter", this.oracleAddress);
 
-      const currentNAV = await oracle.currentNAV();
-      const lastUpdateTimestamp = await oracle.lastUpdateTimestamp();
-      // const _maxStaleness = await oracle.maxStaleness();
-      const isStale = await oracle.isStale();
+  const [currentNAV, lastUpdateTimestamp] = await oracle.getNAV();
+  const isStale = await oracle.isStale();
 
       const now = Math.floor(Date.now() / 1000);
       const staleness = now - Number(lastUpdateTimestamp);
@@ -69,13 +67,13 @@ class PriceWatcher {
             }
           }
         }
-      } catch (error) {
+      } catch (_err) {
         // Ignore errors when reading previous value
       }
 
       return {
         timestamp: new Date().toISOString(),
-        navValue: ethers.formatEther(currentNAV),
+  navValue: ethers.formatEther(currentNAV),
         staleness,
         isStale,
         deviation,
@@ -154,7 +152,7 @@ class PriceWatcher {
         });
         console.log("└─────────────────────┴──────────────┴────────────┴────────────┘");
       }
-    } catch (error) {
+    } catch (_err) {
       // Ignore errors when displaying history
     }
 

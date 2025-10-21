@@ -386,7 +386,7 @@ describe("AsiaFlex Integration Tests", function () {
       await token.setPrice(ethers.parseEther("100"));
 
       // Legacy mint
-      await expect(token.mint(user1.address, ethers.parseEther("500")))
+      await expect(token["mint(address,uint256,bytes32)"](user1.address, ethers.parseEther("500"), ethers.ZeroHash))
         .to.emit(token, "Mint")
         .withArgs(user1.address, ethers.parseEther("500"), ethers.ZeroHash);
 
