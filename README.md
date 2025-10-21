@@ -1,668 +1,732 @@
-# ASIAFLEX — NAV Oracle & Basket Token System
+# ASIAFLEX — Basket-backed token & NAV oracle
 
-[![Build Status](https://github.com/PolPol45/ASIAFLEX/workflows/CI/badge.svg)](https://github.com/PolPol45/ASIAFLEX/actions)
-[![Coverage Status](https://codecov.io/gh/PolPol45/ASIAFLEX/branch/main/graph/badge.svg)](https://codecov.io/gh/PolPol45/ASIAFLEX)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+A decentralized NAV (Net Asset Value) oracle system powering basket-backed ERC20 tokens with real-time multi-source price discovery, validation through cross-checks, and treasury-controlled minting/redemption flows.
 
-## Table of Contents
-
-- [Overview](#overview)
-- [Architecture](#architecture)
-- [Contracts](#contracts)
-- [Price Pipeline](#price-pipeline)
-- [Ops & Monitoring](#ops--monitoring)
-- [E2E Quick Flow](#e2e-quick-flow)
-- [Configuration (.env)](#configuration-env)
-- [Local Dev](#local-dev)
-- [CI/CD](#cicd)
-- [Security & Roles](#security--roles)
-- [Roadmap / Gaps (To-Improve)](#roadmap--gaps-to-improve)
-- [Troubleshooting](#troubleshooting)
+**Branch State:** `docs/readme-full` | **Date:** 2025-10-21 | **Commit:** `84db315`
 
 ---
 
-## Overview
+## How It Works (Overview for Non-Experts)
 
-**ASIAFLEX** provides a decentralized NAV (Net Asset Value) oracle system feeding basket-backed ERC20 tokens (AsiaFlex Token). The system sources prices from multiple providers (Yahoo Finance, Polygon.io), validates them through Google Finance cross-checks, and updates on-chain oracles with median pricing and staleness protection.
+ASIAFLEX creates tokens whose value is backed by a basket of assets (e.g., Gold, BTC, ETH, Forex pairs). The system:
 
-**Purpose**: Enable treasury-backed tokens with real-time price discovery, circuit breakers, and proof-of-reserves mechanics.
+1. **Fetches prices** from multiple providers (Yahoo Finance, Polygon.io) with automatic fallback to cached values when primary sources fail
+2. **Validates prices** against Google Finance to detect anomalies and alert on significant deviations
+3. **Updates NAV on-chain** through a secure oracle with timestamp staleness protection and deviation thresholds
+4. **Mints/Redeems tokens** via treasury-signed attestations that ensure proper reserve backing
 
-**Current Branch State**:
+The basket composition and NAV calculation determine token value. When NAV updates, token holders can mint new tokens (when providing reserves) or redeem tokens (when withdrawing reserves) through the TreasuryController.
 
-- **Date**: 2025-10-21
-- **Commit**: `9e9561a` (copilot/docsreadme-refresh)
-- **Network**: Sepolia testnet (primary deployment target)
+### System Flow Diagram
 
----
+```mermaid
+graph TD
+    A[Price Providers] --> B[Yahoo Finance Primary]
+    A --> C[Polygon.io Fallback]
+    A --> D[Cache Emergency 60s TTL]
 
-## Architecture
+    B --> E[Watcher Script]
+    C --> E
+    D --> E
 
-### System Diagram
+    E --> F[GoogleFinanceChecker]
+    F --> G{Validation}
+    G -->|Pass| H[Normalized to 18 decimals]
+    G -->|Fail| I[Alert threshold exceeded]
 
-```text
-┌─────────────────────────────────────────────────────────────────────┐
-│                         Price Providers                              │
-│  ┌─────────────┐     ┌──────────────┐     ┌──────────────────┐    │
-│  │ Yahoo Finance│────>│ Polygon.io   │────>│ Cache (60s TTL) │    │
-│  │  (Primary)   │     │  (Fallback)  │     │   (Emergency)   │    │
-│  └─────────────┘     └──────────────┘     └──────────────────┘    │
-└─────────────────────────────────────────────────────────────────────┘
-                                 │
-                                 ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                    GoogleFinanceChecker                              │
-│        (Cross-validation: dashed/inverse/XAU override)               │
-│              Alert threshold: 1.0% FX, 1.5% XAU                     │
-└─────────────────────────────────────────────────────────────────────┘
-                                 │
-                                 ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                           Watcher                                    │
-│  - Normalizes prices to 18 decimals                                 │
-│  - Implements fallback chain: Yahoo → Polygon → Cache               │
-│  - Logs: [PROVIDER:*], [FALLBACK→*]                                │
-└─────────────────────────────────────────────────────────────────────┘
-                                 │
-                                 ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                    NAVOracleAdapter (on-chain)                       │
-│  - Timestamp clamp (staleness protection)                           │
-│  - Deviation threshold checks (basis points)                        │
-│  - Role: ORACLE_UPDATER_ROLE required                               │
-└─────────────────────────────────────────────────────────────────────┘
-                                 │
-                                 ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│              AsiaFlexToken & TreasuryController                      │
-│  - ERC20 with EIP-2612 permit                                       │
-│  - Circuit breakers (daily mint/burn caps)                          │
-│  - Treasury-signed attestations for mint/redeem                     │
-└─────────────────────────────────────────────────────────────────────┘
+    H --> J[NAVOracleAdapter On-Chain]
+    J --> K{Staleness & Deviation Check}
+    K -->|Valid| L[NAV Updated]
+    K -->|Invalid| M[Revert InvalidTimestamp / DeviationTooHigh]
+
+    L --> N[AsiaFlexToken]
+    L --> O[TreasuryController]
+
+    N --> P[Mint with Attestation]
+    N --> Q[Burn with Attestation]
+    O --> P
+    O --> Q
+
+    P --> R[Tokens in Wallet]
+    Q --> R
+
+    style F fill:#f9f,stroke:#333,stroke-width:2px
+    style J fill:#bbf,stroke:#333,stroke-width:2px
+    style N fill:#bfb,stroke:#333,stroke-width:2px
 ```
 
-### Components
+### Basket Schema
 
-| Component           | Purpose                                  | Location                     |
-| ------------------- | ---------------------------------------- | ---------------------------- |
-| **Smart Contracts** | Token, Oracle, Treasury controller       | `contracts/**/*.sol`         |
-| **Price Pipeline**  | Yahoo/Polygon providers + Google checker | `scripts/ops/providers/*.ts` |
-| **Asset Mapping**   | Symbol → ticker resolution               | `scripts/ops/assets.map.ts`  |
-| **NAV Watcher**     | Price feed loop with fallback logic      | `tasks/nav/update.ts`        |
-| **Monitor**         | Health checks, alerting, reports         | `scripts/ops/status.ts`      |
-| **E2E Ops**         | Full lifecycle: mint → transfer → redeem | `playground/demo-e2e.ts`     |
+A basket is defined by:
 
----
+- **Asset Symbols**: e.g., `XAUUSD` (Gold), `BTCUSD` (Bitcoin), `EURUSD` (EUR/USD)
+- **Weights**: Proportional allocation to each asset
+- **NAV Calculation**: Weighted average of asset prices, normalized to USD
 
-## Contracts
+The NAV is recalculated when:
 
-### Deployed Contracts (Sepolia)
-
-| Contract Name          | Path                               | Network | Address                        | Key Roles                                           |
-| ---------------------- | ---------------------------------- | ------- | ------------------------------ | --------------------------------------------------- |
-| **AsiaFlexToken**      | `contracts/AsiaFlexToken.sol`      | Sepolia | _See deployments/sepolia.json_ | `TREASURY_ROLE`, `PAUSER_ROLE`, `CAPS_MANAGER_ROLE` |
-| **NAVOracleAdapter**   | `contracts/NAVOracleAdapter.sol`   | Sepolia | _See deployments/sepolia.json_ | `ORACLE_UPDATER_ROLE`, `ORACLE_MANAGER_ROLE`        |
-| **TreasuryController** | `contracts/TreasuryController.sol` | Sepolia | _See deployments/sepolia.json_ | `TREASURY_MANAGER_ROLE`                             |
-| **ProofOfReserve**     | `contracts/ProofOfReserve.sol`     | Sepolia | _See deployments/sepolia.json_ | Reserve attestation tracking                        |
-
-> **Note**: Deployment addresses are stored in `deployments/sepolia.json` after running deploy scripts. If missing, re-run `npm run deploy:sepolia`.
-
-### Oracle Updater Role & MedianOracle
-
-- **ORACLE_UPDATER_ROLE**: Required to call `NAVOracleAdapter.updateNAV(uint256)`.
-- **Timestamp Clamp**: Oracle rejects updates if `block.timestamp` exceeds `lastUpdateTimestamp + stalenessThreshold`.
-- **Deviation Checks**: Price updates must stay within `deviationThreshold` (basis points, default 10%) unless using `--force` flag (emergency only).
+- Asset prices update (via watcher scripts)
+- Basket composition changes (manual rebalancing)
+- Staleness threshold is reached (forcing fresh data)
 
 ---
 
-## Price Pipeline
+## Architecture & Technologies
 
-### Symbol Mapping (`scripts/ops/assets.map.ts`)
+### Core Modules
+
+| Module               | Purpose                                                   | Key Files                    |
+| -------------------- | --------------------------------------------------------- | ---------------------------- |
+| **Smart Contracts**  | Token, Oracle, Treasury controller with role-based access | `contracts/*.sol`            |
+| **Price Pipeline**   | Multi-provider fetching with fallback and validation      | `scripts/ops/providers/*.ts` |
+| **Asset Mapping**    | Symbol → ticker resolution for price lookup               | `scripts/ops/assets.map.ts`  |
+| **NAV Watcher**      | Automated price feed loop with on-chain commit            | `tasks/nav/update.ts`        |
+| **Monitor & Status** | Health checks, alerting, reporting                        | `scripts/ops/status.ts`      |
+| **E2E Operations**   | Full lifecycle: mint → transfer → redeem → burn           | `playground/demo-e2e.ts`     |
+
+### Technologies
+
+- **Blockchain**: Ethereum (Solidity 0.8.26), Sepolia testnet
+- **Dev Framework**: Hardhat 3.x with TypeChain type generation
+- **Runtime**: Node.js 20+, TypeScript 5.x
+- **Web3 Library**: Ethers.js v6
+- **CI/CD**: GitHub Actions (lint → build → test → coverage → Slither)
+- **Price Sources**: Yahoo Finance API, Polygon.io API, Google Finance scraping
+- **Standards**: ERC20, EIP-2612 (permit), EIP-712 (typed signatures), AccessControl
+
+### Policy & Roles
+
+| Role                     | Purpose                                  | Granted To                          |
+| ------------------------ | ---------------------------------------- | ----------------------------------- |
+| `DEFAULT_ADMIN_ROLE`     | Grant/revoke all roles                   | Deployer initially                  |
+| `TREASURY_ROLE`          | Mint/burn tokens with attestations       | Treasury signer, TreasuryController |
+| `PAUSER_ROLE`            | Pause/unpause token operations           | Treasury operations team            |
+| `CAPS_MANAGER_ROLE`      | Adjust daily mint/inflow caps            | Risk management                     |
+| `BLACKLIST_MANAGER_ROLE` | Add/remove addresses from blacklist      | Compliance                          |
+| `ORACLE_UPDATER_ROLE`    | Submit new NAV values                    | Feeder wallet (automated)           |
+| `ORACLE_MANAGER_ROLE`    | Configure staleness/deviation thresholds | Oracle governance                   |
+| `TREASURY_MANAGER_ROLE`  | Update treasury signer                   | Treasury governance                 |
+
+**Validation Policies:**
+
+- **Timestamp Clamp**: NAV updates older than `stalenessThreshold` (default 24h) are rejected
+- **Deviation Threshold**: NAV changes exceeding `deviationThreshold` (default 10%) are rejected unless forced
+- **Prices Normalized**: All prices converted to 18 decimals for on-chain consistency
+- **Degraded Mode**: If all providers fail, cached prices (max 60s old) are used with degraded flag
+
+---
+
+## Code Structure
+
+### Directory Mapping
+
+| Path                     | Responsibility                          | Entry Points                                                                                |
+| ------------------------ | --------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `contracts/`             | Solidity smart contracts                | `AsiaFlexToken.sol`, `NAVOracleAdapter.sol`, `TreasuryController.sol`, `ProofOfReserve.sol` |
+| `contracts/interfaces/`  | Contract interfaces                     | `IAsiaFlexToken.sol`, `INAVOracleAdapter.sol`, `ITreasuryController.sol`                    |
+| `scripts/ops/`           | Operational scripts for token lifecycle | `mint.ts`, `burn.ts`, `pause.ts`, `setCaps.ts`, `status.ts`                                 |
+| `scripts/ops/providers/` | Price provider implementations          | `Provider.ts`, `GoogleFinanceChecker.ts`                                                    |
+| `scripts/deploy/`        | Deployment scripts                      | `00_deploy_asiaflex.ts`                                                                     |
+| `tasks/`                 | Hardhat tasks for NAV and status        | `tasks/nav/update.ts`, `tasks/roles.ts`, `tasks/status.ts`                                  |
+| `playground/`            | E2E demos and testing                   | `demo-e2e.ts`, `price-watcher.ts`                                                           |
+| `test/`                  | Unit and integration tests              | `test/unit/*.test.ts`, `test/integration/*.test.ts`                                         |
+| `deployments/`           | Network deployment configs              | `sepolia.example.json`                                                                      |
+| `.github/workflows/`     | CI/CD pipelines                         | `ci.yml`, `slither.yml`, `codeql.yml`                                                       |
+
+### Asset Map Configuration
+
+**Location**: `scripts/ops/assets.map.ts`
+
+Add new assets by editing:
 
 ```typescript
-YAHOO_TICKERS = {
+export const YAHOO_TICKERS: Record<string, string> = {
   XAUUSD: "GC=F", // Gold futures
-  BTCUSD: "BTC-USD",
-  ETHUSD: "ETH-USD",
-  EURUSD: "EURUSD=X",
-  USDJPY: "JPY=X",
+  BTCUSD: "BTC-USD", // Bitcoin
+  ETHUSD: "ETH-USD", // Ethereum
+  EURUSD: "EURUSD=X", // EUR/USD forex
+  USDJPY: "JPY=X", // USD/JPY forex
+};
+
+export const YAHOO_TICKER_ALIASES: Record<string, string> = {
+  GOLD: "XAUUSD",
+  BITCOIN: "BTCUSD",
+  ETHER: "ETHUSD",
 };
 ```
 
-**Aliases**: `GOLD → XAUUSD`, `BITCOIN → BTCUSD`, etc.
+### Provider Fallback Order
 
-### Provider Priority
+**Priority**: `Yahoo → Polygon → Cache`
 
-1. **Yahoo Finance** (primary): `fetchYahooPrice(ticker)`
-   - Fetches `regularMarketPrice` or falls back to last `close` price.
-   - Cache TTL: 60 seconds.
-2. **Polygon.io** (fallback): `fetchPolygonPrice(symbol)`
-   - Requires `POLYGON_API_KEY` env var.
-   - Supports 6-char FX pairs (e.g., `EURUSD`).
-3. **Cache** (emergency): Last known good price stored in memory.
+1. **Yahoo Finance** (primary): Fetches `regularMarketPrice` or latest `close` from chart data
+2. **Polygon.io** (fallback): Uses for 6-char symbols (e.g., `EURUSD`) and `XAUUSD` when Yahoo fails
+3. **Cache** (emergency): Returns last successful price if < 60s old and `useLastKnown` override is set
 
-**Logs**:
+**Google Finance Checker**:
 
-- `[PROVIDER:Yahoo]` — Success from Yahoo.
-- `[FALLBACK→Polygon]` — Yahoo failed, trying Polygon.
-- `[FALLBACK→Cache]` — All providers failed, using stale cache.
-
-### Normalization
-
-All prices normalized to **18 decimals** before submitting to on-chain oracle:
-
-```typescript
-const navWei = ethers.parseEther(price.toString());
-```
-
-### Google Finance Checker
-
-**Purpose**: Cross-validate provider prices to detect anomalies.
-
-**Logic**:
-
-1. **Straight**: Query `<BASE><QUOTE>` (e.g., `EURUSD`).
-2. **Dashed**: Fallback to `<BASE>-<QUOTE>` (e.g., `EUR-USD`).
-3. **Inverse**: If direct fails, compute `1 / <QUOTE><BASE>` (e.g., `1 / USDEUR`).
-4. **XAU Override**: For `XAUUSD`, parses Gold futures (GCW00/COMEX) from markup.
-
-**Alert Thresholds**:
-
-- FX pairs: **1.0%** deviation.
-- XAU (Gold): **1.5%** deviation.
-
-**Outputs**: `GoogleCheckResult` with `ok`, `diffPct`, `alert`, `resolutionPath`.
+- Runs after each successful provider fetch
+- Supports **dashed symbols** (e.g., `EUR-USD`), **inverse pairs** (e.g., `USDEUR` → `1/EURUSD`), and **overrides** for commodities like `XAUUSD` → `GCW00:COMEX`
+- Alert thresholds: **1.0%** for FX pairs, **1.5%** for XAU (Gold)
+- Logs: `[CHECKER:DASHED]`, `[CHECKER:INVERSE]`, `[CHECKER:OVERRIDE]`, `[CHECKER:ALERT]`
 
 ---
 
-## Ops & Monitoring
+## Setup & Configuration
 
-### NAV Feeder (Once)
+### Requirements
 
-Update oracle once with latest price:
+- **Node.js**: 20.x or later (LTS recommended)
+- **Package Manager**: npm 10.x or pnpm
+- **API Keys**:
+  - Sepolia RPC URL (Infura, Alchemy, or public)
+  - Polygon.io API key (optional, for fallback)
+  - Etherscan API key (for contract verification)
+- **Wallet**: Private key for feeder account with `ORACLE_UPDATER_ROLE`
 
-```bash
-npx hardhat nav:update --nav 105.50 --network sepolia
-```
+### Environment Variables
 
-**Dry-run mode** (no transaction):
+Create `.env` files based on `.env.example`:
 
-```bash
-npx hardhat nav:update --nav 105.50 --network sepolia --dry-run
-```
+| Variable                | Purpose                                 | Example                                 |
+| ----------------------- | --------------------------------------- | --------------------------------------- |
+| `SEPOLIA_RPC_URL`       | Sepolia testnet RPC endpoint            | `https://sepolia.infura.io/v3/YOUR_KEY` |
+| `MAINNET_RPC_URL`       | Mainnet RPC endpoint (for forking)      | `https://mainnet.infura.io/v3/YOUR_KEY` |
+| `POLYGON_RPC_URL`       | Polygon network RPC endpoint            | `https://polygon-rpc.com`               |
+| `PRIVATE_KEY`           | Deployer/feeder wallet private key      | `0x...`                                 |
+| `FEEDER_PRIVATE_KEY`    | Dedicated feeder wallet for NAV updates | `0x...`                                 |
+| `ETHERSCAN_API_KEY`     | Etherscan verification API key          | `YOUR_ETHERSCAN_KEY`                    |
+| `POLYGONSCAN_API_KEY`   | Polygonscan verification API key        | `YOUR_POLYGONSCAN_KEY`                  |
+| `POLYGON_API_KEY`       | Polygon.io price data API key           | `YOUR_POLYGON_KEY`                      |
+| `OPS_ALERT_WEBHOOK`     | Webhook URL for operation alerts        | `https://hooks.slack.com/...`           |
+| `REPORT_GAS`            | Enable gas reporting in tests           | `true` or `false`                       |
+| `COINMARKETCAP_API_KEY` | CoinMarketCap API for gas price in USD  | `YOUR_CMC_KEY`                          |
 
-**Force mode** (bypass deviation checks):
-
-```bash
-npx hardhat nav:update --nav 105.50 --network sepolia --force
-```
-
-### Operational Scripts
-
-#### Mint Tokens
-
-```bash
-npx hardhat run scripts/ops/mint.ts -- \
-  0xRECIPIENT_ADDRESS 1000 0xATTESTATION_HASH \
-  --network sepolia
-```
-
-**Dry-run**:
+**Creating your `.env` file**:
 
 ```bash
-npx hardhat run scripts/ops/mint.ts -- \
-  0xRECIPIENT_ADDRESS 1000 0xATTESTATION_HASH \
-  --dry-run --network sepolia
+# Copy example and fill in your values
+cp .env.example .env
+
+# Edit with your credentials (NEVER commit this file)
+# Required: SEPOLIA_RPC_URL, PRIVATE_KEY
+# Optional: POLYGON_API_KEY, ETHERSCAN_API_KEY
 ```
 
-#### Burn Tokens
-
-```bash
-npx hardhat run scripts/ops/burn.ts -- \
-  0xFROM_ADDRESS 500 0xATTESTATION_HASH \
-  --network sepolia
-```
-
-#### Status Check
-
-```bash
-npm run ops:status -- --network sepolia
-```
-
-Output includes:
-
-- Token supply, caps, paused state
-- Oracle NAV, staleness, deviation threshold
-- Role assignments
-
-### Monitor (Health + Webhook)
-
-Run status checks and send alerts:
-
-```bash
-npm run ops:status -- --network sepolia
-```
-
-**Webhook payload** (if `OPS_ALERT_WEBHOOK` set):
-
-- Token status: supply, caps, paused state.
-- Oracle status: NAV, staleness, deviation.
-- Timestamp and network info.
-
-### Reports
-
-Generated in `reports/` (if directory exists):
-
-| Report File                 | Content                                 | Validator                         |
-| --------------------------- | --------------------------------------- | --------------------------------- |
-| `reports/last_run.json`     | Latest NAV update results               | `npm run validate:reports` (TODO) |
-| `reports/last_inverse.json` | Inverse price resolution fallbacks      | Manual review                     |
-| `reports/e2e_quick.json`    | E2E test results (mint/transfer/redeem) | Schema validation (TODO)          |
-
-**Archival**: Reports timestamped on each run; old reports moved to `reports/archive/` (manual).
+**⚠️ Security**: Never commit `.env` files containing real secrets. Use placeholder values in examples.
 
 ---
 
-## E2E Quick Flow
+## Quick Start (Local & Test)
 
-### Sequence
-
-1. **Mint**: Treasury role mints tokens with signed attestation.
-2. **Transfer**: User transfers tokens to another address.
-3. **Redeem**: User requests redeem (EIP-712 signature required).
-4. **Burn**: Treasury burns tokens after off-chain settlement.
-
-### Run E2E (Dry-Run)
+### Install Dependencies
 
 ```bash
-npm run dev:demo -- --network localhost
-```
+# Install all dependencies
+npm ci --legacy-peer-deps
 
-### Run E2E (Live on Testnet)
-
-```bash
-# Start local node first (Terminal 1)
-npm run dev:node
-
-# Deploy and run demo (Terminal 2)
-npm run dev:demo
-```
-
-**Report Output**: `playground/out/demo-report.json`
-
-```json
-{
-  "timestamp": "2025-10-21T07:30:00Z",
-  "network": "localhost",
-  "operations": [
-    { "type": "mint", "amount": "1000", "txHash": "0xabc..." },
-    { "type": "transfer", "amount": "300", "txHash": "0xdef..." }
-  ],
-  "finalState": { "totalSupply": "1000", "account1Balance": "700" }
-}
-```
-
-**Interpretation**:
-
-- `operations`: Array of executed steps.
-- `finalState`: Token balances and supply after test.
-
-### Gas Overrides
-
-For high-priority transactions (e.g., during network congestion):
-
-```typescript
-const tx = await token.mint(to, amount, attestation, {
-  gasPrice: ethers.parseUnits("50", "gwei"),
-  gasLimit: 500_000,
-});
-```
-
----
-
-## Configuration (.env)
-
-### Required Variables
-
-| Variable              | Purpose                       | Example                                 |
-| --------------------- | ----------------------------- | --------------------------------------- |
-| `SEPOLIA_RPC_URL`     | Sepolia RPC endpoint          | `https://sepolia.infura.io/v3/YOUR_KEY` |
-| `PRIVATE_KEY`         | Deployer/feeder private key   | `0xabc...`                              |
-| `POLYGON_API_KEY`     | Polygon.io API key (optional) | `YOUR_POLYGON_KEY`                      |
-| `ETHERSCAN_API_KEY`   | Etherscan verification        | `YOUR_ETHERSCAN_KEY`                    |
-| `POLYGONSCAN_API_KEY` | Polygonscan verification      | `YOUR_POLYGONSCAN_KEY`                  |
-
-### Optional Variables
-
-| Variable                | Default                   | Purpose                          |
-| ----------------------- | ------------------------- | -------------------------------- |
-| `OPS_ALERT_WEBHOOK`     | (none)                    | Slack/Discord webhook for alerts |
-| `MAINNET_RPC_URL`       | (none)                    | Mainnet RPC for forking          |
-| `POLYGON_RPC_URL`       | `https://polygon-rpc.com` | Polygon network RPC              |
-| `REPORT_GAS`            | `false`                   | Enable gas reporting in tests    |
-| `COINMARKETCAP_API_KEY` | (none)                    | CMC API for gas pricing          |
-
-### Security Notes
-
-- **Never commit** `.env` files to Git. Use `.env.example` as template.
-- Store secrets in secure vaults (AWS Secrets Manager, GitHub Secrets).
-- Rotate keys quarterly.
-
----
-
-## Local Dev
-
-### Setup
-
-```bash
-# Install dependencies
-npm ci
-
-# Compile contracts
+# Compile smart contracts
 npx hardhat compile
 
 # Build TypeScript
 npm run build
 
-# Typecheck
+# Run type checking
 npm run typecheck
 
-# Lint (TypeScript + Solidity)
+# Run linters
 npm run lint
-```
-
-### Run Local Node
-
-```bash
-# Terminal 1: Start Hardhat node
-npm run dev:node
-
-# Terminal 2: Deploy contracts locally
-npm run deploy -- --network localhost
-
-# Terminal 3: Run demo
-npm run dev:demo
 ```
 
 ### Run Tests
 
 ```bash
-# Unit tests
+# Run all tests
 npm test
 
-# Coverage
+# Run tests with gas reporting
+REPORT_GAS=true npm test
+
+# Run coverage
 npm run coverage
-
-# Gas snapshot
-npm run gas-snapshot
 ```
 
 ---
 
-## CI/CD
+## Update Prices & NAV
 
-### Workflow: CI (`ci.yml`)
+### Update NAV via Hardhat Task
 
-**Stages**:
-
-1. **Lint**: TypeScript (`eslint`) + Solidity (`solhint`).
-2. **Build**: Compile contracts + TypeScript.
-3. **Test**: Run Hardhat tests with gas reporting.
-4. **Coverage**: Generate coverage report (upload to Codecov).
-5. **Slither**: Static analysis for security vulnerabilities.
-
-**Trigger**: Push to `main`/`develop`, or PRs targeting these branches.
-
-**Badges**: See top of README.
-
-### Force Run on PR
-
-To trigger CI on your PR:
+Update NAV value on-chain using the Hardhat task:
 
 ```bash
-git commit --allow-empty -m "ci: trigger checks"
-git push
+# Update NAV to $105.50 on Sepolia (dry run)
+npx hardhat nav:update --nav 105.50 --network sepolia --dry-run
+
+# Update NAV with actual on-chain commit
+npx hardhat nav:update --nav 105.50 --network sepolia
+
+# Force update (bypass deviation checks - emergency only)
+npx hardhat nav:update --nav 105.50 --network sepolia --force
 ```
 
-### Additional Workflows
+**Expected Output**:
 
-| Workflow             | Purpose                                    | File                                   |
-| -------------------- | ------------------------------------------ | -------------------------------------- |
-| `release.yml`        | Semantic release (CHANGELOG, version bump) | `.github/workflows/release.yml`        |
-| `slither.yml`        | Weekly security scans                      | `.github/workflows/slither.yml`        |
-| `branch-cleanup.yml` | Auto-delete merged branches                | `.github/workflows/branch-cleanup.yml` |
-| `codeql.yml`         | GitHub CodeQL security scanning            | `.github/workflows/codeql.yml`         |
+```
+🔮 Updating NAV Oracle on sepolia
+👤 Signer: 0x...
+💰 New NAV: $105.50
+🚨 Force Mode: OFF
+🧪 Dry Run: OFF
 
----
+🔍 Pre-flight checks:
+   Oracle Updater Role: ✅
+   Oracle Manager Role: ✅
+   Oracle Paused: ✅
 
-## Security & Roles
+📊 Current Oracle State:
+   Current NAV: $100.00
+   Last Update: 10/21/2025, 12:00:00 PM
+   Staleness Threshold: 86400 seconds (24.00 hours)
+   Deviation Threshold: 10.0%
+   Status: 🟢 FRESH
 
-### Role-Based Access Control
+⚖️  Deviation Analysis:
+   New NAV: $105.50
+   Deviation: 5.5%
+   Within Threshold: ✅
 
-| Role                     | Contract           | Powers                         |
-| ------------------------ | ------------------ | ------------------------------ |
-| `DEFAULT_ADMIN_ROLE`     | All                | Grant/revoke other roles       |
-| `ORACLE_UPDATER_ROLE`    | NAVOracleAdapter   | Update NAV prices              |
-| `ORACLE_MANAGER_ROLE`    | NAVOracleAdapter   | Set thresholds, pause oracle   |
-| `TREASURY_ROLE`          | AsiaFlexToken      | Mint/burn tokens               |
-| `PAUSER_ROLE`            | AsiaFlexToken      | Pause/unpause token operations |
-| `CAPS_MANAGER_ROLE`      | AsiaFlexToken      | Adjust supply/daily caps       |
-| `BLACKLIST_MANAGER_ROLE` | AsiaFlexToken      | Blacklist addresses            |
-| `TREASURY_MANAGER_ROLE`  | TreasuryController | Manage signer, expiration      |
+✅ NAV updated successfully
+Transaction Hash: 0x...
+```
 
-### Least-Privilege Principle
+### Price Watcher Demo (Development)
 
-- Separate keys for feeder (oracle updates) vs. deployer (admin).
-- Use multi-sig wallets (Gnosis Safe) for `DEFAULT_ADMIN_ROLE`.
-- Monitor role grants via `roles:check` task:
+Watch live prices in development mode:
 
 ```bash
-npx hardhat roles:check --network sepolia
+# Run price watcher demo (requires configured assets.map.ts)
+npm run dev:watch-price
 ```
 
-### Pre-Checks (Oracle)
+**Note**: For production price fetching and NAV updates with automatic watcher loops, implement the watcher script as described in the roadmap section. The current implementation provides the foundation with:
 
-Before accepting NAV update:
-
-1. **Non-zero price**: Revert if `newNav == 0` with `InvalidTimestamp(newNav)`.
-2. **Deviation check**: If `abs(newNav - currentNav) / currentNav > deviationThreshold`, revert with `DeviationTooHigh`.
-3. **Timestamp validation**: Ensure `block.timestamp <= lastUpdateTimestamp + stalenessThreshold`.
-
-### Common Reverts
-
-| Error                                                | Cause                        | Fix                                                |
-| ---------------------------------------------------- | ---------------------------- | -------------------------------------------------- |
-| `InvalidTimestamp(uint256)`                          | Price is zero or stale       | Check price source; use `--force` if emergency     |
-| `DeviationTooHigh(uint256, uint256, uint256)`        | Price jump exceeds threshold | Verify market conditions; use `--force` cautiously |
-| `AccessControlUnauthorizedAccount(address, bytes32)` | Missing role                 | Grant role via `npx hardhat roles:grant`           |
-| `Pausable: paused`                                   | Contract paused              | Unpause with `PAUSER_ROLE`                         |
-| `execution reverted` (generic)                       | Multiple causes              | Enable debug with `hardhat run --verbose`          |
+- Provider fallback logic in `scripts/ops/providers/Provider.ts`
+- Google Finance checker in `scripts/ops/providers/GoogleFinanceChecker.ts`
+- Manual NAV updates via `tasks/nav/update.ts`
 
 ---
 
-## Roadmap / Gaps (To-Improve)
+## Monitor & Status
 
-### 1. Auto-sign Redeem (EIP-712)
+### Check System Status
 
-**Current State**: Manual signature generation required for redeem operations.
+Monitor the health of deployed contracts:
 
-**TODO**:
+```bash
+# Check status of all contracts on Sepolia
+npm run ops:status -- --network sepolia
 
-- [ ] Add `--permit-json` flag to `scripts/ops/burn.ts` to read EIP-712 payload.
-- [ ] Add `--e2e-autosign` flag in `playground/demo-e2e.ts` to auto-generate signatures.
-- [ ] Implement helper: `utils/eip712Signer.ts` for TypedData signing.
-- [ ] Add retry logic for signature RPC failures.
+# Expected output: Current NAV, staleness, caps, roles, etc.
+```
 
-**Next Step**: Create `utils/eip712Signer.ts` with `signRedeemRequest()` function.
+### Role Management
 
-### 2. Provider Resilience
+Check and manage roles for contracts:
 
-**Current State**: Basic fallback (Yahoo → Polygon → Cache) but no rate-limit handling or exponential backoff.
+```bash
+# List all roles for contracts
+npx hardhat roles:list --network sepolia
 
-**TODO**:
+# Grant a role (requires DEFAULT_ADMIN_ROLE)
+npx hardhat roles:grant \
+  --contract AsiaFlexToken \
+  --role TREASURY_ROLE \
+  --account 0xAddress \
+  --network sepolia
 
-- [ ] Add exponential backoff in `Provider.ts` for HTTP 429/503 errors.
-- [ ] Implement batching for multi-asset updates (single API call).
-- [ ] Add circuit breaker: disable provider after 5 consecutive failures.
-- [ ] Persist rate-limit state to Redis (multi-instance coordination).
+# Revoke a role
+npx hardhat roles:revoke \
+  --contract AsiaFlexToken \
+  --role TREASURY_ROLE \
+  --account 0xAddress \
+  --network sepolia
+```
 
-**Next Step**: Modify `fetchYahooPrice()` in `scripts/ops/providers/Provider.ts` to retry with backoff.
+### Future: Automated Monitoring & Alerting
 
-### 3. Test Coverage: Monitor/Checker
+**Roadmap Items** (not yet implemented):
 
-**Current State**: No unit tests for `GoogleFinanceChecker.ts` or monitor scripts.
+- [ ] Automated watcher with loop mode and configurable intervals
+- [ ] Webhook integration for alerts on critical events
+- [ ] Report validation and archival system
+- [ ] JSON reports for price fetches and NAV updates
 
-**TODO**:
+When implemented, these features will provide:
 
-- [ ] Add tests in `test/ops/GoogleFinanceChecker.spec.ts`.
-- [ ] Mock HTML responses for inverse/dashed/XAU override scenarios.
-- [ ] Test alert threshold calculations (1.0% vs 1.5%).
-- [ ] Add tests for webhook payload formatting.
+- Continuous price monitoring with fallback handling
+- Alert thresholds for Google Finance deviations
+- Historical report retention and validation
+- Webhook notifications for staleness and provider failures
 
-**Next Step**: Create `test/ops/` directory and add test file.
+---
 
-### 4. Report Schema Validation
+## Get Tokens in Your Wallet (E2E Operational Flow)
 
-**Current State**: Reports generated but no schema validation.
+### Prerequisites
 
-**TODO**:
+1. **Roles Configured**: Ensure your wallet has `TREASURY_ROLE` for mint/burn operations
+2. **NAV Updated**: Recent NAV value on-chain (check with `npm run ops:status -- --network sepolia`)
+3. **Network Setup**: Connected to Sepolia testnet with sufficient ETH for gas
+4. **Deployment Config**: Valid deployment file at `deployments/sepolia.json`
 
-- [ ] Define JSON schemas for `last_run.json`, `e2e_quick.json` in `schemas/`.
-- [ ] Implement `npm run validate:reports` script using `ajv` validator.
-- [ ] Add GitHub Action to validate reports on PR.
-- [ ] Harden webhook payload with schema (Slack Block Kit).
+### E2E Demo (Local Development)
 
-**Next Step**: Install `ajv` and create `scripts/validate-reports.ts`.
+Run the full E2E demo on local Hardhat network:
 
-### 5. NAV Watcher Loop
+```bash
+# Start local Hardhat node
+npm run dev:node
 
-**Current State**: Single-shot NAV update only (`nav:update` task).
+# In another terminal, run E2E demo
+npm run dev:demo
+```
 
-**TODO**:
+This demo will:
 
-- [ ] Create `scripts/ops/nav-watcher.ts` with loop logic.
-- [ ] Add `--interval <seconds>` flag (default: 300).
-- [ ] Implement graceful shutdown (SIGINT/SIGTERM handling).
-- [ ] Add health endpoint (HTTP server on port 3000).
-- [ ] Dockerize watcher for production deployment.
+1. Deploy all contracts locally
+2. Setup roles and initial NAV
+3. Execute mint → transfer → redeem → burn operations
+4. Generate a report with transaction details
 
-**Next Step**: Create `scripts/ops/nav-watcher.ts` skeleton with loop structure.
+### Individual Operations
 
-### 6. Deployment Tracking
+#### Mint Tokens
 
-**Current State**: No `deployments/` directory in repository.
+```bash
+# Mint 100 AFX tokens to recipient
+# Requires: TREASURY_ROLE, daily caps available
+npx hardhat run scripts/ops/mint.ts --network sepolia
 
-**TODO**:
+# Via Hardhat task (with parameters)
+npx hardhat mint --to 0xRecipientAddress --amount 100 --network sepolia
+```
 
-- [ ] Create `deployments/` directory structure.
-- [ ] Add `deployments/sepolia.json` after deployment.
-- [ ] Implement `scripts/deploy/save-deployment.ts` helper.
-- [ ] Add deployment verification script.
+**Parameters**:
 
-**Next Step**: Create `deployments/` directory and add `.gitkeep` file.
+- `--to`: Recipient address
+- `--amount`: Amount in AFX (e.g., `100` for 100 tokens)
+- `--attestation-hash`: Optional reserve proof hash (defaults to zero hash)
+- `--dry-run`: Simulate without committing
+
+**Expected Output**:
+
+```
+🪙 Executing mint operation on sepolia
+👤 Signer: 0x...
+🎯 To: 0x...
+💰 Amount: 100 AFX
+🔍 Pre-flight checks:
+   Treasury Role: ✅
+   Contract Paused: ✅
+   Remaining Daily Mint: 9900 AFX
+✅ Mint successful
+Transaction Hash: 0x...
+```
+
+#### Transfer Tokens
+
+```bash
+# Transfer 50 AFX from your wallet to another address
+npx hardhat run scripts/transfer.js --network sepolia
+```
+
+**Manual Transfer** (via contract ABI):
+
+```javascript
+const token = await ethers.getContractAt("AsiaFlexToken", TOKEN_ADDRESS);
+const tx = await token.transfer("0xRecipient", ethers.parseEther("50"));
+await tx.wait();
+```
+
+#### Redeem Tokens
+
+```bash
+# Redeem 30 AFX (burns tokens, releases reserves)
+# Requires: TREASURY_ROLE, signed attestation from treasury
+npx hardhat run scripts/processRedeemChat.js --network sepolia
+```
+
+**Parameters**:
+
+- `--from`: Token holder address
+- `--amount`: Amount to redeem in AFX
+- `--attestation-hash`: Required reserve withdrawal proof
+
+#### Burn Tokens
+
+```bash
+# Burn 20 AFX tokens from holder
+# Requires: TREASURY_ROLE
+npx hardhat run scripts/ops/burn.ts --network sepolia
+```
+
+**Parameters**:
+
+- `--from`: Address to burn from
+- `--amount`: Amount in AFX to burn
+- `--attestation-hash`: Optional attestation (defaults to zero hash)
+
+### Verify in Wallet (Metamask)
+
+1. **Add Sepolia Network**:
+   - Network Name: Sepolia
+   - RPC URL: Your `SEPOLIA_RPC_URL`
+   - Chain ID: 11155111
+   - Currency Symbol: ETH
+   - Block Explorer: https://sepolia.etherscan.io
+
+2. **Add AsiaFlex Token**:
+   - Token Address: (from `deployments/sepolia.json` → `addresses.AsiaFlexToken`)
+   - Token Symbol: AFX
+   - Decimals: 18
+
+3. **Check Balance**: Your AFX balance should appear after adding the token
+
+### Minimal Test Sequence
+
+```bash
+# 1. Check current status
+npm run ops:status -- --network sepolia
+
+# 2. Mint small amount (1 AFX)
+# Edit scripts/ops/mint.ts to set recipient and amount, then:
+npx hardhat run scripts/ops/mint.ts --network sepolia
+
+# 3. Verify balance on Sepolia Etherscan
+# https://sepolia.etherscan.io/token/TOKEN_ADDRESS?a=YOUR_WALLET
+
+# 4. Transfer to another address (0.5 AFX)
+# Edit scripts/transfer.js with recipient and amount, then:
+npx hardhat run scripts/transfer.js --network sepolia
+
+# 5. Burn from holder (0.5 AFX)
+# Edit scripts/ops/burn.ts with holder and amount, then:
+npx hardhat run scripts/ops/burn.ts --network sepolia
+```
+
+**Expected Test Output**: Balance changes visible in Metamask and on Etherscan within 1-2 blocks.
 
 ---
 
 ## Troubleshooting
 
-### Error: `InvalidTimestamp`
+### Common Errors
 
-**Symptom**: Transaction reverts with `InvalidTimestamp(0)` or `InvalidTimestamp(<low-value>)`.
+#### `execution reverted: InvalidTimestamp`
 
-**Cause**: Price provider returned 0 or oracle detected stale timestamp.
-
-**Fix**:
-
-1. Check provider status: `curl https://query1.finance.yahoo.com/v8/finance/chart/GC=F`
-2. Use `--force` flag (emergency only): `npx hardhat nav:update --nav 105.50 --force`
-3. Investigate with verbose logging: `DEBUG=* npx hardhat nav:update ...`
-
-### Error: `execution reverted`
-
-**Symptom**: Generic revert without specific error.
-
-**Cause**: Often due to missing role or contract paused.
-
-**Fix**:
-
-1. Check roles: `npx hardhat roles:check --network sepolia`
-2. Check paused state: `npx hardhat status:check --network sepolia` or `npm run ops:status`
-3. Enable verbose Hardhat output: `npx hardhat run <script> --verbose`
-
-### Error: Google Parse Fail
-
-**Symptom**: `GoogleCheckResult.error = "parse failed"` in logs.
-
-**Cause**: Google Finance HTML structure changed.
-
-**Fix**:
-
-1. Inspect HTML manually: `curl -A "Mozilla/5.0" "https://www.google.com/finance/quote/EUR-USD:CURRENCY"`
-2. Update regex in `GoogleFinanceChecker.ts` (functions: `extractForexPrice`, `extractOverridePrice`).
-3. Add test case in `test/ops/GoogleFinanceChecker.spec.ts` with new HTML fixture.
-
-### Error: Missing Roles
-
-**Symptom**: `AccessControlUnauthorizedAccount(0x123..., 0xabc...)`
-
-**Cause**: Signer lacks required role.
+**Cause**: NAV update timestamp is too old (exceeds `stalenessThreshold`)
 
 **Fix**:
 
 ```bash
-# Grant ORACLE_UPDATER_ROLE to feeder address
-npx hardhat roles:grant \
-  --contract NAVOracleAdapter \
-  --role ORACLE_UPDATER_ROLE \
-  --account 0xYOUR_FEEDER_ADDRESS \
-  --network sepolia
+# Force fresh price fetch and update
+DOTENV_CONFIG_PATH=scripts/ops/.env.nav-watch OPS_NO_PROMPT=1 \
+  npm run ops:nav:watch -- --once --network sepolia --commit --force
 ```
 
-### Error: Daily Caps Exceeded
+#### `AccessControl: account 0x... is missing role`
 
-**Symptom**: `DailyCapsExceeded(amount, remaining)`
-
-**Cause**: Attempted mint exceeds `maxDailyMint` or `maxDailyNetInflows`.
+**Cause**: Signer wallet doesn't have required role (e.g., `ORACLE_UPDATER_ROLE`, `TREASURY_ROLE`)
 
 **Fix**:
 
-1. Check remaining caps: `npm run ops:status -- --network sepolia`
-2. Wait for daily reset (midnight UTC).
-3. Increase caps (if authorized):
-
 ```bash
-npx hardhat run scripts/ops/setCaps.ts -- \
-  --max-daily-mint 20000 \
-  --network sepolia
+# Check current roles
+npm run ops:status -- --network sepolia
+
+# Grant role (requires DEFAULT_ADMIN_ROLE)
+npx hardhat grant-role --contract NAVOracleAdapter \
+  --role ORACLE_UPDATER_ROLE --account 0xFeederAddress --network sepolia
 ```
 
-### Error: Missing Deployment File
+#### `Provider rate limit exceeded`
 
-**Symptom**: `Deployment file not found for network: sepolia`
+**Cause**: Too many requests to Yahoo Finance or Polygon.io
 
-**Cause**: Contracts not yet deployed on target network.
+**Fix**:
+
+- Increase `--interval` in loop mode (e.g., `--interval 600` for 10 minutes)
+- Implement exponential backoff (roadmap item)
+- Use `--once` for manual updates
+
+#### `Google Finance checker diff too high`
+
+**Cause**: Price from provider differs >1% (FX) or >1.5% (XAU) from Google Finance
+
+**Fix**:
+
+- Check provider data source (might be stale or incorrect ticker)
+- Verify Google Finance resolution path in logs (`[CHECKER:DASHED]`, `[CHECKER:INVERSE]`)
+- If persistent, investigate market conditions or update thresholds
+
+#### `DailyCapsExceeded`
+
+**Cause**: Mint/burn amount exceeds configured daily caps
 
 **Fix**:
 
 ```bash
-# Deploy contracts to Sepolia
-npm run deploy:sepolia
+# Check remaining capacity
+npm run ops:status -- --network sepolia
 
-# Verify deployment
-npm run verify:sepolia
+# Increase caps (requires CAPS_MANAGER_ROLE)
+npx hardhat run scripts/ops/setCaps.ts -- --network sepolia
+# Edit setCaps.ts to set new maxDailyMint or maxDailyNetInflows
+```
+
+#### Contract is Paused
+
+**Cause**: Token or oracle contract is in paused state
+
+**Fix**:
+
+```bash
+# Unpause (requires PAUSER_ROLE or ORACLE_MANAGER_ROLE)
+npx hardhat run scripts/ops/pause.ts -- --network sepolia --unpause
+```
+
+---
+
+## Roadmap / What's Missing (Next Objectives)
+
+### High Priority
+
+- [ ] **Autosign Redeem (EIP-712)**
+  - Variables: `TREASURY_SIGNER_KEY`, `EIP712_DOMAIN`, `PERMIT_JSON_PATH`
+  - CLI flags: `--permit-json`, `--e2e-autosign`
+  - Script: `scripts/ops/sign-permit.ts` for generating EIP-712 signatures
+  - Retry logic for failed redemptions
+
+- [ ] **Rate Limiting & Backoff**
+  - Exponential backoff on provider failures
+  - Request batching for multiple symbols
+  - Circuit breaker after N consecutive failures
+
+- [ ] **Test Coverage Improvements**
+  - Monitor/checker unit tests (`scripts/ops/providers/GoogleFinanceChecker.test.ts`)
+  - E2E integration tests (`test/integration/e2e-flow.test.ts`)
+  - Fuzzing for NAV deviation edge cases
+
+### Medium Priority
+
+- [ ] **Report & Observability Hardening**
+  - Structured logging with severity levels
+  - Enhanced webhook payloads (include provider breakdown, gas usage)
+  - Retention policy automation (purge old reports after 90 days)
+  - Grafana/Prometheus metrics export
+
+- [ ] **Multi-Network Support**
+  - Mainnet deployment scripts with production config
+  - Polygon PoS deployment
+  - Cross-chain NAV synchronization (LayerZero or similar)
+
+- [ ] **Governance Integration**
+  - Timelock for critical parameter changes
+  - Multisig for role grants
+  - On-chain proposal system for basket rebalancing
+
+### Low Priority / Nice-to-Have
+
+- [ ] **Web UI Dashboard**
+  - Real-time NAV display
+  - Mint/redeem interface for users
+  - Historical price charts
+
+- [ ] **Advanced Oracle Features**
+  - TWAP (Time-Weighted Average Price) calculation
+  - Multiple oracle sources with median aggregation
+  - Chainlink integration as fallback
+
+### Known TODOs/FIXMEs in Code
+
+_(None found in current codebase as of 2025-10-21)_
+
+If additional TODOs emerge during development, they will be listed here with:
+
+- **File**: `path/to/file.ts:line`
+- **Issue**: Brief description
+- **Priority**: High/Medium/Low
+
+---
+
+## CI/CD
+
+### GitHub Actions Pipelines
+
+All PRs and pushes to `main`/`develop` trigger automated checks:
+
+| Job          | Purpose                                      | Status Badge                                                                                                                |
+| ------------ | -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| **Lint**     | TypeScript & Solidity linting                | [![CI](https://github.com/PolPol45/ASIAFLEX/workflows/CI/badge.svg)](https://github.com/PolPol45/ASIAFLEX/actions)          |
+| **Build**    | Compile contracts & TypeScript               | Same as above                                                                                                               |
+| **Test**     | Run unit & integration tests                 | Same as above                                                                                                               |
+| **Coverage** | Measure test coverage, upload to Codecov     | [![Coverage](https://codecov.io/gh/PolPol45/ASIAFLEX/branch/main/graph/badge.svg)](https://codecov.io/gh/PolPol45/ASIAFLEX) |
+| **Slither**  | Static analysis for Solidity vulnerabilities | Runs on every PR, fails on high severity                                                                                    |
+
+**Workflow Files**:
+
+- `.github/workflows/ci.yml`: Main CI pipeline
+- `.github/workflows/slither.yml`: Security static analysis
+- `.github/workflows/codeql.yml`: CodeQL security scanning
+- `.github/workflows/release.yml`: Semantic versioning and releases
+
+**Quality Gates**:
+
+- All linters must pass (0 warnings for TS, informational for Solidity)
+- Test coverage must not decrease
+- No high-severity Slither findings
+- Successful build on Node.js 20
+
+**Triggering Manually**:
+
+```bash
+# Re-run failed jobs in GitHub UI or via gh CLI
+gh workflow run ci.yml --ref your-branch
 ```
 
 ---
 
 ## Contributing
 
-See [GUIDA_GIT.md](GUIDA_GIT.md) for Git workflow and branching strategy.
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/your-feature`)
+3. Make minimal, focused changes
+4. Run linters and tests (`npm run lint && npm test`)
+5. Commit with conventional commits (e.g., `feat:`, `fix:`, `docs:`)
+6. Push and open a PR against `main` branch
 
-## License
+**PR Checklist**:
 
-MIT License. See LICENSE file for details.
+- [ ] Tests pass locally
+- [ ] Code is linted and formatted
+- [ ] Documentation updated (if applicable)
+- [ ] No new high-severity security issues (run Slither locally)
 
 ---
 
-**Maintainers**: AsiaFlex Team  
-**Support**: [GitHub Issues](https://github.com/PolPol45/ASIAFLEX/issues)  
-**Docs Version**: 1.0.0 (2025-10-21)
+## License
+
+MIT License - see [LICENSE](./LICENSE) file for details.
+
+---
+
+## Contact & Support
+
+- **Issues**: [GitHub Issues](https://github.com/PolPol45/ASIAFLEX/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/PolPol45/ASIAFLEX/discussions)
+- **Security**: Report vulnerabilities privately via GitHub Security Advisories
+
+---
+
+**Last Updated**: 2025-10-21 | **Branch**: `docs/readme-full` | **Version**: 1.0.1
