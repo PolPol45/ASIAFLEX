@@ -1,5 +1,5 @@
 import { ethers } from "hardhat";
-import { AsiaFlexToken, NAVOracleAdapter, TreasuryController } from "../typechain-types";
+import type { AsiaFlexToken, NAVOracleAdapter, TreasuryController } from "../../typechain-types";
 import * as fs from "fs";
 import * as path from "path";
 
