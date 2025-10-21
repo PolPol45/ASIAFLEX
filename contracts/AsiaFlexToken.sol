@@ -182,10 +182,42 @@ contract AsiaFlexToken is
         _unpause();
     }
 
+    /**
+     * @notice Grant a role with a reason for audit purposes
+     * @param role The role to grant
+     * @param account The account to grant the role to
+     * @param reason The reason for granting the role
+     */
+    function grantRoleWithReason(
+        bytes32 role,
+        address account,
+        string calldata reason
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        grantRole(role, account);
+        emit RoleGrantedWithReason(role, account, msg.sender, reason);
+    }
+
+    /**
+     * @notice Revoke a role with a reason for audit purposes
+     * @param role The role to revoke
+     * @param account The account to revoke the role from
+     * @param reason The reason for revoking the role
+     */
+    function revokeRoleWithReason(
+        bytes32 role,
+        address account,
+        string calldata reason
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        revokeRole(role, account);
+        emit RoleRevokedWithReason(role, account, msg.sender, reason);
+    }
+
     // Supply cap management
     function setSupplyCap(uint256 newCap) external onlyRole(CAPS_MANAGER_ROLE) {
         require(newCap >= totalSupply(), "Cap below current supply");
+        uint256 oldCap = supplyCap;
         supplyCap = newCap;
+        emit SupplyCapUpdated(block.timestamp, oldCap, newCap, msg.sender);
     }
 
     // Legacy compatibility functions - maintain existing interface

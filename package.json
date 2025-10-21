@@ -35,8 +35,12 @@
     "dev:watch-price": "ts-node playground/price-watcher.ts",
     "ops:mint": "hardhat run scripts/ops/mint.ts",
     "ops:burn": "hardhat run scripts/ops/burn.ts",
+    "ops:transfer": "hardhat run scripts/ops/transfer.ts",
     "ops:nav": "hardhat run tasks/nav/update.ts",
     "ops:status": "hardhat run scripts/ops/status.ts",
+    "ops:history": "ts-node scripts/ops/history.ts",
+    "ops:pause": "hardhat run scripts/ops/pause.ts",
+    "ops:setCaps": "hardhat run scripts/ops/setCaps.ts",
     "prepare": "husky install",
     "postinstall": "npm run prepare || true"
   },
