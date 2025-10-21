@@ -202,18 +202,18 @@ Create `.env` files based on `.env.example`:
 | `REPORT_GAS`            | Enable gas reporting in tests           | `true` or `false`                       |
 | `COINMARKETCAP_API_KEY` | CoinMarketCap API for gas price in USD  | `YOUR_CMC_KEY`                          |
 
-**Creating `.env.nav-watch` for watcher scripts**:
+**Creating your `.env` file**:
 
 ```bash
 # Copy example and fill in your values
-cp scripts/ops/.env.nav-watch.example scripts/ops/.env.nav-watch
+cp .env.example .env
 
 # Edit with your credentials (NEVER commit this file)
-# Required: SEPOLIA_RPC_URL, FEEDER_PRIVATE_KEY
-# Optional: POLYGON_API_KEY, OPS_ALERT_WEBHOOK
+# Required: SEPOLIA_RPC_URL, PRIVATE_KEY
+# Optional: POLYGON_API_KEY, ETHERSCAN_API_KEY
 ```
 
-**⚠️ Security**: Never commit `.env*` files containing real secrets. Use placeholder values in examples.
+**⚠️ Security**: Never commit `.env` files containing real secrets. Use placeholder values in examples.
 
 ---
 
@@ -255,104 +255,119 @@ npm run coverage
 
 ## Update Prices & NAV
 
-### Single Run (Dry Run)
+### Update NAV via Hardhat Task
 
-Test price fetching without committing to blockchain:
-
-```bash
-# Fetch prices for configured assets (dry run)
-DOTENV_CONFIG_PATH=scripts/ops/.env.nav-watch \
-  npm run ops:nav -- --once --network sepolia
-
-# Note: Without --commit flag, this only fetches and validates prices
-```
-
-### Single Run with On-Chain Commit
-
-Update NAV on Sepolia testnet:
+Update NAV value on-chain using the Hardhat task:
 
 ```bash
-# Update NAV on-chain (requires ORACLE_UPDATER_ROLE)
-DOTENV_CONFIG_PATH=scripts/ops/.env.nav-watch OPS_NO_PROMPT=1 \
-  npm run ops:nav:watch -- --once --network sepolia --commit
+# Update NAV to $105.50 on Sepolia (dry run)
+npx hardhat nav:update --nav 105.50 --network sepolia --dry-run
+
+# Update NAV with actual on-chain commit
+npx hardhat nav:update --nav 105.50 --network sepolia
+
+# Force update (bypass deviation checks - emergency only)
+npx hardhat nav:update --nav 105.50 --network sepolia --force
 ```
 
 **Expected Output**:
 
 ```
-[PROVIDER:YAHOO] XAUUSD = 2045.30
-[CHECKER:OVERRIDE] XAUUSD = 2045.50
-[PROVIDER:YAHOO] BTCUSD = 43250.75
-[PROVIDER:YAHOO] EURUSD = 1.0892
-🔮 Updating NAV to $XXX.XX...
+🔮 Updating NAV Oracle on sepolia
+👤 Signer: 0x...
+💰 New NAV: $105.50
+🚨 Force Mode: OFF
+🧪 Dry Run: OFF
+
+🔍 Pre-flight checks:
+   Oracle Updater Role: ✅
+   Oracle Manager Role: ✅
+   Oracle Paused: ✅
+
+📊 Current Oracle State:
+   Current NAV: $100.00
+   Last Update: 10/21/2025, 12:00:00 PM
+   Staleness Threshold: 86400 seconds (24.00 hours)
+   Deviation Threshold: 10.0%
+   Status: 🟢 FRESH
+
+⚖️  Deviation Analysis:
+   New NAV: $105.50
+   Deviation: 5.5%
+   Within Threshold: ✅
+
 ✅ NAV updated successfully
 Transaction Hash: 0x...
 ```
 
-### Loop Mode (Continuous Watcher)
+### Price Watcher Demo (Development)
 
-Run watcher in loop with configurable interval:
+Watch live prices in development mode:
 
 ```bash
-# Run watcher every 5 minutes
-DOTENV_CONFIG_PATH=scripts/ops/.env.nav-watch OPS_NO_PROMPT=1 \
-  npm run ops:nav:watch -- --loop --interval 300 --network sepolia --commit
+# Run price watcher demo (requires configured assets.map.ts)
+npm run dev:watch-price
 ```
 
-**Logs**:
+**Note**: For production price fetching and NAV updates with automatic watcher loops, implement the watcher script as described in the roadmap section. The current implementation provides the foundation with:
 
-- `[PROVIDER:*]`: Price source used (Yahoo, Polygon, Cache)
-- `[FALLBACK→*]`: Fallback triggered when primary fails
-- `[CHECKER:*]`: Google Finance validation result
-- `[DEGRADED]`: Using cached price due to provider failures
-- Success/failure per asset with transaction hash or error
-
-**Report Files**: JSON reports saved to `reports/` directory:
-
-- `last_run.json`: Latest price fetch results
-- `last_inverse.json`: Inverse pair resolutions
-- Archive timestamped files for historical tracking
+- Provider fallback logic in `scripts/ops/providers/Provider.ts`
+- Google Finance checker in `scripts/ops/providers/GoogleFinanceChecker.ts`
+- Manual NAV updates via `tasks/nav/update.ts`
 
 ---
 
-## Monitor & Alerting
+## Monitor & Status
 
-### Run Monitor with Webhook Alerts
+### Check System Status
 
-Monitor system health and send alerts on issues:
-
-```bash
-# Run monitor once with commit and webhook notification
-DOTENV_CONFIG_PATH=scripts/ops/.env.nav-watch OPS_NO_PROMPT=1 \
-  npm run nav:monitor -- --once --network sepolia --commit
-
-# Webhook payload includes: NAV value, staleness status, provider success rates
-```
-
-### Validate Reports
-
-Check integrity and consistency of saved reports:
+Monitor the health of deployed contracts:
 
 ```bash
-# Validate all reports in reports/ directory
-npm run validate:reports
+# Check status of all contracts on Sepolia
+npm run ops:status -- --network sepolia
 
-# Expected output: ✅ All reports valid or ⚠️ warnings/errors
+# Expected output: Current NAV, staleness, caps, roles, etc.
 ```
 
-### Report Retention
+### Role Management
 
-**Saved Files**:
+Check and manage roles for contracts:
 
-- `reports/last_run.json`: Most recent execution data
-- `reports/last_inverse.json`: Inverse pair resolution cache
-- `reports/archive/YYYY-MM-DD_HH-mm-ss.json`: Historical snapshots
+```bash
+# List all roles for contracts
+npx hardhat roles:list --network sepolia
 
-**Alert Thresholds**:
+# Grant a role (requires DEFAULT_ADMIN_ROLE)
+npx hardhat roles:grant \
+  --contract AsiaFlexToken \
+  --role TREASURY_ROLE \
+  --account 0xAddress \
+  --network sepolia
 
-- Google Finance diff > 1.0% (FX) or 1.5% (XAU): Warning logged and webhook sent
-- Staleness > 24h: Critical alert
-- All providers failed: Degraded mode alert
+# Revoke a role
+npx hardhat roles:revoke \
+  --contract AsiaFlexToken \
+  --role TREASURY_ROLE \
+  --account 0xAddress \
+  --network sepolia
+```
+
+### Future: Automated Monitoring & Alerting
+
+**Roadmap Items** (not yet implemented):
+
+- [ ] Automated watcher with loop mode and configurable intervals
+- [ ] Webhook integration for alerts on critical events
+- [ ] Report validation and archival system
+- [ ] JSON reports for price fetches and NAV updates
+
+When implemented, these features will provide:
+
+- Continuous price monitoring with fallback handling
+- Alert thresholds for Google Finance deviations
+- Historical report retention and validation
+- Webhook notifications for staleness and provider failures
 
 ---
 
@@ -361,21 +376,28 @@ npm run validate:reports
 ### Prerequisites
 
 1. **Roles Configured**: Ensure your wallet has `TREASURY_ROLE` for mint/burn operations
-2. **NAV Updated**: Recent NAV value on-chain (check with `npm run ops:status`)
+2. **NAV Updated**: Recent NAV value on-chain (check with `npm run ops:status -- --network sepolia`)
 3. **Network Setup**: Connected to Sepolia testnet with sufficient ETH for gas
 4. **Deployment Config**: Valid deployment file at `deployments/sepolia.json`
 
-### E2E Quick Flow (All Operations)
+### E2E Demo (Local Development)
 
-Run mint → transfer → redeem → burn in one script:
+Run the full E2E demo on local Hardhat network:
 
 ```bash
-# Full lifecycle with small amounts (dry-run first)
-npm run ops:e2e -- --network sepolia
+# Start local Hardhat node
+npm run dev:node
 
-# With commit to execute on-chain
-npm run ops:e2e -- --commit --recipient 0xYourWalletAddress --network sepolia
+# In another terminal, run E2E demo
+npm run dev:demo
 ```
+
+This demo will:
+
+1. Deploy all contracts locally
+2. Setup roles and initial NAV
+3. Execute mint → transfer → redeem → burn operations
+4. Generate a report with transaction details
 
 ### Individual Operations
 
