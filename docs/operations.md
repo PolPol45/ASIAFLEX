@@ -2,393 +2,120 @@
 
 ## Overview
 
-This guide provides operational procedures for AsiaFlex token management, including mint/redeem operations, oracle updates, emergency procedures, and routine maintenance.
+This guide describes day-to-day operations for the basket-focused AsiaFlex platform. All procedures reference the tooling under `scripts/ops/` and assume a deployed `BasketManager` contract with connected `BasketToken`s.
 
-## Daily Operations
+## Daily Checklist
 
-### Morning Checklist
-1. **Reserve Reconciliation**
-   - Verify custodial account balances
-   - Check overnight transaction logs
-   - Confirm reserve ratio ≥ 100%
+1. **Reserve Proofs** – Confirm `BasketManager.latestProofHash` reflects the most recent attestation for each basket.
+2. **NAV Freshness** – Ensure every basket's `navTimestamp` is within `stalenessThreshold`.
+3. **Oracle Health** – Inspect oracle metrics (data source connectivity, degraded feeds) and resolve anomalies.
+4. **Pause State** – Verify the manager is not paused unexpectedly; if paused, follow incident response.
 
-2. **Oracle Status Check**
-   - Validate AAXJ price freshness
-   - Check for any deviation alerts
-   - Verify oracle updater connectivity
+Document findings in the operations log at market open.
 
-3. **Circuit Breaker Status**
-   - Review daily limits utilization
-   - Check for any triggered limits
-   - Reset daily counters if needed
+## Registering Baskets
 
-4. **Security Monitoring**
-   - Review security alerts from overnight
-   - Check multisig pending transactions
-   - Validate access control integrity
+Run once per deployment to seed allocations and configs.
 
-### Evening Checklist
-1. **Daily Reports**
-   - Generate daily trading volume report
-   - Update reserve attestation logs
-   - Review transaction gas costs
-
-2. **System Health**
-   - Check all monitoring systems
-   - Verify backup procedures
-   - Update operational logs
-
-## Mint Operations
-
-### Standard Mint Process
-
-#### Prerequisites
-- Valid custodial deposit confirmation
-- Current AAXJ NAV price available
-- Daily mint limit not exceeded
-- Treasury signer available
-
-#### Step-by-Step Procedure
-
-1. **Verify Collateral Deposit**
-   ```bash
-   # Check custodial account for new deposits
-   ./scripts/check-reserves.js --network mainnet
-   ```
-
-2. **Generate Mint Attestation**
-   ```typescript
-   // Off-chain attestation generation
-   const attestation = await generateMintAttestation({
-     to: userAddress,
-     amount: mintAmount,
-     timestamp: Date.now(),
-     reserveHash: calculateReserveHash(currentReserves)
-   });
-   ```
-
-3. **Execute Mint Transaction**
-   ```bash
-   # Submit mint transaction
-   npx hardhat run scripts/mint-tokens.ts --network mainnet \
-     --to 0x... \
-     --amount 1000000000000000000000 \
-     --attestation 0x...
-   ```
-
-4. **Verify Mint Completion**
-   ```bash
-   # Check transaction status and token balance
-   npx hardhat run scripts/verify-mint.ts --network mainnet --txhash 0x...
-   ```
-
-#### Error Handling
-- **Daily Limit Exceeded**: Wait for daily reset or increase limits via governance
-- **Invalid Attestation**: Regenerate with correct parameters
-- **Oracle Stale**: Update oracle price before retry
-- **Insufficient Gas**: Increase gas price and retry
-
-### Large Mint Operations (>$100K)
-
-#### Additional Requirements
-- Secondary verification of collateral
-- Multi-signature approval required
-- Enhanced monitoring during execution
-- Post-transaction audit
-
-#### Enhanced Procedure
-1. **Pre-approval Process**
-   - Risk assessment for large mint
-   - Multi-signature pre-approval
-   - Market impact analysis
-
-2. **Execution Monitoring**
-   - Real-time transaction monitoring
-   - Circuit breaker status tracking
-   - Immediate post-execution verification
-
-## Redeem Operations
-
-### Standard Redeem Process
-
-#### Prerequisites
-- Valid redeem request from authorized entity
-- Current AAXJ NAV price available
-- Sufficient token balance for burn
-- Custodial account ready for withdrawal
-
-#### Step-by-Step Procedure
-
-1. **Validate Redeem Request**
-   ```bash
-   # Verify user token balance and request validity
-   npx hardhat run scripts/validate-redeem.ts --network mainnet \
-     --user 0x... \
-     --amount 1000000000000000000000
-   ```
-
-2. **Generate Redeem Attestation**
-   ```typescript
-   const redeemAttestation = await generateRedeemAttestation({
-     from: userAddress,
-     amount: redeemAmount,
-     timestamp: Date.now(),
-     reserveHash: calculateReserveHash(currentReserves)
-   });
-   ```
-
-3. **Execute Redeem Transaction**
-   ```bash
-   # Submit redeem and burn transaction
-   npx hardhat run scripts/redeem-tokens.ts --network mainnet \
-     --from 0x... \
-     --amount 1000000000000000000000 \
-     --attestation 0x...
-   ```
-
-4. **Process Collateral Withdrawal**
-   ```bash
-   # Initiate custodial account withdrawal
-   ./scripts/withdraw-collateral.js \
-     --amount 1000.00 \
-     --destination 0x...
-   ```
-
-#### Post-Redeem Verification
-- Confirm token burn completed
-- Verify collateral withdrawal initiated
-- Update daily limit counters
-- Log transaction for audit trail
-
-## Oracle Management
-
-### Price Update Process
-
-#### Automated Updates
-```typescript
-// Automated oracle update service
-class OracleUpdater {
-  async updatePrice() {
-    const currentPrice = await fetchAAXJPrice();
-    const lastPrice = await oracle.getCurrentNAV();
-    
-    // Validate deviation threshold
-    const deviation = calculateDeviation(lastPrice, currentPrice);
-    if (deviation > DEVIATION_THRESHOLD) {
-      await this.escalateDeviation(deviation);
-      return;
-    }
-    
-    // Submit price update
-    await oracle.updateNAV(currentPrice);
-  }
-}
-```
-
-#### Manual Price Updates
 ```bash
-# Manual oracle price update
-npx hardhat run scripts/update-oracle.ts --network mainnet \
-  --price 95.50 \
-  --force false
+HARDHAT_NETWORK=sepolia BASKET_MANAGER=0x... TOK_EUFX=0x... TOK_ASFX=0x... \
+TOK_EUBOND=0x... TOK_ASBOND=0x... TOK_EUAS=0x... \
+  npm run ops:register
 ```
 
-#### Emergency Price Updates
+The script:
+
+- Confirms the `BasketToken` manager role is assigned correctly.
+- Writes weighted asset allocations (weights must total 10,000 bps).
+- Sets staleness thresholds and rebalance intervals per basket.
+
+Edit the `ALLOCATIONS` map inside `scripts/ops/register-baskets.ts` before re-running to adjust basket weights or symbols.
+
+## Refreshing NAV
+
+Invoke after publishing fresh oracle prices or on a scheduled cadence.
+
 ```bash
-# Emergency price update (bypasses some checks)
-npx hardhat run scripts/emergency-oracle-update.ts --network mainnet \
-  --price 95.50 \
-  --justification "Market disruption event"
+HARDHAT_NETWORK=sepolia BASKET_MANAGER=0x... npm run ops:refresh
 ```
 
-### Oracle Monitoring
+The script iterates through registered baskets, calling `BasketManager.refreshNAV`. Reverts such as `OracleStale` or `OraclePriceMissing` signal data pipeline issues that must be resolved before proceeding.
 
-#### Health Checks
-- Price staleness monitoring (< 1 hour)
-- Deviation alert system (> 1%)
-- Data source availability
-- Oracle updater connectivity
+## Minting Basket Tokens
 
-#### Alerting Configuration
-```yaml
-oracle_alerts:
-  staleness:
-    threshold: 3600  # 1 hour
-    severity: HIGH
-  deviation:
-    threshold: 100   # 1% in basis points
-    severity: MEDIUM
-  update_failure:
-    threshold: 2     # consecutive failures
-    severity: HIGH
+```bash
+HARDHAT_NETWORK=sepolia \
+  BASKET_MANAGER=0x... \
+  TOK_EUFX=0x... \
+  MINT_BASKET_KEY=EUFX \
+  MINT_BASE_AMOUNT=1000 \
+  MINT_MIN_TOKENS=950 \
+  MINT_BENEFICIARY=0xUser \
+  MINT_PROOF_HASH=0x... \
+  npm run ops:mint
 ```
+
+Operational steps:
+
+1. Custodian publishes a reserve proof and shares the hash + URI.
+2. Operator records the proof on-chain (see "Reserve Proof Lifecycle").
+3. Treasury transfers base asset to the manager and executes the mint script.
+4. Script validates slippage (`min-shares`) and proof freshness before minting.
+
+Transaction logs include NAV, proof hash, base asset consumed, and tokens issued—capture them for audit trails.
+
+## Redeeming Basket Tokens
+
+```bash
+HARDHAT_NETWORK=sepolia \
+  BASKET_MANAGER=0x... \
+  TOK_EUFX=0x... \
+  REDEEM_BASKET_KEY=EUFX \
+  REDEEM_TOKEN_AMOUNT=100 \
+  REDEEM_MIN_BASE=95 \
+  REDEEM_RECIPIENT=0xTreasury \
+  npm run ops:redeem
+```
+
+Flow overview:
+
+- User (or operator) approves `BasketManager` to burn the specified shares.
+- Script calculates the redemption amount using cached NAV and checks the `min-base` guard.
+- On success, base asset is released to the chosen recipient.
+
+## Reserve Proof Lifecycle
+
+1. **Generate Proof** – Custodian compiles reserve evidence and hashes the document.
+2. **On-chain Registration** – Use Hardhat console or a helper script to submit the proof:
+
+   ```bash
+   BASKET_MANAGER=0x...
+   BASKET_ID=0
+   PROOF_HASH=0x...
+   PROOF_URI=https://...
+
+   npx hardhat --network sepolia console <<'INNER'
+   const manager = await ethers.getContractAt("BasketManager", process.env.BASKET_MANAGER);
+   await manager.registerProof(Number(process.env.BASKET_ID), process.env.PROOF_HASH, process.env.PROOF_URI);
+   INNER
+   ```
+
+3. **Mint Execution** – Mint scripts reference the active hash; `BasketManager` marks it consumed to prevent replay.
+4. **Archival** – Store proof documents alongside emitted `ProofRegistered` events for compliance.
 
 ## Emergency Procedures
 
-### Emergency Pause
+- **Pause** – `BasketManager.pause()` (admin only). Trigger when reserves, oracle data, or allocations are in doubt.
+- **Unpause** – Resume with `BasketManager.unpause()` after remediation.
+- **Oracle Replacement** – Deploy a new oracle adapter and call `setPriceOracle`.
+- **Allocation Hotfix** – Use `updateAllocation` to temporarily shift weights toward cash-equivalent assets during incidents.
 
-#### When to Pause
-- Security vulnerability detected
-- Oracle manipulation suspected
-- Significant market disruption
-- Large unauthorized transaction
+Always document root cause, actions taken, and follow-up tasks.
 
-#### Pause Procedure
-```bash
-# Emergency pause all operations
-npx hardhat run scripts/emergency-pause.ts --network mainnet \
-  --reason "Security incident detected"
-```
+## Reporting & Monitoring
 
-#### Communication Protocol
-1. **Immediate**: Notify core team via emergency channels
-2. **15 minutes**: Inform exchange partners
-3. **30 minutes**: Public communication via social media
-4. **1 hour**: Detailed incident report
+- **NAV Updates** – Track via `NAVRefreshed` events or analytic dashboards.
+- **Proof History** – Query `ProofRegistered` events filtered by basket ID.
+- **Mint/Redeem Activity** – Monitor `MintExecuted` and `RedeemExecuted` events to reconcile treasury balances.
 
-### Emergency Unpause
-
-#### Prerequisites
-- Root cause identified and fixed
-- Security team approval
-- Multi-signature confirmation
-- Stakeholder notification complete
-
-#### Unpause Procedure
-```bash
-# Resume operations after emergency
-npx hardhat run scripts/emergency-unpause.ts --network mainnet \
-  --multisig-approval 0x...
-```
-
-### Circuit Breaker Management
-
-#### Temporary Limit Increases
-```bash
-# Increase daily limits for high-demand periods
-npx hardhat run scripts/update-limits.ts --network mainnet \
-  --daily-mint 5000000000000000000000000 \
-  --daily-inflows 5000000000000000000000000 \
-  --duration 86400
-```
-
-#### Emergency Limit Decreases
-```bash
-# Reduce limits during market stress
-npx hardhat run scripts/emergency-limit-reduction.ts --network mainnet \
-  --daily-mint 100000000000000000000000 \
-  --justification "Market volatility protection"
-```
-
-## Monitoring & Alerts
-
-### Key Metrics Dashboard
-
-#### Operational Metrics
-- Total supply vs reserve ratio
-- Daily mint/redeem volumes
-- Circuit breaker utilization
-- Oracle price deviation
-- Transaction success rates
-
-#### Security Metrics
-- Failed transaction patterns
-- Large transaction alerts
-- Access control violations
-- Multi-signature pending transactions
-
-### Alert Escalation Matrix
-
-| Severity | Response Time | Notification |
-|----------|---------------|--------------|
-| LOW | 4 hours | Email |
-| MEDIUM | 1 hour | Email + Slack |
-| HIGH | 15 minutes | Email + Slack + SMS |
-| CRITICAL | 5 minutes | All channels + Phone |
-
-### Monitoring Scripts
-
-#### Health Check Script
-```bash
-#!/bin/bash
-# Daily health check
-./scripts/check-reserves.js
-./scripts/check-oracle.js
-./scripts/check-limits.js
-./scripts/check-security.js
-```
-
-#### Alert Script
-```typescript
-// Automated alert system
-class AlertSystem {
-  async checkMetrics() {
-    const metrics = await this.gatherMetrics();
-    
-    if (metrics.reserveRatio < 1.0) {
-      await this.sendAlert('CRITICAL', 'Reserve ratio below 100%');
-    }
-    
-    if (metrics.oracleStaleness > 3600) {
-      await this.sendAlert('HIGH', 'Oracle price stale');
-    }
-    
-    // ... additional checks
-  }
-}
-```
-
-## Maintenance Procedures
-
-### Weekly Maintenance
-- Review and update operational parameters
-- Security audit of recent transactions
-- Performance optimization analysis
-- Backup and disaster recovery testing
-
-### Monthly Maintenance
-- Comprehensive security review
-- Oracle data source validation
-- Multi-signature key rotation check
-- Reserve attestation audit
-
-### Quarterly Maintenance
-- Full security audit
-- Disaster recovery drill
-- Parameter optimization review
-- Third-party integration testing
-
-## Runbook Commands
-
-### Quick Reference
-```bash
-# Check system status
-npm run status:check
-
-# Emergency pause
-npm run emergency:pause
-
-# Update oracle price
-npm run oracle:update --price 95.50
-
-# Mint tokens
-npm run mint --to 0x... --amount 1000
-
-# Redeem tokens  
-npm run redeem --from 0x... --amount 1000
-
-# Check reserves
-npm run reserves:check
-
-# Generate reports
-npm run reports:daily
-```
-
-### Environment Variables
-```bash
-# Required for operations
-export PRIVATE_KEY="0x..."
-export ETHERSCAN_API_KEY="..."
-export TREASURY_SIGNER="0x..."
-export ORACLE_API_KEY="..."
-```
+Automated alerts should notify operators when NAV data is stale, proofs are missing, or the manager remains paused beyond expected windows.

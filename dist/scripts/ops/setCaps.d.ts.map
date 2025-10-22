@@ -1,0 +1,1 @@
+{"version":3,"file":"setCaps.d.ts","sourceRoot":"","sources":["../../../scripts/ops/setCaps.ts"],"names":[],"mappings":"AAKA,UAAU,aAAa;IACrB,YAAY,CAAC,EAAE,MAAM,CAAC;IACtB,kBAAkB,CAAC,EAAE,MAAM,CAAC;IAC5B,SAAS,CAAC,EAAE,MAAM,CAAC;IACnB,MAAM,CAAC,EAAE,OAAO,CAAC;CAClB;AAsBD,iBAAe,OAAO,CAAC,MAAM,EAAE,aAAa,iBAyH3C;AA6CD,OAAO,EAAE,OAAO,EAAE,CAAC"}
