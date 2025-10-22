@@ -37,4 +37,14 @@ MINT_BENEFICIARY=0xF4569BC729C62a2eD036F0A3fA66EDf842F14574 \
   npm run ops:mint
 ```
 
+Generic mint using new script (preferred):
+
+```bash
+# Example: mint 100 base units of EUFX (will approve if needed)
+HARDHAT_NETWORK=sepolia \
+BASKET_MANAGER=0x... \
+TOK_EUFX=0x... \
+  npx ts-node scripts/ops/mint.ts --basket EUFX --amount 100 --slippageBps 100 --network sepolia
+```
+
 Same for other baskets, set MINT_BASKET_KEY to ASFX, EUBOND, ASBOND, EUAS.

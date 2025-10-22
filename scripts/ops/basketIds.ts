@@ -8,6 +8,4 @@ export const BASKET_ID = {
   EUASFX: 6,
   EUASBOND: 7,
   EUASMIX: 8,
-} as const;
-
-export type BasketIdKey = keyof typeof BASKET_ID;
+};
