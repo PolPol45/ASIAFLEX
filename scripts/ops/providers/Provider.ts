@@ -132,6 +132,41 @@ function rememberLastPrice(keys: string[], value: number, source: PriceSource, t
   }
 }
 
+type YahooChartQuote = {
+  close?: Array<number | null>;
+};
+
+type YahooChartResult = {
+  meta?: {
+    regularMarketPrice?: number;
+    regularMarketTime?: number;
+  };
+  timestamp?: number[];
+  indicators?: {
+    quote?: YahooChartQuote[];
+  };
+};
+
+type YahooResponse = {
+  chart?: {
+    result?: YahooChartResult[];
+  };
+};
+
+function extractYahooResult(value: unknown): YahooChartResult {
+  if (!value || typeof value !== "object") {
+    throw new Error("unexpected yahoo response");
+  }
+
+  const maybeChart = (value as YahooResponse).chart;
+  const result = maybeChart?.result?.[0];
+  if (!result) {
+    throw new Error("missing chart result");
+  }
+
+  return result;
+}
+
 export async function fetchYahooPrice(ticker: string, options?: YahooPriceOptions): Promise<YahooPriceResult> {
   const cached = yahooCache.get(ticker);
   const now = Date.now();
@@ -153,11 +188,8 @@ export async function fetchYahooPrice(ticker: string, options?: YahooPriceOption
     throw new Error(`HTTP ${response.status}`);
   }
 
-  const data = (await response.json()) as any;
-  const result = data?.chart?.result?.[0];
-  if (!result) {
-    throw new Error("missing chart result");
-  }
+  const data: unknown = await response.json();
+  const result = extractYahooResult(data);
 
   let price = result?.meta?.regularMarketPrice;
   let source: PriceSource = "regular";

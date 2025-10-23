@@ -6,7 +6,12 @@ export const YAHOO_TICKERS: Record<string, string> = {
   BTCUSD: "BTC-USD",
   ETHUSD: "ETH-USD",
   EURUSD: "EURUSD=X",
-  USDJPY: "JPY=X",
+  GBPUSD: "GBPUSD=X",
+  CHFUSD: "CHFUSD=X",
+  JPYUSD: "JPYUSD=X",
+  CNYUSD: "CNYUSD=X",
+  KRWUSD: "KRWUSD=X",
+  SGDUSD: "SGDUSD=X",
 };
 
 // Aliases map alternative human-friendly symbols to canonical keys above.

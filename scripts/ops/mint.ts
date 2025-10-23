@@ -1,176 +1,158 @@
-import { ethers } from "hardhat";
-import * as fs from "fs";
-import * as path from "path";
+import "dotenv/config";
+import { ethers } from "./hardhat-runtime";
+import { BASKET_ID } from "./basketIds";
+import { logDryRunNotice, parseDryRunFlag, requireAddressEnv } from "./basket-helpers";
 
-interface MintParams {
-  to: string;
-  amount: string;
-  attestationHash?: string;
-  dryRun?: boolean;
-}
+const ERC20_ABI = [
+  "function decimals() view returns (uint8)",
+  "function balanceOf(address) view returns (uint256)",
+  "function allowance(address,address) view returns (uint256)",
+  "function approve(address,uint256) returns (bool)",
+];
 
-async function loadDeployment(network: string) {
-  const filePath = path.join(__dirname, "../../deployments", `${network}.json`);
-  if (!fs.existsSync(filePath)) {
-    throw new Error(`Deployment file not found for network: ${network}`);
+type ParsedArgs = {
+  readonly basket: string;
+  readonly amount: string;
+  readonly network: string;
+  readonly dryRun: boolean;
+};
+
+function parseArgs(): ParsedArgs {
+  const argv = process.argv.slice(2);
+  let basket = "";
+  let amount = "";
+  let network = process.env.HARDHAT_NETWORK || "sepolia";
+  let dryRun = parseDryRunFlag(argv);
+
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i];
+    if (a === "--dry-run" || a === "--dryRun") {
+      dryRun = true;
+      continue;
+    }
+    if (a === "--basket" && i + 1 < argv.length) {
+      basket = argv[++i];
+    } else if (a === "--amount" && i + 1 < argv.length) {
+      amount = argv[++i];
+    } else if (a === "--network" && i + 1 < argv.length) {
+      network = argv[++i];
+    }
   }
-  return JSON.parse(fs.readFileSync(filePath, "utf8"));
-}
 
-async function saveOperation(network: string, operation: any) {
-  const opsDir = path.join(__dirname, "../../deployments/operations");
-  if (!fs.existsSync(opsDir)) {
-    fs.mkdirSync(opsDir, { recursive: true });
+  if (!basket || !amount) {
+    console.error("Usage: npx ts-node scripts/ops/mint.ts --basket EUFX --amount 100 --network sepolia");
+    process.exit(1);
   }
-
-  const filename = `${network}_mint_${Date.now()}.json`;
-  const filePath = path.join(opsDir, filename);
-  fs.writeFileSync(filePath, JSON.stringify(operation, null, 2));
-  console.log(`📝 Operation saved to ${filePath}`);
+  return { basket: basket.toUpperCase(), amount, network, dryRun };
 }
 
-async function mint(params: MintParams) {
-  const network = await ethers.provider.getNetwork();
+function envVarForBasket(b: string): string {
+  switch (b) {
+    case "EUFX":
+      return "TOK_EUFX";
+    case "ASFX":
+      return "TOK_ASFX";
+    case "EUBOND":
+      return "TOK_EUBOND";
+    case "ASBOND":
+      return "TOK_ASBOND";
+    case "EUASMIX":
+      return "TOK_EUAS";
+    default:
+      throw new Error(`Unsupported basket ${b}`);
+  }
+}
+
+async function main(): Promise<void> {
+  const { basket, amount, network, dryRun } = parseArgs();
+  const managerAddress = requireAddressEnv("BASKET_MANAGER");
+  const tokenEnvName = envVarForBasket(basket);
+  const tokenEnvVal = requireAddressEnv(tokenEnvName);
+
+  // Set network via HARDHAT_NETWORK env for provider selection
+  process.env.HARDHAT_NETWORK = network;
+
   const [signer] = await ethers.getSigners();
+  const manager = await ethers.getContractAt("BasketManager", managerAddress, signer);
 
-  console.log(`🪙 Executing mint operation on ${network.name}`);
-  console.log(`👤 Signer: ${signer.address}`);
-  console.log(`🎯 To: ${params.to}`);
-  console.log(`💰 Amount: ${ethers.formatEther(params.amount)} AFX`);
-  console.log(
-    `🔐 Attestation Hash: ${params.attestationHash || "0x0000000000000000000000000000000000000000000000000000000000000000"}`
+  const id = BASKET_ID[basket as keyof typeof BASKET_ID];
+  const state = await manager.basketState(id);
+  if (state.token.toLowerCase() !== tokenEnvVal.toLowerCase()) {
+    throw new Error(`Basket token mismatch on-chain ${state.token} != env ${tokenEnvVal}`);
+  }
+
+  const basketToken = await ethers.getContractAt("BasketToken", state.token, signer);
+  const baseAssetAddr = await manager.baseAsset();
+  const baseAsset = new ethers.Contract(baseAssetAddr, ERC20_ABI, signer);
+
+  const baseDecimals: number = await baseAsset.decimals();
+  const tokenDecimalsBig: bigint = await basketToken.decimals();
+  const tokenDecimals = Number(tokenDecimalsBig);
+
+  const baseAmount = ethers.parseUnits(amount, baseDecimals);
+  // minTokens calculation is handled via slippage; placeholder removed to avoid unused variable lint
+
+  console.log(`Minting ${basket} with base amount ${amount} (decimals ${baseDecimals})`);
+  const balance = await baseAsset.balanceOf(signer.address);
+  console.log(`Signer base balance: ${ethers.formatUnits(balance, baseDecimals)}`);
+
+  const allowance = await baseAsset.allowance(signer.address, managerAddress);
+  console.log(`Allowance to manager: ${ethers.formatUnits(allowance, baseDecimals)}`);
+  if (allowance < baseAmount) {
+    if (dryRun) {
+      console.log(
+        `[dry-run] Would approve ${ethers.formatUnits(baseAmount, baseDecimals)} to manager ${managerAddress}`
+      );
+    } else {
+      console.log(`Approving ${ethers.formatUnits(baseAmount, baseDecimals)} to manager ${managerAddress}`);
+      const approveTx = await baseAsset.approve(managerAddress, baseAmount);
+      console.log(`Approve tx: ${approveTx.hash}`);
+      await approveTx.wait();
+    }
+  }
+
+  if (balance < baseAmount) {
+    throw new Error(`Insufficient base balance: have ${ethers.formatUnits(balance, baseDecimals)}, need ${amount}`);
+  }
+
+  // derive region and strategy from numeric id
+  const regionVal = Math.floor(Number(id) / 3);
+  const strategyVal = Number(id) % 3;
+
+  const previewTokens = await manager.mint.staticCall(
+    regionVal,
+    strategyVal,
+    baseAmount,
+    0,
+    signer.address,
+    ethers.ZeroHash
   );
+  console.log(`Preview tokens: ${ethers.formatUnits(previewTokens, tokenDecimals)}`);
 
-  const deployment = await loadDeployment(network.name);
-  const token = await ethers.getContractAt("AsiaFlexToken", deployment.addresses.AsiaFlexToken);
-
-  // Pre-flight checks
-  console.log("\n🔍 Pre-flight checks:");
-
-  // Check signer has TREASURY_ROLE
-  const TREASURY_ROLE = await token.TREASURY_ROLE();
-  const hasTreasuryRole = await token.hasRole(TREASURY_ROLE, signer.address);
-  console.log(`   Treasury Role: ${hasTreasuryRole ? "✅" : "❌"}`);
-  if (!hasTreasuryRole && !params.dryRun) {
-    throw new Error("Signer does not have TREASURY_ROLE");
-  }
-
-  // Check contract is not paused
-  const isPaused = await token.paused();
-  console.log(`   Contract Paused: ${isPaused ? "❌" : "✅"}`);
-  if (isPaused && !params.dryRun) {
-    throw new Error("Contract is paused");
-  }
-
-  // Check daily caps
-  const remainingMint = await token.getRemainingDailyMint();
-  const remainingNetInflow = await token.getRemainingDailyNetInflows();
-  console.log(`   Remaining Daily Mint: ${ethers.formatEther(remainingMint)} AFX`);
-  console.log(`   Remaining Daily Net Inflow: ${ethers.formatEther(remainingNetInflow)} AFX`);
-
-  if (BigInt(params.amount) > remainingMint) {
-    console.log(`⚠️  Warning: Amount exceeds daily mint cap`);
-    if (!params.dryRun) {
-      throw new Error("Amount exceeds daily mint cap");
-    }
-  }
-
-  // Check supply cap
-  const totalSupply = await token.totalSupply();
-  const supplyCap = await token.supplyCap();
-  const remainingSupply = supplyCap - totalSupply;
-  console.log(`   Remaining Supply Cap: ${ethers.formatEther(remainingSupply)} AFX`);
-
-  if (BigInt(params.amount) > remainingSupply) {
-    console.log(`⚠️  Warning: Amount exceeds supply cap`);
-    if (!params.dryRun) {
-      throw new Error("Amount exceeds supply cap");
-    }
-  }
-
-  // Check recipient is not blacklisted
-  const isBlacklisted = await token.isBlacklisted(params.to);
-  console.log(`   Recipient Blacklisted: ${isBlacklisted ? "❌" : "✅"}`);
-  if (isBlacklisted && !params.dryRun) {
-    throw new Error("Recipient is blacklisted");
-  }
-
-  if (params.dryRun) {
-    console.log("\n🧪 DRY RUN - No transaction will be sent");
-    console.log("✅ All checks passed - mint would succeed");
+  if (dryRun) {
+    logDryRunNotice();
+    console.log(`[dry-run] Would call BasketManager.mint for basket ${basket}`);
     return;
   }
 
-  // Execute mint
-  console.log("\n🚀 Executing mint...");
-  const attestationHash = params.attestationHash || ethers.ZeroHash;
-
-  try {
-  const tx = await token["mint(address,uint256,bytes32)"](params.to, params.amount, attestationHash);
-    console.log(`📤 Transaction sent: ${tx.hash}`);
-
-    const receipt = await tx.wait();
-    console.log(`✅ Transaction confirmed in block ${receipt?.blockNumber}`);
-
-    // Log new balances
-    const newBalance = await token.balanceOf(params.to);
-    const newTotalSupply = await token.totalSupply();
-    console.log(`📊 New recipient balance: ${ethers.formatEther(newBalance)} AFX`);
-    console.log(`📊 New total supply: ${ethers.formatEther(newTotalSupply)} AFX`);
-
-    // Save operation
-    const operation = {
-      type: "mint",
-      network: network.name,
-      timestamp: new Date().toISOString(),
-      signer: signer.address,
-      params,
-      transaction: {
-        hash: tx.hash,
-        blockNumber: receipt?.blockNumber,
-        gasUsed: receipt?.gasUsed.toString(),
-      },
-      results: {
-        recipientBalance: newBalance.toString(),
-        totalSupply: newTotalSupply.toString(),
-      },
-    };
-
-    await saveOperation(network.name, operation);
-  } catch (error) {
-    console.error("❌ Mint failed:", error);
-    throw error;
-  }
-}
-
-// CLI interface
-async function main() {
-  const args = process.argv.slice(2);
-
-  if (args.length < 2) {
-    console.log("Usage: npx hardhat run scripts/ops/mint.ts -- <to> <amount> [attestationHash] [--dry-run]");
-    console.log("Example: npx hardhat run scripts/ops/mint.ts -- 0x123...abc 1000 0x456...def --dry-run");
-    process.exit(1);
+  const tx = await manager.mint(regionVal, strategyVal, baseAmount, 0, signer.address, ethers.ZeroHash);
+  console.log(`Mint tx: ${tx.hash}`);
+  const receipt = await tx.wait();
+  if (receipt) {
+    console.log(`Confirmed in block ${receipt.blockNumber}, gasUsed ${receipt.gasUsed?.toString()}`);
+  } else {
+    console.log(`Transaction sent, no receipt available`);
   }
 
-  const to = args[0];
-  const amount = ethers.parseEther(args[1]).toString();
-  const attestationHash = args.length > 2 && !args[2].startsWith("--") ? args[2] : undefined;
-  const dryRun = args.includes("--dry-run");
-
-  if (!ethers.isAddress(to)) {
-    console.error("❌ Invalid address:", to);
-    process.exit(1);
-  }
-
-  await mint({ to, amount, attestationHash, dryRun });
+  const tokenBalance = await basketToken.balanceOf(signer.address);
+  console.log(`Beneficiary ${signer.address} ${basket} balance: ${ethers.formatUnits(tokenBalance, tokenDecimals)}`);
 }
 
 if (require.main === module) {
-  main().catch((error) => {
-    console.error("❌ Script failed:", error);
+  main().catch((err) => {
+    console.error("Mint failed:", err);
     process.exitCode = 1;
   });
 }
 
-export { mint };
+export { main };

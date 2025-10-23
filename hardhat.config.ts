@@ -3,7 +3,6 @@ import "@nomicfoundation/hardhat-toolbox";
 import "@typechain/hardhat";
 import "hardhat-gas-reporter";
 import "solidity-coverage";
-import "./tasks";
 
 // Load environment variables
 import * as dotenv from "dotenv";
@@ -26,16 +25,18 @@ const config: HardhatUserConfig = {
   },
   networks: {
     hardhat: {
-      forking: process.env.MAINNET_RPC_URL
-        ? {
-            url: process.env.MAINNET_RPC_URL,
-            blockNumber: undefined, // Latest block
-          }
-        : undefined,
+      forking:
+        process.env.HARDHAT_FORK === "true" && process.env.MAINNET_RPC_URL
+          ? {
+              url: process.env.MAINNET_RPC_URL,
+              blockNumber: undefined, // Latest block
+            }
+          : undefined,
       accounts: {
         mnemonic: "test test test test test test test test test test test junk",
         count: 20,
       },
+      initialBaseFeePerGas: 0,
     },
     localhost: {
       url: "http://127.0.0.1:8545",
