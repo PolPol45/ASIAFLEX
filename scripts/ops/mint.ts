@@ -1,7 +1,7 @@
 import "dotenv/config";
-import { ethers } from "hardhat";
+import { ethers } from "./hardhat-runtime";
 import { BASKET_ID } from "./basketIds";
-import { requireAddressEnv } from "./basket-helpers";
+import { logDryRunNotice, parseDryRunFlag, requireAddressEnv } from "./basket-helpers";
 
 const ERC20_ABI = [
   "function decimals() view returns (uint8)",
@@ -10,14 +10,26 @@ const ERC20_ABI = [
   "function approve(address,uint256) returns (bool)",
 ];
 
-function parseArgs(): { basket: string; amount: string; network: string } {
+type ParsedArgs = {
+  readonly basket: string;
+  readonly amount: string;
+  readonly network: string;
+  readonly dryRun: boolean;
+};
+
+function parseArgs(): ParsedArgs {
   const argv = process.argv.slice(2);
   let basket = "";
   let amount = "";
   let network = process.env.HARDHAT_NETWORK || "sepolia";
+  let dryRun = parseDryRunFlag(argv);
 
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
+    if (a === "--dry-run" || a === "--dryRun") {
+      dryRun = true;
+      continue;
+    }
     if (a === "--basket" && i + 1 < argv.length) {
       basket = argv[++i];
     } else if (a === "--amount" && i + 1 < argv.length) {
@@ -31,7 +43,7 @@ function parseArgs(): { basket: string; amount: string; network: string } {
     console.error("Usage: npx ts-node scripts/ops/mint.ts --basket EUFX --amount 100 --network sepolia");
     process.exit(1);
   }
-  return { basket: basket.toUpperCase(), amount, network };
+  return { basket: basket.toUpperCase(), amount, network, dryRun };
 }
 
 function envVarForBasket(b: string): string {
@@ -52,7 +64,7 @@ function envVarForBasket(b: string): string {
 }
 
 async function main(): Promise<void> {
-  const { basket, amount, network } = parseArgs();
+  const { basket, amount, network, dryRun } = parseArgs();
   const managerAddress = requireAddressEnv("BASKET_MANAGER");
   const tokenEnvName = envVarForBasket(basket);
   const tokenEnvVal = requireAddressEnv(tokenEnvName);
@@ -87,10 +99,16 @@ async function main(): Promise<void> {
   const allowance = await baseAsset.allowance(signer.address, managerAddress);
   console.log(`Allowance to manager: ${ethers.formatUnits(allowance, baseDecimals)}`);
   if (allowance < baseAmount) {
-    console.log(`Approving ${ethers.formatUnits(baseAmount, baseDecimals)} to manager ${managerAddress}`);
-    const approveTx = await baseAsset.approve(managerAddress, baseAmount);
-    console.log(`Approve tx: ${approveTx.hash}`);
-    await approveTx.wait();
+    if (dryRun) {
+      console.log(
+        `[dry-run] Would approve ${ethers.formatUnits(baseAmount, baseDecimals)} to manager ${managerAddress}`
+      );
+    } else {
+      console.log(`Approving ${ethers.formatUnits(baseAmount, baseDecimals)} to manager ${managerAddress}`);
+      const approveTx = await baseAsset.approve(managerAddress, baseAmount);
+      console.log(`Approve tx: ${approveTx.hash}`);
+      await approveTx.wait();
+    }
   }
 
   if (balance < baseAmount) {
@@ -110,6 +128,12 @@ async function main(): Promise<void> {
     ethers.ZeroHash
   );
   console.log(`Preview tokens: ${ethers.formatUnits(previewTokens, tokenDecimals)}`);
+
+  if (dryRun) {
+    logDryRunNotice();
+    console.log(`[dry-run] Would call BasketManager.mint for basket ${basket}`);
+    return;
+  }
 
   const tx = await manager.mint(regionVal, strategyVal, baseAmount, 0, signer.address, ethers.ZeroHash);
   console.log(`Mint tx: ${tx.hash}`);

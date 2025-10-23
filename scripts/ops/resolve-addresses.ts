@@ -1,6 +1,5 @@
 import "dotenv/config";
-import { getAddress, isAddress, JsonRpcProvider } from "ethers";
-import { BasketManager__factory } from "../../typechain-types";
+import { Contract, getAddress, isAddress, JsonRpcProvider } from "ethers";
 import { BASKET_ID } from "./basketIds";
 
 const BASKET_TARGETS = [
@@ -92,6 +91,10 @@ function printTable(rows: TableRow[]): void {
   });
 }
 
+const MANAGER_ABI = [
+  "function basketState(uint8 id) view returns (tuple(address token,uint256 nav,uint256 navTimestamp,uint256 lastRebalance,bytes32 latestProofHash,string latestProofUri))",
+];
+
 async function fetchOnChain(managerAddress: string, network: string): Promise<TableRow[]> {
   const rpcUrl = resolveRpc(network);
   const provider = new JsonRpcProvider(rpcUrl);
@@ -114,7 +117,7 @@ async function fetchOnChain(managerAddress: string, network: string): Promise<Ta
     return rows;
   }
 
-  const manager = BasketManager__factory.connect(normalizedManager, provider);
+  const manager = new Contract(normalizedManager, MANAGER_ABI, provider);
 
   for (const entry of BASKET_TARGETS) {
     const key = entry.key as BasketKey;

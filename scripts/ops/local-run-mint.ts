@@ -6,7 +6,7 @@ async function main(): Promise<void> {
   // Deploy mock base asset and oracle
   const base = await ethers.deployContract("MockERC20", ["USD Stable", "USDS"]);
   await base.waitForDeployment();
-  const oracle = await ethers.deployContract("MockMedianOracle");
+  const oracle = await ethers.deployContract("MockMedianOracle", [deployer.address]);
   await oracle.waitForDeployment();
 
   // Deploy manager

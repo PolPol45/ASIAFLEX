@@ -1,4 +1,6 @@
-import { ethers } from "hardhat";
+import { ethers } from "./hardhat-runtime";
+import type { BasketManager } from "../../typechain-types";
+import { BasketManager__factory } from "../../typechain-types";
 import type { Contract, ContractRunner } from "ethers";
 import {
   BASKETS,
@@ -7,32 +9,47 @@ import {
   toWeightedAssets,
   sumWeights,
   encodeAssetId,
+  logDryRunNotice,
+  parseDryRunFlag,
 } from "./basket-helpers";
 
-type BasketAssets = Record<string, WeightedAssetInput[]>;
+export type BasketAssets = Record<string, WeightedAssetInput[]>;
 
 type OracleContract = Contract & {
   hasPrice(assetId: string): Promise<boolean>;
   getPrice(assetId: string): Promise<[bigint, bigint, number, boolean]>;
 };
 
-const DEFAULT_CONFIG = {
+function resolveAddressEnv(name: string, dryRun: boolean): string | undefined {
+  try {
+    return requireAddressEnv(name);
+  } catch (error) {
+    if (dryRun) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.warn(`ℹ️  Dry-run: ${message}`);
+      return undefined;
+    }
+    throw error;
+  }
+}
+
+export const DEFAULT_CONFIG = {
   stalenessThreshold: 3600n,
   rebalanceInterval: 86_400n,
 };
 
-const ALLOCATIONS: BasketAssets = {
+export const ALLOCATIONS: BasketAssets = {
   EUFX: [
     { symbol: "EURUSD", weight: 4000 },
     { symbol: "GBPUSD", weight: 3000 },
-    { symbol: "USDCHF", weight: 2000 },
-    { symbol: "EURGBP", weight: 1000 },
+    { symbol: "CHFUSD", weight: 2000 },
+    { symbol: "JPYUSD", weight: 1000 },
   ],
   ASFX: [
-    { symbol: "USDJPY", weight: 4000 },
-    { symbol: "USDCNY", weight: 2500 },
-    { symbol: "USDKRW", weight: 2000 },
-    { symbol: "USDSGD", weight: 1500 },
+    { symbol: "JPYUSD", weight: 4000 },
+    { symbol: "CNYUSD", weight: 2500 },
+    { symbol: "KRWUSD", weight: 2000 },
+    { symbol: "SGDUSD", weight: 1500 },
   ],
   EUBOND: [
     { symbol: "BNDX", weight: 6000, isBond: true, accrualBps: 150 },
@@ -44,7 +61,7 @@ const ALLOCATIONS: BasketAssets = {
   ],
   EUAS: [
     { symbol: "EURUSD", weight: 2000 },
-    { symbol: "USDJPY", weight: 2000 },
+    { symbol: "JPYUSD", weight: 2000 },
     { symbol: "XAUUSD", weight: 2000 },
     { symbol: "BTCUSD", weight: 2000 },
     { symbol: "ETHUSD", weight: 2000 },
@@ -55,6 +72,10 @@ function formatSymbolList(inputs: WeightedAssetInput[]): string {
   return inputs
     .map((item) => `${item.symbol}:${item.weight}${item.isBond ? ` (bond/${item.accrualBps ?? 0}bps)` : ""}`)
     .join(", ");
+}
+
+function parseDryRun(): boolean {
+  return parseDryRunFlag();
 }
 
 function buildOracleContract(address: string, runner: ContractRunner): OracleContract {
@@ -80,26 +101,42 @@ async function ensureOracleCoverage(oracle: OracleContract, symbol: string): Pro
 }
 
 async function main(): Promise<void> {
-  const managerAddress = requireAddressEnv("BASKET_MANAGER");
+  const dryRun = parseDryRun();
+  const managerAddress = resolveAddressEnv("BASKET_MANAGER", dryRun);
   const [signer] = await ethers.getSigners();
   const network = await ethers.provider.getNetwork();
 
   console.log("🛠️  Registering baskets on AsiaFlex platform");
   console.log(`🌐 Network: ${network.name} (${network.chainId})`);
   console.log(`👤 Signer: ${signer.address}`);
-  console.log(`🏦 BasketManager: ${managerAddress}`);
+  console.log(`🏦 BasketManager: ${managerAddress ?? "(not configured)"}`);
+  if (dryRun) {
+    logDryRunNotice();
+  }
 
-  const manager = await ethers.getContractAt("BasketManager", managerAddress);
-  const priceOracleAddress: string = await manager.priceOracle();
-  const oracle = buildOracleContract(priceOracleAddress, signer);
+  let manager: BasketManager | undefined;
+  let priceOracleAddress: string | undefined;
+  let oracle: OracleContract | undefined;
 
-  console.log(`🔮 Price oracle: ${priceOracleAddress}`);
+  if (managerAddress) {
+    manager = BasketManager__factory.connect(managerAddress, signer);
+    priceOracleAddress = await manager.priceOracle();
+    oracle = buildOracleContract(priceOracleAddress, signer);
+  } else if (!dryRun) {
+    throw new Error("BASKET_MANAGER is required for non dry-run execution");
+  }
+
+  if (priceOracleAddress) {
+    console.log(`🔮 Price oracle: ${priceOracleAddress}`);
+  } else {
+    console.log("🔮 Price oracle: (not resolved in dry-run)");
+  }
   console.log(
     `⚙️  Default config: staleness=${DEFAULT_CONFIG.stalenessThreshold}s, rebalance=${DEFAULT_CONFIG.rebalanceInterval}s`
   );
 
   for (const basket of BASKETS) {
-    const tokenAddress = requireAddressEnv(basket.tokenEnv);
+    const tokenAddress = resolveAddressEnv(basket.tokenEnv, dryRun);
     const assets = ALLOCATIONS[basket.key];
     if (!assets) {
       throw new Error(`Missing allocation definition for ${basket.key}`);
@@ -111,18 +148,43 @@ async function main(): Promise<void> {
     }
 
     console.log(`\n📦 Basket ${basket.key} (${basket.label})`);
-    console.log(`   Token: ${tokenAddress}`);
+    const tokenLabel = tokenAddress ? tokenAddress : "(not configured)";
+    console.log(`   Token: ${tokenLabel}`);
     console.log(`   Assets: ${formatSymbolList(assets)}`);
 
-    for (const asset of assets) {
-      await ensureOracleCoverage(oracle, asset.symbol);
+    if (oracle) {
+      for (const asset of assets) {
+        await ensureOracleCoverage(oracle, asset.symbol);
+      }
+    } else {
+      console.log("   ℹ️  Skipping oracle coverage checks (oracle unavailable in dry-run)");
     }
 
     const encodedAssets = toWeightedAssets(assets);
+    if (!manager || !tokenAddress) {
+      console.log("   [dry-run] Missing manager/token configuration; would submit allocation on-chain");
+      continue;
+    }
+
     const basketId: bigint = await manager.basketId(basket.region, basket.strategy);
     const state = await manager.basketState(basketId);
-    if (state.token !== ethers.ZeroAddress) {
-      console.log(`   ⚠️  Basket already registered at token ${state.token}, skipping.`);
+    const alreadyRegistered = state.token !== ethers.ZeroAddress;
+
+    if (alreadyRegistered) {
+      console.log(`   ♻️  Basket already registered at token ${state.token}, updating allocation...`);
+      if (dryRun) {
+        console.log("   [dry-run] Would call updateAllocation with new weighted assets");
+      } else {
+        const updateTx = await manager.updateAllocation(basketId, encodedAssets);
+        console.log(`   🔁 Update tx hash: ${updateTx.hash}`);
+        const updateReceipt = await updateTx.wait();
+        console.log(`   ✅ Allocation updated in block ${updateReceipt?.blockNumber ?? "unknown"}`);
+      }
+      continue;
+    }
+
+    if (dryRun) {
+      console.log("   [dry-run] Would call registerBasket with provided configuration");
       continue;
     }
 

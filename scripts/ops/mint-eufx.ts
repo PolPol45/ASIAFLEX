@@ -1,5 +1,12 @@
-import { ethers } from "hardhat";
-import { getBasketDefinition, getBasketId, getBasketManager, requireAddressEnv } from "./basket-helpers";
+import { ethers } from "./hardhat-runtime";
+import {
+  getBasketDefinition,
+  getBasketId,
+  getBasketManager,
+  logDryRunNotice,
+  parseDryRunFlag,
+  requireAddressEnv,
+} from "./basket-helpers";
 
 const BASKET_KEY = "EUFX" as const;
 const ERC20_ABI = [
@@ -43,6 +50,7 @@ async function main(): Promise<void> {
   const basket = getBasketDefinition(BASKET_KEY);
   const managerAddress = requireAddressEnv("BASKET_MANAGER");
   const tokenAddress = requireAddressEnv(basket.tokenEnv);
+  const dryRun = parseDryRunFlag();
 
   const [signer] = await ethers.getSigners();
   const network = await ethers.provider.getNetwork();
@@ -78,6 +86,9 @@ async function main(): Promise<void> {
   console.log(`💵 Base amount: ${ethers.formatUnits(baseAmount, baseDecimals)}`);
   console.log(`🎯 Min tokens out: ${ethers.formatUnits(minTokensOut, tokenDecimals)}`);
   console.log(`🔏 Proof hash: ${proofHash}`);
+  if (dryRun) {
+    logDryRunNotice();
+  }
 
   const balanceBefore = await baseAsset.balanceOf(signer.address);
   const tokenBalanceBefore = await basketToken.balanceOf(beneficiary);
@@ -86,10 +97,16 @@ async function main(): Promise<void> {
 
   const allowance = await baseAsset.allowance(signer.address, managerAddress);
   if (allowance < baseAmount) {
-    console.log(`🔐 Granting allowance ${ethers.formatUnits(baseAmount, baseDecimals)} to BasketManager`);
-    const approveTx = await baseAsset.approve(managerAddress, baseAmount);
-    console.log(`   📤 Approve tx: ${approveTx.hash}`);
-    await approveTx.wait();
+    if (dryRun) {
+      console.log(
+        `[dry-run] Would approve ${ethers.formatUnits(baseAmount, baseDecimals)} base asset to BasketManager ${managerAddress}`
+      );
+    } else {
+      console.log(`🔐 Granting allowance ${ethers.formatUnits(baseAmount, baseDecimals)} to BasketManager`);
+      const approveTx = await baseAsset.approve(managerAddress, baseAmount);
+      console.log(`   📤 Approve tx: ${approveTx.hash}`);
+      await approveTx.wait();
+    }
   }
 
   const preview = await manager.mint.staticCall(
@@ -101,6 +118,11 @@ async function main(): Promise<void> {
     proofHash
   );
   console.log(`🔍 Preview tokens out: ${ethers.formatUnits(preview, tokenDecimals)} (nav-driven estimate)`);
+
+  if (dryRun) {
+    console.log("[dry-run] Would call BasketManager.mint for EUFX");
+    return;
+  }
 
   const tx = await manager.mint(basket.region, basket.strategy, baseAmount, minTokensOut, beneficiary, proofHash);
   console.log(`🚀 Mint transaction sent: ${tx.hash}`);

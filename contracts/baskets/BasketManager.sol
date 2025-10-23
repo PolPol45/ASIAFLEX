@@ -8,6 +8,8 @@ import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 import {BasketToken} from "./BasketToken.sol";
 import {IMedianOracle} from "./interfaces/IMedianOracle.sol";
@@ -63,6 +65,7 @@ contract BasketManager is AccessControlDefaultAdminRules, Pausable, ReentrancyGu
 
     IERC20 public immutable baseAsset;
     IMedianOracle public priceOracle;
+    uint8 public immutable baseAssetDecimals;
 
     event BasketRegistered(
         uint8 indexed basketId,
@@ -106,6 +109,7 @@ contract BasketManager is AccessControlDefaultAdminRules, Pausable, ReentrancyGu
     error InvalidAmount();
     error InvalidSlippage();
     error InvalidBaseAsset();
+    error InvalidNav();
 
     constructor(address admin, uint48 adminDelay, address baseAssetAddress, address priceOracleAddress)
         AccessControlDefaultAdminRules(adminDelay, admin)
@@ -113,6 +117,7 @@ contract BasketManager is AccessControlDefaultAdminRules, Pausable, ReentrancyGu
         if (baseAssetAddress == address(0)) revert InvalidBaseAsset();
         if (priceOracleAddress == address(0)) revert InvalidBaseAsset();
         baseAsset = IERC20(baseAssetAddress);
+        baseAssetDecimals = IERC20Metadata(baseAssetAddress).decimals();
         priceOracle = IMedianOracle(priceOracleAddress);
 
         _grantRole(TREASURY_ROLE, admin);
@@ -223,7 +228,8 @@ contract BasketManager is AccessControlDefaultAdminRules, Pausable, ReentrancyGu
 
         uint8 id = _basketId(region, strategy);
         BasketState storage state = _requireBasket(id);
-        refreshNAV(id);
+        (uint256 nav, uint8 tokenDecimals) = _refreshNavAndTokenDecimals(state, id);
+        if (nav == 0) revert InvalidNav();
 
         if (proofHash != bytes32(0)) {
             if (consumedProofs[proofHash]) revert ProofAlreadyConsumed(proofHash);
@@ -233,12 +239,15 @@ contract BasketManager is AccessControlDefaultAdminRules, Pausable, ReentrancyGu
 
         baseAsset.safeTransferFrom(msg.sender, address(this), baseAmount);
 
-        tokensMinted = (baseAmount * 1e18) / state.nav;
+        uint256 baseScaled = _scaleAmount(baseAmount, baseAssetDecimals, 18);
+        uint256 tokensScaled = Math.mulDiv(baseScaled, 1e18, nav);
+        tokensMinted = _scaleAmount(tokensScaled, 18, tokenDecimals);
+
         if (tokensMinted < minTokensOut) revert InvalidSlippage();
 
         state.token.mint(beneficiary, tokensMinted);
 
-        emit MintExecuted(id, msg.sender, beneficiary, baseAmount, tokensMinted, state.nav, proofHash);
+        emit MintExecuted(id, msg.sender, beneficiary, baseAmount, tokensMinted, nav, proofHash);
     }
 
     function redeem(
@@ -255,16 +264,19 @@ contract BasketManager is AccessControlDefaultAdminRules, Pausable, ReentrancyGu
 
         uint8 id = _basketId(region, strategy);
         BasketState storage state = _requireBasket(id);
-        refreshNAV(id);
+        (uint256 nav, uint8 tokenDecimals) = _refreshNavAndTokenDecimals(state, id);
 
         state.token.burn(msg.sender, tokenAmount);
 
-        baseAmountOut = (tokenAmount * state.nav) / 1e18;
+        uint256 tokenScaled = _scaleAmount(tokenAmount, tokenDecimals, 18);
+        uint256 baseScaled = Math.mulDiv(tokenScaled, nav, 1e18);
+        baseAmountOut = _scaleAmount(baseScaled, 18, baseAssetDecimals);
+
         if (baseAmountOut < minBaseAmount) revert InvalidSlippage();
 
         baseAsset.safeTransfer(recipient, baseAmountOut);
 
-        emit RedeemExecuted(id, msg.sender, recipient, tokenAmount, baseAmountOut, state.nav);
+        emit RedeemExecuted(id, msg.sender, recipient, tokenAmount, baseAmountOut, nav);
     }
 
     function basketId(Region region, Strategy strategy) external pure returns (uint8) {
@@ -311,7 +323,10 @@ contract BasketManager is AccessControlDefaultAdminRules, Pausable, ReentrancyGu
             return (true, backing, 0, nav, timestamp);
         }
 
-        requiredBacking = (supply * nav) / 1e18;
+        uint8 tokenDecimals = state.token.decimals();
+        uint256 supplyScaled = _scaleAmount(supply, tokenDecimals, 18);
+        uint256 requiredBackingScaled = Math.mulDiv(supplyScaled, nav, 1e18);
+        requiredBacking = _scaleAmount(requiredBackingScaled, 18, baseAssetDecimals);
         isHealthy = backing >= requiredBacking;
     }
 
@@ -373,6 +388,36 @@ contract BasketManager is AccessControlDefaultAdminRules, Pausable, ReentrancyGu
     function _requireBasket(uint8 id) internal view returns (BasketState storage state) {
         state = _basketStates[id];
         if (address(state.token) == address(0)) revert BasketNotConfigured(id);
+    }
+
+    function _refreshNavAndTokenDecimals(BasketState storage state, uint8 id)
+        internal
+        returns (uint256 nav, uint8 tokenDecimals)
+    {
+        (nav,) = refreshNAV(id);
+        tokenDecimals = state.token.decimals();
+    }
+
+    function _scaleAmount(uint256 amount, uint8 fromDecimals, uint8 toDecimals) internal pure returns (uint256) {
+        if (fromDecimals == toDecimals) {
+            return amount;
+        }
+
+        if (fromDecimals < toDecimals) {
+            uint256 diff = uint256(toDecimals) - uint256(fromDecimals);
+            uint256 result = amount;
+            for (uint256 i = 0; i < diff; i++) {
+                result *= 10;
+            }
+            return result;
+        }
+
+        uint256 diffDown = uint256(fromDecimals) - uint256(toDecimals);
+        uint256 reduced = amount;
+        for (uint256 i = 0; i < diffDown; i++) {
+            reduced /= 10;
+        }
+        return reduced;
     }
 
     function _basketId(Region region, Strategy strategy) internal pure returns (uint8) {

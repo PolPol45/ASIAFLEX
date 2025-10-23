@@ -1,0 +1,30 @@
+name: Monitoring
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+jobs:
+  watchdog:
+    name: Basket watchdog
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      FORCE_COLOR: 3
+      HARDHAT_NETWORK: sepolia
+      BASKET_MANAGER: ${{ secrets.SEPOLIA_BASKET_MANAGER }}
+      SEPOLIA_RPC_URL: ${{ secrets.SEPOLIA_RPC_URL }}
+      MONITORING_WEBHOOK_URL: ${{ secrets.MONITORING_WEBHOOK_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+      - name: Install dependencies
+        run: npm ci
+      - name: Run monitoring check
+        run: npm run ops:monitor

@@ -133,11 +133,12 @@ Lightweight ERC20 with configurable decimals and unrestricted `mint`. Used to si
 
 ### MockMedianOracle
 
-In-memory price oracle implementing `IMedianOracle`:
+In-memory price oracle implementing `IMedianOracle` with role-gated updates:
 
-- `setPrice(bytes32 assetId, uint256 price, uint256 timestamp)` – configure deterministic price feeds.
-- `getPrice(bytes32 assetId)` – returns price and timestamp, revert if missing.
-- `degradePrice(bytes32 assetId)` – optional helper to mark a feed as degraded for failure testing.
+- Constructor accepts an admin address; the admin is granted both `DEFAULT_ADMIN_ROLE` and `FEED_ROLE`.
+- `setPrice(bytes32 assetId, uint256 price, uint256 timestamp, uint8 decimals, bool degraded)` – restricted to `FEED_ROLE`.
+- `getPrice(bytes32 assetId)` / `getPriceData(bytes32 assetId)` – return the stored tuple or zero values if unset.
+- `hasPrice(bytes32 assetId)` – convenience helper for scripts before configuring allocations.
 
 ## Interfaces
 

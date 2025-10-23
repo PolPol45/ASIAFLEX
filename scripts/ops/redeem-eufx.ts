@@ -1,5 +1,12 @@
-import { ethers } from "hardhat";
-import { getBasketDefinition, getBasketId, getBasketManager, requireAddressEnv } from "./basket-helpers";
+import { ethers } from "./hardhat-runtime";
+import {
+  getBasketDefinition,
+  getBasketId,
+  getBasketManager,
+  logDryRunNotice,
+  parseDryRunFlag,
+  requireAddressEnv,
+} from "./basket-helpers";
 
 const BASKET_KEY = "EUFX" as const;
 const ERC20_ABI = ["function decimals() view returns (uint8)", "function balanceOf(address) view returns (uint256)"];
@@ -25,6 +32,7 @@ async function main(): Promise<void> {
   const basket = getBasketDefinition(BASKET_KEY);
   const managerAddress = requireAddressEnv("BASKET_MANAGER");
   const tokenAddress = requireAddressEnv(basket.tokenEnv);
+  const dryRun = parseDryRunFlag();
 
   const [signer] = await ethers.getSigners();
   const network = await ethers.provider.getNetwork();
@@ -57,6 +65,9 @@ async function main(): Promise<void> {
   console.log(`🎯 Recipient: ${recipient}`);
   console.log(`🎟️  Token amount: ${ethers.formatUnits(tokenAmount, tokenDecimals)}`);
   console.log(`💵 Min base amount: ${ethers.formatUnits(minBaseAmount, baseDecimals)}`);
+  if (dryRun) {
+    logDryRunNotice();
+  }
 
   const tokenBalanceBefore = await basketToken.balanceOf(signer.address);
   const baseBalanceBefore = await baseAsset.balanceOf(recipient);
@@ -75,6 +86,11 @@ async function main(): Promise<void> {
     recipient
   );
   console.log(`🔍 Preview base out: ${ethers.formatUnits(preview, baseDecimals)}`);
+
+  if (dryRun) {
+    console.log("[dry-run] Would call BasketManager.redeem for EUFX");
+    return;
+  }
 
   const tx = await manager.redeem(basket.region, basket.strategy, tokenAmount, minBaseAmount, recipient);
   console.log(`🚀 Redeem transaction sent: ${tx.hash}`);

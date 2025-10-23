@@ -33,6 +33,7 @@
     "ops:refresh:sepolia": "hardhat run scripts/ops/refresh-nav.ts --network sepolia",
     "ops:mint": "hardhat run scripts/ops/mint-basket.ts",
     "ops:resolve": "hardhat run scripts/ops/resolve-addresses.ts",
+    "ops:monitor": "hardhat run scripts/ops/monitor-status.ts",
     "ops:local-mint": "hardhat run scripts/ops/local-run-mint.ts",
     "ops:mint:eufx": "hardhat run scripts/ops/mint-eufx.ts",
     "ops:mint:eufx:sepolia": "hardhat run scripts/ops/mint-eufx.ts --network sepolia",

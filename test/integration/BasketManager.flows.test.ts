@@ -123,7 +123,7 @@ describe("BasketManager multi-basket flows", function () {
     baseAsset = await ethers.deployContract("MockERC20", ["USD Stable", "USDS"]);
     await baseAsset.mint(userSigner.address, ethers.parseEther("1000"));
 
-    oracle = await ethers.deployContract("MockMedianOracle");
+    oracle = (await ethers.deployContract("MockMedianOracle", [adminSigner.address])) as unknown as MockMedianOracle;
     manager = await ethers.deployContract("BasketManager", [
       adminSigner.address,
       0,

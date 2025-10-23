@@ -1,5 +1,6 @@
-import { ethers } from "hardhat";
-import type { BigNumberish, Contract } from "ethers";
+import { ethers } from "./hardhat-runtime";
+import type { BigNumberish } from "ethers";
+import type { BasketManager } from "../../typechain-types";
 
 export const REGION = {
   EU: 0,
@@ -57,7 +58,7 @@ export interface WeightedAssetInput {
 }
 
 export interface WeightedAssetStruct {
-  readonly assetId: BigNumberish;
+  readonly assetId: string; // bytes32 hex string (ethers id)
   readonly weightBps: BigNumberish;
   readonly isBond: boolean;
   readonly accrualBps: BigNumberish;
@@ -84,12 +85,27 @@ export function requireAddressEnv(name: string): string {
   return value;
 }
 
-export async function getBasketManager(address: string): Promise<Contract> {
+export interface DryRunOptions {
+  readonly dryRun: boolean;
+}
+
+export function parseDryRunFlag(argv: readonly string[] = process.argv.slice(2)): boolean {
+  const envValue = process.env.DRY_RUN?.toLowerCase();
+  const envEnabled = envValue === "true" || envValue === "1" || envValue === "yes";
+  const cliEnabled = argv.some((arg) => arg === "--dry-run" || arg === "--dryRun");
+  return envEnabled || cliEnabled;
+}
+
+export function logDryRunNotice(message = "Dry-run mode enabled: no transactions will be broadcast"): void {
+  console.log(`🚧 ${message}`);
+}
+
+export async function getBasketManager(address: string): Promise<BasketManager> {
   return ethers.getContractAt("BasketManager", address);
 }
 
-export async function getBasketId(manager: Contract, basket: BasketDefinition): Promise<bigint> {
-  return manager.basketId(basket.region, basket.strategy);
+export async function getBasketId(manager: BasketManager, basket: BasketDefinition): Promise<bigint> {
+  return manager.basketId(basket.region, basket.strategy) as Promise<bigint>;
 }
 
 export function encodeAssetId(symbol: string): string {

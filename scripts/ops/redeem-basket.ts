@@ -1,10 +1,12 @@
-import { ethers } from "hardhat";
+import { ethers } from "./hardhat-runtime";
 import {
   BASKETS,
   BasketKey,
   getBasketDefinition,
   getBasketId,
   getBasketManager,
+  logDryRunNotice,
+  parseDryRunFlag,
   requireAddressEnv,
 } from "./basket-helpers";
 
@@ -56,6 +58,7 @@ async function main(): Promise<void> {
   const basket = getBasketDefinition(basketKey);
   const managerAddress = requireAddressEnv("BASKET_MANAGER");
   const tokenAddress = requireAddressEnv(basket.tokenEnv);
+  const dryRun = parseDryRunFlag();
 
   const [signer] = await ethers.getSigners();
   const network = await ethers.provider.getNetwork();
@@ -88,6 +91,9 @@ async function main(): Promise<void> {
   console.log(`🎯 Recipient: ${payout}`);
   console.log(`🎟️  Token amount: ${ethers.formatUnits(tokenAmount, tokenDecimals)}`);
   console.log(`💵 Min base amount: ${ethers.formatUnits(minBaseAmount, baseDecimals)}`);
+  if (dryRun) {
+    logDryRunNotice();
+  }
 
   const tokenBalanceBefore = await basketToken.balanceOf(signer.address);
   const recipientBalanceBefore = await baseAsset.balanceOf(payout);
@@ -96,6 +102,11 @@ async function main(): Promise<void> {
 
   const preview = await manager.redeem.staticCall(basket.region, basket.strategy, tokenAmount, minBaseAmount, payout);
   console.log(`🔍 Preview base out: ${ethers.formatUnits(preview, baseDecimals)} (nav-driven estimate)`);
+
+  if (dryRun) {
+    console.log(`[dry-run] Would call BasketManager.redeem for ${basket.key}`);
+    return;
+  }
 
   const tx = await manager.redeem(basket.region, basket.strategy, tokenAmount, minBaseAmount, payout);
   console.log(`🚀 Redeem transaction sent: ${tx.hash}`);
